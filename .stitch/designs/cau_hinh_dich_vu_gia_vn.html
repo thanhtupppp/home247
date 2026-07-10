@@ -1,0 +1,278 @@
+<!DOCTYPE html>
+
+<html lang="vi"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>Cấu hình Dịch vụ &amp; Giá</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script id="tailwind-config">
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    "colors": {
+                        "outline-variant": "#c3c6d7",
+                        "surface-container": "#e5eeff",
+                        "on-primary-container": "#eeefff",
+                        "error-container": "#ffdad6",
+                        "surface-dim": "#cbdbf5",
+                        "secondary-fixed-dim": "#ffb690",
+                        "surface-tint": "#0053db",
+                        "primary-container": "#2563eb",
+                        "surface-container-lowest": "#ffffff",
+                        "on-surface-variant": "#434655",
+                        "tertiary-fixed-dim": "#bec6e0",
+                        "secondary-container": "#fd761a",
+                        "on-primary": "#ffffff",
+                        "surface-bright": "#f8f9ff",
+                        "outline": "#737686",
+                        "on-secondary-container": "#5c2400",
+                        "on-error-container": "#93000a",
+                        "tertiary-container": "#656d84",
+                        "surface-container-low": "#eff4ff",
+                        "on-primary-fixed": "#00174b",
+                        "tertiary-fixed": "#dae2fd",
+                        "primary-fixed-dim": "#b4c5ff",
+                        "background": "#f8f9ff",
+                        "on-secondary": "#ffffff",
+                        "surface-variant": "#d3e4fe",
+                        "on-secondary-fixed-variant": "#783200",
+                        "inverse-primary": "#b4c5ff",
+                        "primary-fixed": "#dbe1ff",
+                        "surface-container-high": "#dce9ff",
+                        "on-tertiary-container": "#eef0ff",
+                        "on-tertiary-fixed": "#131b2e",
+                        "tertiary": "#4d556b",
+                        "surface": "#f8f9ff",
+                        "secondary-fixed": "#ffdbca",
+                        "inverse-on-surface": "#eaf1ff",
+                        "surface-container-highest": "#d3e4fe",
+                        "on-surface": "#0b1c30",
+                        "on-error": "#ffffff",
+                        "error": "#ba1a1a",
+                        "on-secondary-fixed": "#341100",
+                        "on-tertiary-fixed-variant": "#3f465c",
+                        "on-tertiary": "#ffffff",
+                        "secondary": "#9d4300",
+                        "on-primary-fixed-variant": "#003ea8",
+                        "primary": "#004ac6",
+                        "on-background": "#0b1c30",
+                        "inverse-surface": "#213145"
+                    },
+                    "borderRadius": {
+                        "DEFAULT": "0.25rem",
+                        "lg": "0.5rem",
+                        "xl": "0.75rem",
+                        "full": "9999px"
+                    },
+                    "spacing": {
+                        "margin-mobile": "16px",
+                        "margin-desktop": "40px",
+                        "xs": "4px",
+                        "gutter": "24px",
+                        "2xl": "48px",
+                        "xl": "32px",
+                        "sm": "8px",
+                        "md": "16px",
+                        "lg": "24px",
+                        "base": "4px"
+                    },
+                    "fontFamily": {
+                        "numeric-data": ["Inter"],
+                        "display-lg": ["Inter"],
+                        "body-md": ["Inter"],
+                        "body-lg": ["Inter"],
+                        "headline-md": ["Inter"],
+                        "label-md": ["Inter"],
+                        "headline-lg-mobile": ["Inter"],
+                        "headline-lg": ["Inter"],
+                        "title-lg": ["Inter"]
+                    },
+                    "fontSize": {
+                        "numeric-data": ["16px", { "lineHeight": "24px", "fontWeight": "600" }],
+                        "display-lg": ["48px", { "lineHeight": "56px", "letterSpacing": "-0.02em", "fontWeight": "700" }],
+                        "body-md": ["14px", { "lineHeight": "20px", "fontWeight": "400" }],
+                        "body-lg": ["16px", { "lineHeight": "24px", "fontWeight": "400" }],
+                        "headline-md": ["24px", { "lineHeight": "32px", "fontWeight": "600" }],
+                        "label-md": ["12px", { "lineHeight": "16px", "letterSpacing": "0.02em", "fontWeight": "500" }],
+                        "headline-lg-mobile": ["24px", { "lineHeight": "32px", "letterSpacing": "-0.01em", "fontWeight": "600" }],
+                        "headline-lg": ["32px", { "lineHeight": "40px", "letterSpacing": "-0.01em", "fontWeight": "600" }],
+                        "title-lg": ["18px", { "lineHeight": "28px", "fontWeight": "600" }]
+                    }
+                }
+            }
+        }
+    </script>
+<style>
+        body { font-family: 'Inter', sans-serif; }
+    </style>
+<style>
+    body {
+      min-height: max(884px, 100dvh);
+    }
+  </style>
+  </head>
+<body class="bg-background text-on-background min-h-screen flex flex-col pb-24 md:pb-0">
+<!-- TopAppBar -->
+<header class="bg-surface dark:bg-surface-dim border-b border-outline-variant dark:border-outline flat no shadows docked full-width top-0 z-50">
+<div class="flex items-center justify-between px-margin-mobile md:px-margin-desktop h-16 w-full">
+<button class="text-on-surface-variant dark:text-outline-variant hover:bg-surface-container-high dark:hover:bg-surface-container-highest active:scale-95 transition-transform duration-200 p-2 rounded-full flex items-center justify-center">
+<span class="material-symbols-outlined" data-icon="arrow_back">arrow_back</span>
+</button>
+<h1 class="text-headline-md-mobile md:text-headline-md font-headline-md-mobile md:font-headline-md text-primary dark:text-primary-fixed-dim">Cấu hình Dịch vụ &amp; Giá</h1>
+<button class="text-on-surface-variant dark:text-outline-variant hover:bg-surface-container-high dark:hover:bg-surface-container-highest active:scale-95 transition-transform duration-200 p-2 rounded-full flex items-center justify-center invisible">
+<span class="material-symbols-outlined" data-icon="notifications">notifications</span>
+</button>
+</div>
+</header>
+<main class="flex-1 w-full max-w-[1280px] mx-auto px-margin-mobile md:px-margin-desktop py-lg">
+<div class="grid grid-cols-1 gap-lg">
+<!-- Metered Services Section -->
+<section class="bg-surface-container-lowest rounded-xl border border-outline-variant p-md shadow-sm">
+<h2 class="text-title-lg font-title-lg text-on-surface mb-md flex items-center gap-2">
+<span class="material-symbols-outlined text-primary">speed</span>
+                    Dịch vụ theo chỉ số
+                </h2>
+<div class="grid grid-cols-1 md:grid-cols-2 gap-md">
+<!-- Electricity -->
+<div class="flex flex-col gap-sm p-md bg-surface rounded-lg border border-outline-variant hover:border-primary transition-colors group">
+<div class="flex justify-between items-center">
+<label class="text-body-md font-body-md text-on-surface-variant font-medium flex items-center gap-2">
+<span class="material-symbols-outlined text-tertiary-container text-[20px]">bolt</span>
+                                Điện
+                            </label>
+<span class="text-label-md font-label-md text-on-surface-variant bg-surface-container px-2 py-1 rounded-full">VNĐ / kWh</span>
+</div>
+<div class="relative">
+<input class="w-full text-numeric-data font-numeric-data text-on-surface bg-surface-container-lowest border border-outline-variant rounded-lg px-md py-sm focus:border-primary focus:ring-2 focus:ring-primary/20 outline-none transition-all pr-10" type="text" value="3,500"/>
+<span class="material-symbols-outlined absolute right-3 top-1/2 -translate-y-1/2 text-outline-variant group-hover:text-primary transition-colors cursor-pointer" data-icon="edit">edit</span>
+</div>
+</div>
+<!-- Water -->
+<div class="flex flex-col gap-sm p-md bg-surface rounded-lg border border-outline-variant hover:border-primary transition-colors group">
+<div class="flex justify-between items-center">
+<label class="text-body-md font-body-md text-on-surface-variant font-medium flex items-center gap-2">
+<span class="material-symbols-outlined text-tertiary-container text-[20px]">water_drop</span>
+                                Nước
+                            </label>
+<span class="text-label-md font-label-md text-on-surface-variant bg-surface-container px-2 py-1 rounded-full">VNĐ / m3</span>
+</div>
+<div class="relative">
+<input class="w-full text-numeric-data font-numeric-data text-on-surface bg-surface-container-lowest border border-outline-variant rounded-lg px-md py-sm focus:border-primary focus:ring-2 focus:ring-primary/20 outline-none transition-all pr-10" type="text" value="25,000"/>
+<span class="material-symbols-outlined absolute right-3 top-1/2 -translate-y-1/2 text-outline-variant group-hover:text-primary transition-colors cursor-pointer" data-icon="edit">edit</span>
+</div>
+</div>
+</div>
+</section>
+<!-- Fixed Monthly Services Section -->
+<section class="bg-surface-container-lowest rounded-xl border border-outline-variant p-md shadow-sm">
+<h2 class="text-title-lg font-title-lg text-on-surface mb-md flex items-center gap-2">
+<span class="material-symbols-outlined text-primary">event_repeat</span>
+                    Dịch vụ cố định (Hàng tháng)
+                </h2>
+<div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-md">
+<!-- Internet -->
+<div class="flex flex-col gap-sm p-md bg-surface rounded-lg border border-outline-variant hover:border-primary transition-colors group">
+<div class="flex justify-between items-center">
+<label class="text-body-md font-body-md text-on-surface-variant font-medium flex items-center gap-2">
+<span class="material-symbols-outlined text-tertiary-container text-[20px]">wifi</span>
+                                Internet
+                            </label>
+<span class="text-label-md font-label-md text-on-surface-variant bg-surface-container px-2 py-1 rounded-full">VNĐ / Phòng</span>
+</div>
+<div class="relative">
+<input class="w-full text-numeric-data font-numeric-data text-on-surface bg-surface-container-lowest border border-outline-variant rounded-lg px-md py-sm focus:border-primary focus:ring-2 focus:ring-primary/20 outline-none transition-all pr-10" type="text" value="100,000"/>
+<span class="material-symbols-outlined absolute right-3 top-1/2 -translate-y-1/2 text-outline-variant group-hover:text-primary transition-colors cursor-pointer" data-icon="edit">edit</span>
+</div>
+</div>
+<!-- Trash -->
+<div class="flex flex-col gap-sm p-md bg-surface rounded-lg border border-outline-variant hover:border-primary transition-colors group">
+<div class="flex justify-between items-center">
+<label class="text-body-md font-body-md text-on-surface-variant font-medium flex items-center gap-2">
+<span class="material-symbols-outlined text-tertiary-container text-[20px]">delete</span>
+                                Vệ sinh / Rác
+                            </label>
+<span class="text-label-md font-label-md text-on-surface-variant bg-surface-container px-2 py-1 rounded-full">VNĐ / Người</span>
+</div>
+<div class="relative">
+<input class="w-full text-numeric-data font-numeric-data text-on-surface bg-surface-container-lowest border border-outline-variant rounded-lg px-md py-sm focus:border-primary focus:ring-2 focus:ring-primary/20 outline-none transition-all pr-10" type="text" value="30,000"/>
+<span class="material-symbols-outlined absolute right-3 top-1/2 -translate-y-1/2 text-outline-variant group-hover:text-primary transition-colors cursor-pointer" data-icon="edit">edit</span>
+</div>
+</div>
+<!-- Management Fee -->
+<div class="flex flex-col gap-sm p-md bg-surface rounded-lg border border-outline-variant hover:border-primary transition-colors group">
+<div class="flex justify-between items-center">
+<label class="text-body-md font-body-md text-on-surface-variant font-medium flex items-center gap-2">
+<span class="material-symbols-outlined text-tertiary-container text-[20px]">admin_panel_settings</span>
+                                Phí quản lý
+                            </label>
+<span class="text-label-md font-label-md text-on-surface-variant bg-surface-container px-2 py-1 rounded-full">VNĐ / Phòng</span>
+</div>
+<div class="relative">
+<input class="w-full text-numeric-data font-numeric-data text-on-surface bg-surface-container-lowest border border-outline-variant rounded-lg px-md py-sm focus:border-primary focus:ring-2 focus:ring-primary/20 outline-none transition-all pr-10" type="text" value="50,000"/>
+<span class="material-symbols-outlined absolute right-3 top-1/2 -translate-y-1/2 text-outline-variant group-hover:text-primary transition-colors cursor-pointer" data-icon="edit">edit</span>
+</div>
+</div>
+</div>
+</section>
+<!-- Other Fees Section -->
+<section class="bg-surface-container-lowest rounded-xl border border-outline-variant p-md shadow-sm">
+<div class="flex justify-between items-center mb-md">
+<h2 class="text-title-lg font-title-lg text-on-surface flex items-center gap-2">
+<span class="material-symbols-outlined text-primary">local_parking</span>
+                        Các phí khác
+                    </h2>
+<button class="text-primary hover:bg-surface-container-low px-sm py-xs rounded-lg transition-colors flex items-center gap-1 text-label-md font-label-md">
+<span class="material-symbols-outlined text-[18px]">add</span>
+                        Thêm phí
+                    </button>
+</div>
+<div class="grid grid-cols-1 md:grid-cols-2 gap-md">
+<!-- Parking -->
+<div class="flex flex-col gap-sm p-md bg-surface rounded-lg border border-outline-variant hover:border-primary transition-colors group">
+<div class="flex justify-between items-center">
+<label class="text-body-md font-body-md text-on-surface-variant font-medium flex items-center gap-2">
+<span class="material-symbols-outlined text-tertiary-container text-[20px]">two_wheeler</span>
+                                Phí gửi xe máy
+                            </label>
+<span class="text-label-md font-label-md text-on-surface-variant bg-surface-container px-2 py-1 rounded-full">VNĐ / Xe</span>
+</div>
+<div class="relative">
+<input class="w-full text-numeric-data font-numeric-data text-on-surface bg-surface-container-lowest border border-outline-variant rounded-lg px-md py-sm focus:border-primary focus:ring-2 focus:ring-primary/20 outline-none transition-all pr-10" type="text" value="120,000"/>
+<span class="material-symbols-outlined absolute right-3 top-1/2 -translate-y-1/2 text-outline-variant group-hover:text-primary transition-colors cursor-pointer" data-icon="edit">edit</span>
+</div>
+</div>
+</div>
+</section>
+<!-- Action Area -->
+<div class="flex justify-end pt-md">
+<button class="bg-primary-container text-on-primary font-title-lg text-title-lg px-xl py-sm rounded-lg hover:bg-primary transition-colors flex items-center gap-2 active:scale-95 duration-150 shadow-sm w-full md:w-auto justify-center">
+<span class="material-symbols-outlined">save</span>
+                    Lưu thay đổi
+                </button>
+</div>
+</div>
+</main>
+<!-- BottomNavBar (Hidden on desktop, shown on mobile) -->
+<nav class="md:hidden bg-surface-container-lowest dark:bg-inverse-surface border-t border-outline-variant dark:border-outline shadow-md fixed bottom-0 left-0 w-full z-50 flex justify-around items-center px-base py-sm">
+<a class="flex flex-col items-center justify-center text-on-surface-variant dark:text-outline-variant px-4 py-1.5 hover:bg-surface-container dark:hover:bg-surface-variant active:scale-95 transition-all duration-150 rounded-xl" href="#">
+<span class="material-symbols-outlined" data-icon="dashboard">dashboard</span>
+<span class="font-label-md text-label-md mt-1">Tổng quan</span>
+</a>
+<a class="flex flex-col items-center justify-center text-on-surface-variant dark:text-outline-variant px-4 py-1.5 hover:bg-surface-container dark:hover:bg-surface-variant active:scale-95 transition-all duration-150 rounded-xl" href="#">
+<span class="material-symbols-outlined" data-icon="door_front">door_front</span>
+<span class="font-label-md text-label-md mt-1">Phòng</span>
+</a>
+<a class="flex flex-col items-center justify-center text-on-surface-variant dark:text-outline-variant px-4 py-1.5 hover:bg-surface-container dark:hover:bg-surface-variant active:scale-95 transition-all duration-150 rounded-xl" href="#">
+<span class="material-symbols-outlined" data-icon="receipt_long">receipt_long</span>
+<span class="font-label-md text-label-md mt-1">Hóa đơn</span>
+</a>
+<a class="flex flex-col items-center justify-center text-on-surface-variant dark:text-outline-variant px-4 py-1.5 hover:bg-surface-container dark:hover:bg-surface-variant active:scale-95 transition-all duration-150 rounded-xl" href="#">
+<span class="material-symbols-outlined" data-icon="group">group</span>
+<span class="font-label-md text-label-md mt-1">Khách thuê</span>
+</a>
+</nav>
+</body></html>

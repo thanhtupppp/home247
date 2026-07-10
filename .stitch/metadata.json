@@ -1,0 +1,208 @@
+{
+  "projectId": "4367466681528895838",
+  "title": "Home247 Property Management",
+  "deviceType": "MOBILE",
+  "lastSyncTime": "2026-07-10T17:27:45.466Z",
+  "screens": {
+    "e8dee5f35fee4209aa5e0b426e547756": {
+      "id": "e8dee5f35fee4209aa5e0b426e547756",
+      "label": "Chi tiết Hóa đơn (VN)",
+      "pageName": "chi_tiet_hoa_on_vn",
+      "htmlPath": ".stitch/designs/chi_tiet_hoa_on_vn.html",
+      "pngPath": ".stitch/designs/chi_tiet_hoa_on_vn.png",
+      "width": "780",
+      "height": "2356",
+      "deviceType": "MOBILE"
+    },
+    "77411cce8fb14afca094597fb77339af": {
+      "id": "77411cce8fb14afca094597fb77339af",
+      "label": "Thống kê Doanh thu (VN)",
+      "pageName": "thong_ke_doanh_thu_vn",
+      "htmlPath": ".stitch/designs/thong_ke_doanh_thu_vn.html",
+      "pngPath": ".stitch/designs/thong_ke_doanh_thu_vn.png",
+      "width": "780",
+      "height": "4030",
+      "deviceType": "MOBILE"
+    },
+    "97d4371f5466464a8a0b7cf565446acc": {
+      "id": "97d4371f5466464a8a0b7cf565446acc",
+      "label": "Lịch sử Giao dịch (VN)",
+      "pageName": "lich_su_giao_dich_vn",
+      "htmlPath": ".stitch/designs/lich_su_giao_dich_vn.html",
+      "pngPath": ".stitch/designs/lich_su_giao_dich_vn.png",
+      "width": "780",
+      "height": "2400",
+      "deviceType": "MOBILE"
+    },
+    "31f2bfef0d1d4b61a5e0c7f29215984e": {
+      "id": "31f2bfef0d1d4b61a5e0c7f29215984e",
+      "label": "Chi tiết Phòng & Hợp đồng",
+      "pageName": "chi_tiet_phong_hop_ong",
+      "htmlPath": ".stitch/designs/chi_tiet_phong_hop_ong.html",
+      "pngPath": ".stitch/designs/chi_tiet_phong_hop_ong.png",
+      "width": "780",
+      "height": "3586",
+      "deviceType": "MOBILE"
+    },
+    "c791d72ee3174dafb18e34163e5f3483": {
+      "id": "c791d72ee3174dafb18e34163e5f3483",
+      "label": "Bảng điều khiển Home247 (VN)",
+      "pageName": "bang_ieu_khien_home247_vn",
+      "htmlPath": ".stitch/designs/bang_ieu_khien_home247_vn.html",
+      "pngPath": ".stitch/designs/bang_ieu_khien_home247_vn.png",
+      "width": "780",
+      "height": "4780",
+      "deviceType": "MOBILE"
+    },
+    "8aad40d473f44b53a4410b421307d996": {
+      "id": "8aad40d473f44b53a4410b421307d996",
+      "label": "Hóa đơn & Thanh toán (VN)",
+      "pageName": "hoa_on_thanh_toan_vn",
+      "htmlPath": ".stitch/designs/hoa_on_thanh_toan_vn.html",
+      "pngPath": ".stitch/designs/hoa_on_thanh_toan_vn.png",
+      "width": "780",
+      "height": "3160",
+      "deviceType": "MOBILE"
+    },
+    "dd9940d2c36340e386811656c5171320": {
+      "id": "dd9940d2c36340e386811656c5171320",
+      "label": "Quản lý Khách thuê (VN)",
+      "pageName": "quan_ly_khach_thue_vn",
+      "htmlPath": ".stitch/designs/quan_ly_khach_thue_vn.html",
+      "pngPath": ".stitch/designs/quan_ly_khach_thue_vn.png",
+      "width": "780",
+      "height": "1896",
+      "deviceType": "MOBILE"
+    },
+    "e519579d0d8d49e4893ca04d6f575987": {
+      "id": "e519579d0d8d49e4893ca04d6f575987",
+      "label": "Quản lý Tòa nhà (VN)",
+      "pageName": "quan_ly_toa_nha_vn",
+      "htmlPath": ".stitch/designs/quan_ly_toa_nha_vn.html",
+      "pngPath": ".stitch/designs/quan_ly_toa_nha_vn.png",
+      "width": "780",
+      "height": "2798",
+      "deviceType": "MOBILE"
+    },
+    "6cc588672834431d8982dff74af5ed1e": {
+      "id": "6cc588672834431d8982dff74af5ed1e",
+      "label": "Tạo hợp đồng mới",
+      "pageName": "tao_hop_ong_moi",
+      "htmlPath": ".stitch/designs/tao_hop_ong_moi.html",
+      "pngPath": ".stitch/designs/tao_hop_ong_moi.png",
+      "width": "780",
+      "height": "4038",
+      "deviceType": "MOBILE"
+    },
+    "d114af6f6cd7444290f986b5c76baa88": {
+      "id": "d114af6f6cd7444290f986b5c76baa88",
+      "label": "Quản lý Thiết bị (VN)",
+      "pageName": "quan_ly_thiet_bi_vn",
+      "htmlPath": ".stitch/designs/quan_ly_thiet_bi_vn.html",
+      "pngPath": ".stitch/designs/quan_ly_thiet_bi_vn.png",
+      "width": "780",
+      "height": "3128",
+      "deviceType": "MOBILE"
+    },
+    "0e0907f3045e4122bf7b96f44a662325": {
+      "id": "0e0907f3045e4122bf7b96f44a662325",
+      "label": "Cài đặt (VN)",
+      "pageName": "cai_at_vn",
+      "htmlPath": ".stitch/designs/cai_at_vn.html",
+      "pngPath": ".stitch/designs/cai_at_vn.png",
+      "width": "780",
+      "height": "1768",
+      "deviceType": "MOBILE"
+    },
+    "af68908c62de40158a7c59c85df93f10": {
+      "id": "af68908c62de40158a7c59c85df93f10",
+      "label": "Quản lý Phòng (VN)",
+      "pageName": "quan_ly_phong_vn",
+      "htmlPath": ".stitch/designs/quan_ly_phong_vn.html",
+      "pngPath": ".stitch/designs/quan_ly_phong_vn.png",
+      "width": "780",
+      "height": "4664",
+      "deviceType": "MOBILE"
+    },
+    "1436c148afc949d797c41d71d464b60c": {
+      "id": "1436c148afc949d797c41d71d464b60c",
+      "label": "Thêm cư dân (VN)",
+      "pageName": "them_cu_dan_vn",
+      "htmlPath": ".stitch/designs/them_cu_dan_vn.html",
+      "pngPath": ".stitch/designs/them_cu_dan_vn.png",
+      "width": "780",
+      "height": "3850",
+      "deviceType": "MOBILE"
+    },
+    "fe469d0439b247a0af1a48b05bd5999f": {
+      "id": "fe469d0439b247a0af1a48b05bd5999f",
+      "label": "Cấu hình Dịch vụ & Giá (VN)",
+      "pageName": "cau_hinh_dich_vu_gia_vn",
+      "htmlPath": ".stitch/designs/cau_hinh_dich_vu_gia_vn.html",
+      "pngPath": ".stitch/designs/cau_hinh_dich_vu_gia_vn.png",
+      "width": "780",
+      "height": "2542",
+      "deviceType": "MOBILE"
+    },
+    "4d1f5e06c98440439bae3588cab4141f": {
+      "id": "4d1f5e06c98440439bae3588cab4141f",
+      "label": "Quản lý Cư dân (VN)",
+      "pageName": "quan_ly_cu_dan_vn",
+      "htmlPath": ".stitch/designs/quan_ly_cu_dan_vn.html",
+      "pngPath": ".stitch/designs/quan_ly_cu_dan_vn.png",
+      "width": "780",
+      "height": "1928",
+      "deviceType": "MOBILE"
+    },
+    "5db1881f63a34d41861b181e88774202": {
+      "id": "5db1881f63a34d41861b181e88774202",
+      "label": "Yêu cầu hỗ trợ (VN)",
+      "pageName": "yeu_cau_ho_tro_vn",
+      "htmlPath": ".stitch/designs/yeu_cau_ho_tro_vn.html",
+      "pngPath": ".stitch/designs/yeu_cau_ho_tro_vn.png",
+      "width": "780",
+      "height": "5200",
+      "deviceType": "MOBILE"
+    },
+    "3158b2cf1c1d4bbb8f4d5f3f0a06a45a": {
+      "id": "3158b2cf1c1d4bbb8f4d5f3f0a06a45a",
+      "label": "Danh sách Hợp đồng (VN)",
+      "pageName": "danh_sach_hop_ong_vn",
+      "htmlPath": ".stitch/designs/danh_sach_hop_ong_vn.html",
+      "pngPath": ".stitch/designs/danh_sach_hop_ong_vn.png",
+      "width": "786",
+      "height": "1768",
+      "deviceType": "MOBILE"
+    },
+    "6c9ba33398ed4aa9a4d2e57f79096a16": {
+      "id": "6c9ba33398ed4aa9a4d2e57f79096a16",
+      "label": "Bảng điều khiển Home247 (VN)",
+      "pageName": "bang_ieu_khien_home247_vn",
+      "htmlPath": ".stitch/designs/bang_ieu_khien_home247_vn.html",
+      "pngPath": ".stitch/designs/bang_ieu_khien_home247_vn.png",
+      "width": "780",
+      "height": "1768",
+      "deviceType": "MOBILE"
+    },
+    "45c9cdedb5b044debb4eb4f04772d109": {
+      "id": "45c9cdedb5b044debb4eb4f04772d109",
+      "label": "Ghi chỉ số Điện & Nước",
+      "pageName": "ghi_chi_so_ien_nuoc",
+      "htmlPath": ".stitch/designs/ghi_chi_so_ien_nuoc.html",
+      "pngPath": ".stitch/designs/ghi_chi_so_ien_nuoc.png",
+      "width": "780",
+      "height": "2902",
+      "deviceType": "MOBILE"
+    },
+    "3288491862df44d58800500c9dbaab3f": {
+      "id": "3288491862df44d58800500c9dbaab3f",
+      "label": "Bộ lọc Hợp đồng (VN)",
+      "pageName": "bo_loc_hop_ong_vn",
+      "htmlPath": ".stitch/designs/bo_loc_hop_ong_vn.html",
+      "pngPath": ".stitch/designs/bo_loc_hop_ong_vn.png",
+      "width": "780",
+      "height": "1768",
+      "deviceType": "MOBILE"
+    }
+  }
+}

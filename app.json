@@ -1,0 +1,12 @@
+{
+  "expo": {
+    "name": "Home247",
+    "slug": "home247",
+    "version": "1.0.0",
+    "orientation": "portrait",
+    "userInterfaceStyle": "light",
+    "android": {
+      "package": "com.home247.propertymanagement"
+    }
+  }
+}

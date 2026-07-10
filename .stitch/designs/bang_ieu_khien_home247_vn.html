@@ -1,0 +1,260 @@
+<!DOCTYPE html>
+
+<html lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>Home247 - Dashboard</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script id="tailwind-config">
+      tailwind.config = {
+        darkMode: "class",
+        theme: {
+          extend: {
+            "colors": {
+                    "primary": "#004ac6",
+                    "primary-container": "#2563eb",
+                    "on-tertiary-fixed-variant": "#3f465c",
+                    "surface-container": "#e5eeff",
+                    "surface-container-lowest": "#ffffff",
+                    "on-background": "#0b1c30",
+                    "primary-fixed": "#dbe1ff",
+                    "secondary-fixed": "#ffdbca",
+                    "on-primary": "#ffffff",
+                    "tertiary": "#4d556b",
+                    "primary-fixed-dim": "#b4c5ff",
+                    "outline": "#737686",
+                    "on-error": "#ffffff",
+                    "surface-tint": "#0053db",
+                    "tertiary-fixed-dim": "#bec6e0",
+                    "on-surface": "#0b1c30",
+                    "inverse-primary": "#b4c5ff",
+                    "surface-bright": "#f8f9ff",
+                    "secondary-fixed-dim": "#ffb690",
+                    "on-secondary-fixed": "#341100",
+                    "on-tertiary-fixed": "#131b2e",
+                    "on-error-container": "#93000a",
+                    "surface-container-high": "#dce9ff",
+                    "on-primary-fixed": "#00174b",
+                    "on-secondary-container": "#5c2400",
+                    "tertiary-container": "#656d84",
+                    "secondary": "#9d4300",
+                    "tertiary-fixed": "#dae2fd",
+                    "error": "#ba1a1a",
+                    "surface-container-low": "#eff4ff",
+                    "on-surface-variant": "#434655",
+                    "surface": "#f8f9ff",
+                    "on-secondary": "#ffffff",
+                    "on-tertiary-container": "#eef0ff",
+                    "on-primary-fixed-variant": "#003ea8",
+                    "on-tertiary": "#ffffff",
+                    "surface-container-highest": "#d3e4fe",
+                    "secondary-container": "#fd761a",
+                    "on-primary-container": "#eeefff",
+                    "surface-variant": "#d3e4fe",
+                    "inverse-on-surface": "#eaf1ff",
+                    "on-secondary-fixed-variant": "#783200",
+                    "surface-dim": "#cbdbf5",
+                    "error-container": "#ffdad6",
+                    "inverse-surface": "#213145",
+                    "outline-variant": "#c3c6d7",
+                    "background": "#f8f9ff"
+            },
+            "borderRadius": {
+                    "DEFAULT": "0.25rem",
+                    "lg": "0.5rem",
+                    "xl": "0.75rem",
+                    "full": "9999px"
+            },
+            "spacing": {
+                    "gutter": "24px",
+                    "margin-mobile": "16px",
+                    "lg": "24px",
+                    "margin-desktop": "40px",
+                    "base": "4px",
+                    "xl": "32px",
+                    "2xl": "48px",
+                    "sm": "8px",
+                    "md": "16px",
+                    "xs": "4px"
+            },
+            "fontFamily": {
+                    "headline-md": ["Inter"],
+                    "title-lg": ["Inter"],
+                    "headline-lg-mobile": ["Inter"],
+                    "body-lg": ["Inter"],
+                    "headline-lg": ["Inter"],
+                    "body-md": ["Inter"],
+                    "label-md": ["Inter"],
+                    "display-lg": ["Inter"],
+                    "numeric-data": ["Inter"]
+            },
+            "fontSize": {
+                    "headline-md": ["24px", {"lineHeight": "32px", "fontWeight": "600"}],
+                    "title-lg": ["18px", {"lineHeight": "28px", "fontWeight": "600"}],
+                    "headline-lg-mobile": ["24px", {"lineHeight": "32px", "letterSpacing": "-0.01em", "fontWeight": "600"}],
+                    "body-lg": ["16px", {"lineHeight": "24px", "fontWeight": "400"}],
+                    "headline-lg": ["32px", {"lineHeight": "40px", "letterSpacing": "-0.01em", "fontWeight": "600"}],
+                    "body-md": ["14px", {"lineHeight": "20px", "fontWeight": "400"}],
+                    "label-md": ["12px", {"lineHeight": "16px", "letterSpacing": "0.02em", "fontWeight": "500"}],
+                    "display-lg": ["48px", {"lineHeight": "56px", "letterSpacing": "-0.02em", "fontWeight": "700"}],
+                    "numeric-data": ["16px", {"lineHeight": "24px", "fontWeight": "600"}]
+            }
+          }
+        }
+      }
+    </script>
+<style>
+        body { font-family: 'Inter', sans-serif; }
+    </style>
+<style>
+    body {
+      min-height: max(884px, 100dvh);
+    }
+  </style>
+  </head>
+<body class="bg-background text-on-surface min-h-screen pb-24 md:pb-0 font-body-md">
+<!-- Main Content Canvas -->
+<main class="w-full max-w-[1280px] mx-auto md:px-gutter px-margin-mobile pt-md md:pt-lg flex flex-col gap-lg">
+<!-- Custom Header Card -->
+<header class="bg-surface-container-lowest rounded-2xl shadow-[0_2px_8px_rgba(0,0,0,0.04)] p-4 flex items-center justify-between w-full">
+<div class="flex items-center gap-4">
+<div class="w-12 h-12 rounded-full bg-outline-variant flex items-center justify-center overflow-hidden shrink-0">
+<span class="material-symbols-outlined text-surface-container-lowest text-[32px]" data-icon="person" style="font-variation-settings: 'FILL' 1;">person</span>
+</div>
+<div class="flex flex-col">
+<span class="font-body-md text-body-md text-on-surface-variant">Xin chào,</span>
+<span class="font-title-lg text-title-lg text-on-surface font-bold">tu</span>
+</div>
+</div>
+<button class="relative w-12 h-12 rounded-xl bg-surface-container-high flex items-center justify-center text-primary transition-transform active:scale-95">
+<span class="material-symbols-outlined" data-icon="notifications">notifications</span>
+<span class="absolute top-2 right-2 w-4 h-4 bg-[#ff4d4d] rounded-full flex items-center justify-center text-[10px] font-bold text-white border-2 border-surface-container-high">1</span>
+</button>
+</header>
+<!-- Management Section -->
+<section class="flex flex-col gap-4">
+<h2 class="font-title-lg text-title-lg text-on-surface font-bold">Quản lý</h2>
+<div class="grid grid-cols-3 gap-3 md:gap-4">
+<!-- Item 1: Điện nước -->
+<button class="bg-surface-container-lowest rounded-xl p-4 flex flex-col items-center justify-center gap-2 border border-outline-variant/30 shadow-[0_2px_4px_rgba(0,0,0,0.02)] transition-transform active:scale-95 hover:bg-surface-container-low">
+<div class="w-12 h-12 rounded-full bg-secondary-fixed flex items-center justify-center mb-1">
+<span class="material-symbols-outlined text-secondary" data-icon="bolt">bolt</span>
+</div>
+<span class="font-label-md text-label-md text-on-surface font-bold text-center">Điện nước</span>
+</button>
+<!-- Item 2: Hoá đơn -->
+<button class="bg-surface-container-lowest rounded-xl p-4 flex flex-col items-center justify-center gap-2 border border-outline-variant/30 shadow-[0_2px_4px_rgba(0,0,0,0.02)] transition-transform active:scale-95 hover:bg-surface-container-low">
+<div class="w-12 h-12 rounded-full bg-primary-fixed flex items-center justify-center mb-1">
+<span class="material-symbols-outlined text-primary" data-icon="description">description</span>
+</div>
+<span class="font-label-md text-label-md text-on-surface font-bold text-center">Hoá đơn</span>
+</button>
+<!-- Item 3: Thống kê -->
+<button class="bg-surface-container-lowest rounded-xl p-4 flex flex-col items-center justify-center gap-2 border border-outline-variant/30 shadow-[0_2px_4px_rgba(0,0,0,0.02)] transition-transform active:scale-95 hover:bg-surface-container-low">
+<div class="w-12 h-12 rounded-full bg-[#e6f4ea] flex items-center justify-center mb-1">
+<span class="material-symbols-outlined text-[#137333]" data-icon="analytics">analytics</span>
+</div>
+<span class="font-label-md text-label-md text-on-surface font-bold text-center">Thống kê</span>
+</button>
+<!-- Item 4: Hợp đồng -->
+<button class="bg-surface-container-lowest rounded-xl p-4 flex flex-col items-center justify-center gap-2 border border-outline-variant/30 shadow-[0_2px_4px_rgba(0,0,0,0.02)] transition-transform active:scale-95 hover:bg-surface-container-low">
+<div class="w-12 h-12 rounded-full bg-[#f3e8fd] flex items-center justify-center mb-1">
+<span class="material-symbols-outlined text-[#681da8]" data-icon="group">group</span>
+</div>
+<span class="font-label-md text-label-md text-on-surface font-bold text-center">Hợp đồng</span>
+</button>
+<!-- Item 5: Dịch vụ -->
+<button class="bg-surface-container-lowest rounded-xl p-4 flex flex-col items-center justify-center gap-2 border border-outline-variant/30 shadow-[0_2px_4px_rgba(0,0,0,0.02)] transition-transform active:scale-95 hover:bg-surface-container-low">
+<div class="w-12 h-12 rounded-full bg-[#e0f2f1] flex items-center justify-center mb-1">
+<span class="material-symbols-outlined text-[#00695c]" data-icon="account_balance_wallet">account_balance_wallet</span>
+</div>
+<span class="font-label-md text-label-md text-on-surface font-bold text-center">Dịch vụ</span>
+</button>
+<!-- Item 6: Thiết bị -->
+<button class="bg-surface-container-lowest rounded-xl p-4 flex flex-col items-center justify-center gap-2 border border-outline-variant/30 shadow-[0_2px_4px_rgba(0,0,0,0.02)] transition-transform active:scale-95 hover:bg-surface-container-low">
+<div class="w-12 h-12 rounded-full bg-tertiary-fixed flex items-center justify-center mb-1">
+<span class="material-symbols-outlined text-tertiary" data-icon="router">router</span>
+</div>
+<span class="font-label-md text-label-md text-on-surface font-bold text-center">Thiết bị</span>
+</button>
+</div>
+</section>
+<!-- To-Do Section -->
+<section class="flex flex-col gap-4 mt-2">
+<h2 class="font-title-lg text-title-lg text-on-surface font-bold">Công việc cần làm</h2>
+<div class="bg-surface-container-lowest rounded-2xl p-8 flex flex-col items-center justify-center gap-4 shadow-[0_2px_8px_rgba(0,0,0,0.04)] border border-outline-variant/20 min-h-[160px]">
+<div class="w-12 h-12 rounded-full bg-surface-container-low flex items-center justify-center">
+<span class="material-symbols-outlined text-primary text-[32px]" data-icon="check_circle">check_circle</span>
+</div>
+<p class="font-body-md text-body-md text-on-surface-variant text-center">Không có công việc nào cần làm</p>
+</div>
+</section>
+</main>
+<!-- Bottom Navigation Shell (Mobile Only) -->
+<nav class="md:hidden fixed bottom-0 left-0 w-full z-50 flex justify-around items-center pt-2 pb-safe px-4 border-t border-outline-variant dark:border-outline bg-surface-container-lowest dark:bg-inverse-surface shadow-lg rounded-t-xl pb-4">
+<!-- Active Tab: Home -->
+<a class="flex flex-col items-center justify-center text-primary dark:text-primary-fixed-dim font-bold hover:bg-surface-container dark:hover:bg-on-tertiary-fixed-variant transition-all rounded-lg p-2 min-w-[64px]" href="#" style="scale: 1;">
+<div class="w-12 h-8 rounded-full bg-primary-container/20 flex items-center justify-center mb-1">
+<span class="material-symbols-outlined" data-icon="home" style="font-variation-settings: 'FILL' 1;">home</span>
+</div>
+<span class="font-label-md text-label-md text-primary">Home</span>
+</a>
+<!-- Inactive Tab: Finance -->
+<a class="flex flex-col items-center justify-center text-on-surface-variant dark:text-outline-variant hover:bg-surface-container dark:hover:bg-on-tertiary-fixed-variant transition-all rounded-lg p-2 min-w-[64px] opacity-80 hover:opacity-100" href="#">
+<div class="w-12 h-8 rounded-full flex items-center justify-center mb-1">
+<span class="material-symbols-outlined" data-icon="payments">payments</span>
+</div>
+<span class="font-label-md text-label-md">Finance</span>
+</a>
+<!-- Inactive Tab: Residents -->
+<a class="flex flex-col items-center justify-center text-on-surface-variant dark:text-outline-variant hover:bg-surface-container dark:hover:bg-on-tertiary-fixed-variant transition-all rounded-lg p-2 min-w-[64px] opacity-80 hover:opacity-100" href="#">
+<div class="w-12 h-8 rounded-full flex items-center justify-center mb-1">
+<span class="material-symbols-outlined" data-icon="group">group</span>
+</div>
+<span class="font-label-md text-label-md">Residents</span>
+</a>
+<!-- Inactive Tab: Rooms -->
+<a class="flex flex-col items-center justify-center text-on-surface-variant dark:text-outline-variant hover:bg-surface-container dark:hover:bg-on-tertiary-fixed-variant transition-all rounded-lg p-2 min-w-[64px] opacity-80 hover:opacity-100" href="#">
+<div class="w-12 h-8 rounded-full flex items-center justify-center mb-1">
+<span class="material-symbols-outlined" data-icon="apartment">apartment</span>
+</div>
+<span class="font-label-md text-label-md">Rooms</span>
+</a>
+<!-- Inactive Tab: Settings -->
+<a class="flex flex-col items-center justify-center text-on-surface-variant dark:text-outline-variant hover:bg-surface-container dark:hover:bg-on-tertiary-fixed-variant transition-all rounded-lg p-2 min-w-[64px] opacity-80 hover:opacity-100" href="#">
+<div class="w-12 h-8 rounded-full flex items-center justify-center mb-1">
+<span class="material-symbols-outlined" data-icon="settings">settings</span>
+</div>
+<span class="font-label-md text-label-md">Settings</span>
+</a>
+</nav>
+<!-- Desktop Sidebar Stub (Hidden on mobile) -->
+<aside class="hidden md:flex flex-col fixed left-0 top-0 h-full w-64 bg-inverse-surface border-r border-outline-variant z-40 p-4">
+<div class="text-on-primary font-headline-md font-bold mb-8 pl-4 pt-4">Home247</div>
+<nav class="flex flex-col gap-2">
+<a class="flex items-center gap-3 p-3 rounded-lg bg-primary-container text-on-primary transition-colors" href="#">
+<span class="material-symbols-outlined" data-icon="home" style="font-variation-settings: 'FILL' 1;">home</span>
+<span class="font-label-md text-label-md font-bold">Home</span>
+</a>
+<a class="flex items-center gap-3 p-3 rounded-lg text-outline-variant hover:bg-on-tertiary-fixed-variant transition-colors" href="#">
+<span class="material-symbols-outlined" data-icon="payments">payments</span>
+<span class="font-label-md text-label-md">Finance</span>
+</a>
+<a class="flex items-center gap-3 p-3 rounded-lg text-outline-variant hover:bg-on-tertiary-fixed-variant transition-colors" href="#">
+<span class="material-symbols-outlined" data-icon="group">group</span>
+<span class="font-label-md text-label-md">Residents</span>
+</a>
+<a class="flex items-center gap-3 p-3 rounded-lg text-outline-variant hover:bg-on-tertiary-fixed-variant transition-colors" href="#">
+<span class="material-symbols-outlined" data-icon="apartment">apartment</span>
+<span class="font-label-md text-label-md">Rooms</span>
+</a>
+<a class="flex items-center gap-3 p-3 rounded-lg text-outline-variant hover:bg-on-tertiary-fixed-variant transition-colors" href="#">
+<span class="material-symbols-outlined" data-icon="settings">settings</span>
+<span class="font-label-md text-label-md">Settings</span>
+</a>
+</nav>
+</aside>
+</body></html>

@@ -1,0 +1,400 @@
+<!DOCTYPE html>
+
+<html lang="vi"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>Quản lý Thiết bị - Home247</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<style>
+        .material-symbols-outlined {
+            font-family: 'Material Symbols Outlined';
+            font-weight: normal;
+            font-style: normal;
+            font-size: 24px;
+            line-height: 1;
+            letter-spacing: normal;
+            text-transform: none;
+            display: inline-block;
+            white-space: nowrap;
+            word-wrap: normal;
+            direction: ltr;
+            -webkit-font-feature-settings: 'liga';
+            -webkit-font-smoothing: antialiased;
+        }
+    </style>
+<script id="tailwind-config">
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    "colors": {
+                        "surface-container-lowest": "#ffffff",
+                        "on-primary": "#ffffff",
+                        "inverse-on-surface": "#eaf1ff",
+                        "surface-bright": "#f8f9ff",
+                        "surface-container-low": "#eff4ff",
+                        "on-secondary": "#ffffff",
+                        "surface-container": "#e5eeff",
+                        "outline-variant": "#c3c6d7",
+                        "error": "#ba1a1a",
+                        "tertiary-fixed-dim": "#bec6e0",
+                        "on-tertiary-container": "#eef0ff",
+                        "tertiary": "#4d556b",
+                        "on-primary-fixed": "#00174b",
+                        "surface-container-highest": "#d3e4fe",
+                        "surface-variant": "#d3e4fe",
+                        "on-surface": "#0b1c30",
+                        "primary-container": "#2563eb",
+                        "on-error-container": "#93000a",
+                        "on-primary-fixed-variant": "#003ea8",
+                        "inverse-surface": "#213145",
+                        "outline": "#737686",
+                        "on-error": "#ffffff",
+                        "on-secondary-fixed": "#341100",
+                        "surface-tint": "#0053db",
+                        "secondary": "#9d4300",
+                        "tertiary-container": "#656d84",
+                        "surface-dim": "#cbdbf5",
+                        "on-tertiary-fixed-variant": "#3f465c",
+                        "on-surface-variant": "#434655",
+                        "secondary-fixed": "#ffdbca",
+                        "primary-fixed": "#dbe1ff",
+                        "tertiary-fixed": "#dae2fd",
+                        "secondary-fixed-dim": "#ffb690",
+                        "inverse-primary": "#b4c5ff",
+                        "surface-container-high": "#dce9ff",
+                        "on-tertiary-fixed": "#131b2e",
+                        "background": "#f8f9ff",
+                        "primary": "#004ac6",
+                        "on-primary-container": "#eeefff",
+                        "secondary-container": "#fd761a",
+                        "on-background": "#0b1c30",
+                        "surface": "#f8f9ff",
+                        "on-secondary-fixed-variant": "#783200",
+                        "on-tertiary": "#ffffff",
+                        "on-secondary-container": "#5c2400",
+                        "primary-fixed-dim": "#b4c5ff",
+                        "error-container": "#ffdad6"
+                    },
+                    "borderRadius": {
+                        "DEFAULT": "0.25rem",
+                        "lg": "0.5rem",
+                        "xl": "0.75rem",
+                        "full": "9999px"
+                    },
+                    "spacing": {
+                        "base": "4px",
+                        "lg": "24px",
+                        "xs": "4px",
+                        "margin-desktop": "40px",
+                        "margin-mobile": "16px",
+                        "md": "16px",
+                        "xl": "32px",
+                        "gutter": "24px",
+                        "sm": "8px",
+                        "2xl": "48px"
+                    },
+                    "fontFamily": {
+                        "title-lg": ["Inter"],
+                        "headline-lg-mobile": ["Inter"],
+                        "numeric-data": ["Inter"],
+                        "headline-lg": ["Inter"],
+                        "body-lg": ["Inter"],
+                        "display-lg": ["Inter"],
+                        "label-md": ["Inter"],
+                        "body-md": ["Inter"],
+                        "headline-md": ["Inter"]
+                    },
+                    "fontSize": {
+                        "title-lg": ["18px", { "lineHeight": "28px", "fontWeight": "600" }],
+                        "headline-lg-mobile": ["24px", { "lineHeight": "32px", "letterSpacing": "-0.01em", "fontWeight": "600" }],
+                        "numeric-data": ["16px", { "lineHeight": "24px", "fontWeight": "600" }],
+                        "headline-lg": ["32px", { "lineHeight": "40px", "letterSpacing": "-0.01em", "fontWeight": "600" }],
+                        "body-lg": ["16px", { "lineHeight": "24px", "fontWeight": "400" }],
+                        "display-lg": ["48px", { "lineHeight": "56px", "letterSpacing": "-0.02em", "fontWeight": "700" }],
+                        "label-md": ["12px", { "lineHeight": "16px", "letterSpacing": "0.02em", "fontWeight": "500" }],
+                        "body-md": ["14px", { "lineHeight": "20px", "fontWeight": "400" }],
+                        "headline-md": ["24px", { "lineHeight": "32px", "fontWeight": "600" }]
+                    }
+                }
+            }
+        }
+    </script>
+<style>
+    body {
+      min-height: max(884px, 100dvh);
+    }
+  </style>
+  </head>
+<body class="bg-background text-on-background min-h-screen font-body-md text-body-md antialiased selection:bg-primary-fixed selection:text-on-primary-fixed">
+<!-- DESKTOP SIDEBAR -->
+<aside class="hidden md:flex flex-col fixed inset-y-0 left-0 w-64 bg-inverse-surface shadow-lg z-50 overflow-y-auto">
+<div class="p-lg flex items-center">
+<span class="font-headline-md text-headline-md font-bold text-inverse-primary">Home247</span>
+</div>
+<nav class="flex-1 px-sm space-y-sm mt-4">
+<a class="flex items-center gap-3 px-3 py-3 rounded-lg text-inverse-on-surface hover:bg-surface-variant/10 transition-colors font-body-md text-body-md" href="#">
+<span class="material-symbols-outlined" data-icon="home">home</span>
+                Trang chủ
+            </a>
+<a class="flex items-center gap-3 px-3 py-3 rounded-lg text-inverse-on-surface hover:bg-surface-variant/10 transition-colors font-body-md text-body-md" href="#">
+<span class="material-symbols-outlined" data-icon="payments">payments</span>
+                Tài chính
+            </a>
+<a class="flex items-center gap-3 px-3 py-3 rounded-lg text-inverse-on-surface hover:bg-surface-variant/10 transition-colors font-body-md text-body-md" href="#">
+<span class="material-symbols-outlined" data-icon="group">group</span>
+                Cư dân
+            </a>
+<a class="flex items-center gap-3 px-3 py-3 rounded-lg bg-primary text-on-primary transition-colors font-body-md text-body-md font-semibold" href="#">
+<span class="material-symbols-outlined" data-icon="door_open">door_open</span>
+                Phòng
+            </a>
+<a class="flex items-center gap-3 px-3 py-3 rounded-lg text-inverse-on-surface hover:bg-surface-variant/10 transition-colors font-body-md text-body-md" href="#">
+<span class="material-symbols-outlined" data-icon="settings">settings</span>
+                Cài đặt
+            </a>
+</nav>
+</aside>
+<!-- MOBILE TOP APP BAR (from JSON) -->
+<header class="md:hidden bg-surface dark:bg-surface-dim shadow-sm dark:shadow-none docked full-width top-0 z-40">
+<div class="flex justify-between items-center w-full px-margin-mobile md:px-margin-desktop h-16">
+<button class="text-on-surface-variant dark:text-outline hover:bg-surface-container-low dark:hover:bg-surface-container-high transition-colors active:scale-95 p-2 rounded-full flex items-center justify-center">
+<span class="material-symbols-outlined" data-icon="menu">menu</span>
+</button>
+<span class="font-headline-md text-headline-md font-bold text-primary dark:text-primary-fixed-dim">Home247</span>
+<button class="text-on-surface-variant dark:text-outline hover:bg-surface-container-low dark:hover:bg-surface-container-high transition-colors active:scale-95 p-2 rounded-full flex items-center justify-center">
+<span class="material-symbols-outlined" data-icon="notifications">notifications</span>
+</button>
+</div>
+</header>
+<!-- MAIN CONTENT -->
+<main class="md:ml-64 pt-4 md:pt-lg px-margin-mobile md:px-margin-desktop pb-24 md:pb-xl max-w-[1280px] mx-auto">
+<!-- PAGE HEADER -->
+<div class="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-lg mt-16 md:mt-0">
+<div>
+<h1 class="font-headline-lg-mobile md:font-headline-lg text-headline-lg-mobile md:text-headline-lg text-on-background">Quản lý Thiết bị</h1>
+<p class="font-body-md text-body-md text-on-surface-variant mt-1">Giám sát và điều khiển thiết bị IoT trong tòa nhà.</p>
+</div>
+<button class="bg-primary text-on-primary hover:bg-on-primary-fixed-variant transition-colors rounded-lg px-4 py-2 flex items-center justify-center gap-2 font-label-md text-label-md shadow-sm self-start md:self-auto">
+<span class="material-symbols-outlined" style="font-variation-settings: 'FILL' 1;">add_circle</span>
+                Thêm thiết bị
+            </button>
+</div>
+<!-- FILTERS -->
+<div class="bg-surface-container-lowest border border-outline-variant shadow-[0_2px_4px_rgba(0,0,0,0.04)] rounded-xl p-md mb-lg flex flex-col sm:flex-row gap-4 items-end">
+<div class="flex-1 w-full">
+<label class="block font-label-md text-label-md text-on-surface-variant mb-1">Tòa nhà</label>
+<div class="relative">
+<select class="w-full bg-surface border border-outline-variant rounded-lg px-3 py-2 font-body-md text-body-md text-on-surface focus:border-primary focus:ring-2 focus:ring-primary/20 appearance-none outline-none">
+<option>Tất cả Tòa nhà</option>
+<option>Tòa A - Diamond</option>
+<option>Tòa B - Sapphire</option>
+</select>
+<span class="material-symbols-outlined absolute right-3 top-1/2 -translate-y-1/2 text-outline pointer-events-none">expand_more</span>
+</div>
+</div>
+<div class="flex-1 w-full">
+<label class="block font-label-md text-label-md text-on-surface-variant mb-1">Căn hộ / Khu vực</label>
+<div class="relative">
+<select class="w-full bg-surface border border-outline-variant rounded-lg px-3 py-2 font-body-md text-body-md text-on-surface focus:border-primary focus:ring-2 focus:ring-primary/20 appearance-none outline-none">
+<option>Tất cả Khu vực</option>
+<option>Căn hộ 1204</option>
+<option>Hành lang Tầng 2</option>
+<option>Sảnh chính</option>
+</select>
+<span class="material-symbols-outlined absolute right-3 top-1/2 -translate-y-1/2 text-outline pointer-events-none">expand_more</span>
+</div>
+</div>
+<button class="bg-surface-container border border-outline-variant text-on-surface hover:bg-surface-container-highest transition-colors rounded-lg px-4 py-2 flex items-center justify-center gap-2 font-label-md text-label-md w-full sm:w-auto">
+<span class="material-symbols-outlined">filter_list</span>
+                Lọc
+            </button>
+</div>
+<!-- DEVICE GRID -->
+<div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-lg">
+<!-- CARD: SMART LOCK (Khóa cửa) -->
+<div class="bg-surface-container-lowest border border-outline-variant shadow-[0_2px_4px_rgba(0,0,0,0.04)] rounded-xl p-md flex flex-col h-full hover:shadow-lg transition-shadow relative overflow-hidden group">
+<div class="absolute top-0 left-0 w-full h-1 bg-primary"></div>
+<div class="flex justify-between items-start mb-4">
+<div class="flex items-center gap-3">
+<div class="p-2 bg-surface-container rounded-lg text-primary">
+<span class="material-symbols-outlined" style="font-variation-settings: 'FILL' 1;">lock</span>
+</div>
+<div>
+<h3 class="font-title-lg text-title-lg text-on-surface">Khóa cửa chính</h3>
+<p class="font-body-md text-body-md text-on-surface-variant flex items-center gap-1">
+<span class="material-symbols-outlined text-[16px]">location_on</span> Căn hộ 1204 - Tòa A
+                            </p>
+</div>
+</div>
+</div>
+<div class="flex items-center justify-between mt-auto bg-surface p-3 rounded-lg border border-outline-variant/50">
+<div class="flex flex-col gap-1">
+<div class="flex items-center gap-2">
+<span class="w-2.5 h-2.5 rounded-full bg-primary animate-pulse"></span>
+<span class="font-label-md text-label-md text-primary font-semibold">Đang khóa</span>
+</div>
+<div class="flex items-center gap-1 text-on-surface-variant font-label-md text-label-md">
+<span class="material-symbols-outlined text-[16px]">battery_5_bar</span>
+                            Pin: 85%
+                        </div>
+</div>
+<button class="bg-primary text-on-primary hover:bg-primary-container hover:text-on-primary-container transition-colors rounded-lg px-3 py-2 font-label-md text-label-md flex items-center gap-1 shadow-sm">
+<span class="material-symbols-outlined text-[18px]">key</span>
+                        Mở khóa
+                    </button>
+</div>
+</div>
+<!-- CARD: SMART METER (Công tơ điện) -->
+<div class="bg-surface-container-lowest border border-outline-variant shadow-[0_2px_4px_rgba(0,0,0,0.04)] rounded-xl p-md flex flex-col h-full hover:shadow-lg transition-shadow relative overflow-hidden">
+<div class="absolute top-0 left-0 w-full h-1 bg-secondary"></div>
+<div class="flex justify-between items-start mb-4">
+<div class="flex items-center gap-3">
+<div class="p-2 bg-surface-container rounded-lg text-secondary">
+<span class="material-symbols-outlined" style="font-variation-settings: 'FILL' 1;">electric_meter</span>
+</div>
+<div>
+<h3 class="font-title-lg text-title-lg text-on-surface">Công tơ điện tổng</h3>
+<p class="font-body-md text-body-md text-on-surface-variant flex items-center gap-1">
+<span class="material-symbols-outlined text-[16px]">location_on</span> Tầng 1 - Tòa B
+                            </p>
+</div>
+</div>
+<div class="px-2 py-1 rounded-full bg-primary/10 text-primary font-label-md text-label-md flex items-center gap-1">
+                        Online
+                    </div>
+</div>
+<div class="mt-auto flex flex-col gap-2">
+<div class="bg-surface p-3 rounded-lg border border-outline-variant/50 flex justify-between items-end">
+<div>
+<span class="font-label-md text-label-md text-on-surface-variant block mb-1">Chỉ số hiện tại</span>
+<div class="font-numeric-data text-headline-md text-on-surface">12,450 <span class="text-body-md text-on-surface-variant font-normal">kWh</span></div>
+</div>
+<span class="material-symbols-outlined text-secondary opacity-20 text-display-lg absolute right-4 bottom-4 pointer-events-none">bolt</span>
+</div>
+<div class="flex justify-between items-center px-1">
+<span class="font-label-md text-label-md text-on-surface-variant">Tiêu thụ tháng này</span>
+<span class="font-numeric-data text-numeric-data text-secondary flex items-center gap-1">
+<span class="material-symbols-outlined text-[16px]">trending_up</span> 320 kWh
+                        </span>
+</div>
+</div>
+</div>
+<!-- CARD: WATER METER (Công tơ nước) -->
+<div class="bg-surface-container-lowest border border-outline-variant shadow-[0_2px_4px_rgba(0,0,0,0.04)] rounded-xl p-md flex flex-col h-full hover:shadow-lg transition-shadow relative overflow-hidden">
+<div class="absolute top-0 left-0 w-full h-1 bg-surface-tint"></div>
+<div class="flex justify-between items-start mb-4">
+<div class="flex items-center gap-3">
+<div class="p-2 bg-surface-container rounded-lg text-surface-tint">
+<span class="material-symbols-outlined" style="font-variation-settings: 'FILL' 1;">water_drop</span>
+</div>
+<div>
+<h3 class="font-title-lg text-title-lg text-on-surface">Đồng hồ nước</h3>
+<p class="font-body-md text-body-md text-on-surface-variant flex items-center gap-1">
+<span class="material-symbols-outlined text-[16px]">location_on</span> Căn hộ 1204 - Tòa A
+                            </p>
+</div>
+</div>
+<div class="px-2 py-1 rounded-full bg-primary/10 text-primary font-label-md text-label-md flex items-center gap-1">
+                        Online
+                    </div>
+</div>
+<div class="mt-auto">
+<div class="bg-surface p-3 rounded-lg border border-outline-variant/50 flex justify-between items-end relative overflow-hidden">
+<div class="z-10">
+<span class="font-label-md text-label-md text-on-surface-variant block mb-1">Chỉ số hiện tại</span>
+<div class="font-numeric-data text-headline-md text-on-surface">1,205 <span class="text-body-md text-on-surface-variant font-normal">m³</span></div>
+</div>
+<span class="material-symbols-outlined text-surface-tint opacity-10 text-[64px] absolute -right-2 -bottom-2 pointer-events-none z-0">waves</span>
+</div>
+</div>
+</div>
+<!-- CARD: WIFI ROUTER (Bộ phát Wifi - OFFLINE STATE) -->
+<div class="bg-surface-container-lowest border border-error/30 shadow-[0_2px_4px_rgba(0,0,0,0.04)] rounded-xl p-md flex flex-col h-full hover:shadow-lg transition-shadow relative overflow-hidden opacity-90 grayscale-[20%]">
+<div class="absolute top-0 left-0 w-full h-1 bg-error"></div>
+<div class="flex justify-between items-start mb-4">
+<div class="flex items-center gap-3">
+<div class="p-2 bg-error-container rounded-lg text-on-error-container">
+<span class="material-symbols-outlined">router</span>
+</div>
+<div>
+<h3 class="font-title-lg text-title-lg text-on-surface">Router Sảnh Chính</h3>
+<p class="font-body-md text-body-md text-on-surface-variant flex items-center gap-1">
+<span class="material-symbols-outlined text-[16px]">location_on</span> Sảnh Tòa A
+                            </p>
+</div>
+</div>
+</div>
+<div class="mt-auto bg-error-container/30 p-3 rounded-lg border border-error/20 flex items-center justify-between">
+<div class="flex items-center gap-2">
+<span class="w-2.5 h-2.5 rounded-full bg-error"></span>
+<span class="font-label-md text-label-md text-error font-semibold">Offline</span>
+</div>
+<span class="font-label-md text-label-md text-on-surface-variant">Mất kết nối 2 giờ trước</span>
+</div>
+</div>
+<!-- CARD: SMART LOCK (Khóa cửa - UNLOCKED) -->
+<div class="bg-surface-container-lowest border border-outline-variant shadow-[0_2px_4px_rgba(0,0,0,0.04)] rounded-xl p-md flex flex-col h-full hover:shadow-lg transition-shadow relative overflow-hidden">
+<div class="absolute top-0 left-0 w-full h-1 bg-tertiary"></div>
+<div class="flex justify-between items-start mb-4">
+<div class="flex items-center gap-3">
+<div class="p-2 bg-surface-container rounded-lg text-tertiary">
+<span class="material-symbols-outlined" style="font-variation-settings: 'FILL' 1;">lock_open</span>
+</div>
+<div>
+<h3 class="font-title-lg text-title-lg text-on-surface">Khóa phòng kho</h3>
+<p class="font-body-md text-body-md text-on-surface-variant flex items-center gap-1">
+<span class="material-symbols-outlined text-[16px]">location_on</span> Tầng hầm B1
+                            </p>
+</div>
+</div>
+</div>
+<div class="flex items-center justify-between mt-auto bg-surface p-3 rounded-lg border border-outline-variant/50">
+<div class="flex flex-col gap-1">
+<div class="flex items-center gap-2">
+<span class="w-2.5 h-2.5 rounded-full bg-tertiary"></span>
+<span class="font-label-md text-label-md text-tertiary font-semibold">Đang mở</span>
+</div>
+<div class="flex items-center gap-1 text-on-surface-variant font-label-md text-label-md">
+<span class="material-symbols-outlined text-[16px]">battery_2_bar</span>
+                            Pin: 20%
+                        </div>
+</div>
+<button class="bg-surface-container text-on-surface hover:bg-surface-container-highest transition-colors rounded-lg px-3 py-2 font-label-md text-label-md flex items-center gap-1 border border-outline-variant">
+<span class="material-symbols-outlined text-[18px]">lock</span>
+                        Khóa lại
+                    </button>
+</div>
+</div>
+</div>
+</main>
+<!-- MOBILE BOTTOM NAV BAR (from JSON) -->
+<nav class="md:hidden fixed bottom-0 w-full z-50 rounded-t-xl bg-surface-container-lowest dark:bg-inverse-surface shadow-[0_-2px_10px_rgba(0,0,0,0.04)]">
+<div class="fixed bottom-0 left-0 w-full flex justify-around items-center py-2 px-2 bg-surface-container-lowest dark:bg-inverse-surface">
+<a class="flex flex-col items-center justify-center text-on-surface-variant dark:text-surface-variant px-3 py-1 hover:bg-surface-container dark:hover:bg-tertiary-container transition-all active:scale-90 duration-150 rounded-xl" href="#">
+<span class="material-symbols-outlined" data-icon="home">home</span>
+<span class="font-label-md text-label-md mt-1">Trang chủ</span>
+</a>
+<a class="flex flex-col items-center justify-center text-on-surface-variant dark:text-surface-variant px-3 py-1 hover:bg-surface-container dark:hover:bg-tertiary-container transition-all active:scale-90 duration-150 rounded-xl" href="#">
+<span class="material-symbols-outlined" data-icon="payments">payments</span>
+<span class="font-label-md text-label-md mt-1">Tài chính</span>
+</a>
+<a class="flex flex-col items-center justify-center text-on-surface-variant dark:text-surface-variant px-3 py-1 hover:bg-surface-container dark:hover:bg-tertiary-container transition-all active:scale-90 duration-150 rounded-xl" href="#">
+<span class="material-symbols-outlined" data-icon="group">group</span>
+<span class="font-label-md text-label-md mt-1">Cư dân</span>
+</a>
+<!-- ACTIVE ITEM: Phòng -->
+<a class="flex flex-col items-center justify-center bg-primary-container dark:bg-primary text-on-primary-container dark:text-on-primary rounded-xl px-3 py-1 hover:bg-surface-container dark:hover:bg-tertiary-container transition-all active:scale-90 duration-150" href="#">
+<span class="material-symbols-outlined" data-icon="door_open" style="font-variation-settings: 'FILL' 1;">door_open</span>
+<span class="font-label-md text-label-md mt-1 font-semibold">Phòng</span>
+</a>
+<a class="flex flex-col items-center justify-center text-on-surface-variant dark:text-surface-variant px-3 py-1 hover:bg-surface-container dark:hover:bg-tertiary-container transition-all active:scale-90 duration-150 rounded-xl" href="#">
+<span class="material-symbols-outlined" data-icon="settings">settings</span>
+<span class="font-label-md text-label-md mt-1">Cài đặt</span>
+</a>
+</div>
+</nav>
+</body></html>

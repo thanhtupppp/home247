@@ -1,0 +1,282 @@
+<!DOCTYPE html>
+
+<html class="light" lang="vi"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>Hợp đồng - Home247</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script id="tailwind-config">
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    "colors": {
+                        "outline": "#737686",
+                        "surface-container": "#e5eeff",
+                        "inverse-primary": "#b4c5ff",
+                        "on-primary-fixed": "#00174b",
+                        "secondary-fixed-dim": "#ffb690",
+                        "tertiary": "#4d556b",
+                        "primary-fixed": "#dbe1ff",
+                        "outline-variant": "#c3c6d7",
+                        "on-surface-variant": "#434655",
+                        "surface-container-highest": "#d3e4fe",
+                        "on-surface": "#0b1c30",
+                        "on-secondary-fixed": "#341100",
+                        "background": "#f8f9ff",
+                        "on-tertiary-container": "#eef0ff",
+                        "on-secondary-fixed-variant": "#783200",
+                        "secondary": "#9d4300",
+                        "on-secondary-container": "#5c2400",
+                        "primary": "#004ac6",
+                        "tertiary-container": "#656d84",
+                        "on-tertiary": "#ffffff",
+                        "surface": "#f8f9ff",
+                        "on-background": "#0b1c30",
+                        "inverse-surface": "#213145",
+                        "tertiary-fixed": "#dae2fd",
+                        "surface-dim": "#cbdbf5",
+                        "surface-variant": "#d3e4fe",
+                        "primary-container": "#2563eb",
+                        "secondary-container": "#fd761a",
+                        "surface-tint": "#0053db",
+                        "surface-container-lowest": "#ffffff",
+                        "on-primary": "#ffffff",
+                        "on-tertiary-fixed-variant": "#3f465c",
+                        "inverse-on-surface": "#eaf1ff",
+                        "on-primary-container": "#eeefff",
+                        "on-secondary": "#ffffff",
+                        "surface-container-high": "#dce9ff",
+                        "on-error-container": "#93000a",
+                        "tertiary-fixed-dim": "#bec6e0",
+                        "on-tertiary-fixed": "#131b2e",
+                        "on-primary-fixed-variant": "#003ea8",
+                        "error-container": "#ffdad6",
+                        "surface-container-low": "#eff4ff",
+                        "primary-fixed-dim": "#b4c5ff",
+                        "surface-bright": "#f8f9ff",
+                        "on-error": "#ffffff",
+                        "error": "#ba1a1a",
+                        "secondary-fixed": "#ffdbca"
+                    },
+                    "borderRadius": {
+                        "DEFAULT": "0.25rem",
+                        "lg": "0.5rem",
+                        "xl": "0.75rem",
+                        "full": "9999px"
+                    },
+                    "spacing": {
+                        "2xl": "48px",
+                        "margin-mobile": "16px",
+                        "xs": "4px",
+                        "gutter": "24px",
+                        "base": "4px",
+                        "md": "16px",
+                        "lg": "24px",
+                        "margin-desktop": "40px",
+                        "sm": "8px",
+                        "xl": "32px"
+                    },
+                    "fontFamily": {
+                        "label-md": ["Inter"],
+                        "display-lg": ["Inter"],
+                        "numeric-data": ["Inter"],
+                        "headline-lg-mobile": ["Inter"],
+                        "body-lg": ["Inter"],
+                        "headline-lg": ["Inter"],
+                        "title-lg": ["Inter"],
+                        "headline-md": ["Inter"],
+                        "body-md": ["Inter"]
+                    },
+                    "fontSize": {
+                        "label-md": ["12px", { "lineHeight": "16px", "letterSpacing": "0.02em", "fontWeight": "500" }],
+                        "display-lg": ["48px", { "lineHeight": "56px", "letterSpacing": "-0.02em", "fontWeight": "700" }],
+                        "numeric-data": ["16px", { "lineHeight": "24px", "fontWeight": "600" }],
+                        "headline-lg-mobile": ["24px", { "lineHeight": "32px", "letterSpacing": "-0.01em", "fontWeight": "600" }],
+                        "body-lg": ["16px", { "lineHeight": "24px", "fontWeight": "400" }],
+                        "headline-lg": ["32px", { "lineHeight": "40px", "letterSpacing": "-0.01em", "fontWeight": "600" }],
+                        "title-lg": ["18px", { "lineHeight": "28px", "fontWeight": "600" }],
+                        "headline-md": ["24px", { "lineHeight": "32px", "fontWeight": "600" }],
+                        "body-md": ["14px", { "lineHeight": "20px", "fontWeight": "400" }]
+                    }
+                }
+            }
+        }
+    </script>
+<style>
+        body { font-family: 'Inter', sans-serif; }
+        .material-symbols-outlined { font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24; }
+        .material-symbols-outlined.fill { font-variation-settings: 'FILL' 1; }
+        .hide-scrollbar::-webkit-scrollbar { display: none; }
+        .hide-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
+    </style>
+<style>
+    body {
+      min-height: max(884px, 100dvh);
+    }
+  </style>
+  </head>
+<body class="bg-background text-on-background min-h-screen pb-[80px]">
+<!-- TopAppBar -->
+<header class="w-full top-0 sticky bg-surface shadow-sm z-40">
+<div class="flex items-center justify-between px-md py-sm w-full h-16">
+<div class="flex items-center gap-sm">
+<button class="p-2 text-primary hover:bg-surface-container transition-colors rounded-full cursor-pointer active:scale-95 duration-200">
+<span class="material-symbols-outlined text-[24px]">arrow_back</span>
+</button>
+<h1 class="font-headline-md text-headline-md font-bold text-primary">Hợp đồng</h1>
+</div>
+<button class="flex items-center gap-xs px-3 py-1.5 text-primary hover:bg-surface-container transition-colors rounded-full font-label-md text-label-md font-medium cursor-pointer active:scale-95 duration-200">
+<span class="material-symbols-outlined text-[20px]">add</span>
+                Tạo HĐ
+            </button>
+</div>
+</header>
+<!-- Search & Filter Area -->
+<div class="px-margin-mobile py-sm bg-surface shadow-sm sticky top-16 z-30">
+<div class="flex gap-sm items-center mb-sm">
+<div class="relative flex-grow">
+<span class="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-on-surface-variant">search</span>
+<input class="w-full h-10 pl-10 pr-4 bg-surface-container-lowest border border-outline-variant rounded-xl font-body-md text-body-md focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary transition-colors" placeholder="Tìm kiếm hợp đồng" type="text"/>
+</div>
+<button class="w-10 h-10 flex items-center justify-center bg-surface-container-lowest border border-outline-variant rounded-xl text-on-surface-variant hover:bg-surface-container transition-colors shrink-0">
+<span class="material-symbols-outlined text-[20px]">filter_list</span>
+</button>
+</div>
+<!-- Filter Tabs -->
+<div class="flex gap-sm overflow-x-auto hide-scrollbar pb-1">
+<button class="px-4 py-1.5 rounded-full whitespace-nowrap font-label-md text-label-md bg-primary-container text-on-primary-container transition-colors shrink-0">
+                Tất cả
+            </button>
+<button class="px-4 py-1.5 rounded-full whitespace-nowrap font-label-md text-label-md bg-surface-container border border-outline-variant text-on-surface-variant hover:bg-surface-container-high transition-colors shrink-0">
+                Đang ở
+            </button>
+<button class="px-4 py-1.5 rounded-full whitespace-nowrap font-label-md text-label-md bg-surface-container border border-outline-variant text-on-surface-variant hover:bg-surface-container-high transition-colors shrink-0">
+                Sắp đến hạn
+            </button>
+<button class="px-4 py-1.5 rounded-full whitespace-nowrap font-label-md text-label-md bg-surface-container border border-outline-variant text-on-surface-variant hover:bg-surface-container-high transition-colors shrink-0">
+                Đã hết hạn
+            </button>
+</div>
+</div>
+<!-- Contract List Content -->
+<main class="p-margin-mobile flex flex-col gap-md">
+<!-- Contract Card 1 (Active) -->
+<div class="bg-surface-container-lowest rounded-xl border border-outline-variant shadow-[0_2px_4px_rgba(0,0,0,0.04)] p-md flex flex-col gap-sm">
+<div class="flex justify-between items-start">
+<div>
+<h3 class="font-title-lg text-title-lg text-on-background">Phòng 101 - Tòa A</h3>
+<div class="flex items-center gap-xs text-on-surface-variant mt-1">
+<span class="material-symbols-outlined text-[16px]">person</span>
+<span class="font-body-md text-body-md">Nguyễn Văn An</span>
+</div>
+</div>
+<span class="px-2.5 py-1 rounded-full bg-[#dcfce7] text-[#166534] font-label-md text-label-md font-medium">Đang ở</span>
+</div>
+<div class="h-[1px] w-full bg-outline-variant/30 my-xs"></div>
+<div class="flex justify-between items-end">
+<div class="flex flex-col gap-xs">
+<div class="flex items-center gap-xs text-on-surface-variant font-label-md text-label-md">
+<span class="material-symbols-outlined text-[14px]">calendar_today</span>
+<span>Bắt đầu: 01/10/2023</span>
+</div>
+<div class="flex items-center gap-xs text-on-surface-variant font-label-md text-label-md">
+<span class="material-symbols-outlined text-[14px]">event</span>
+<span>Kết thúc: 01/10/2024</span>
+</div>
+</div>
+<div class="text-right">
+<p class="font-label-md text-label-md text-on-surface-variant mb-0.5">Tiền thuê/tháng</p>
+<p class="font-numeric-data text-numeric-data text-primary">4.500.000đ</p>
+</div>
+</div>
+</div>
+<!-- Contract Card 2 (Expiring Soon) -->
+<div class="bg-surface-container-lowest rounded-xl border border-outline-variant shadow-[0_2px_4px_rgba(0,0,0,0.04)] p-md flex flex-col gap-sm">
+<div class="flex justify-between items-start">
+<div>
+<h3 class="font-title-lg text-title-lg text-on-background">Phòng 205 - Tòa B</h3>
+<div class="flex items-center gap-xs text-on-surface-variant mt-1">
+<span class="material-symbols-outlined text-[16px]">person</span>
+<span class="font-body-md text-body-md">Trần Thị Bình</span>
+</div>
+</div>
+<span class="px-2.5 py-1 rounded-full bg-[#fef08a] text-[#854d0e] font-label-md text-label-md font-medium">Sắp đến hạn</span>
+</div>
+<div class="h-[1px] w-full bg-outline-variant/30 my-xs"></div>
+<div class="flex justify-between items-end">
+<div class="flex flex-col gap-xs">
+<div class="flex items-center gap-xs text-on-surface-variant font-label-md text-label-md">
+<span class="material-symbols-outlined text-[14px]">calendar_today</span>
+<span>Bắt đầu: 15/06/2023</span>
+</div>
+<div class="flex items-center gap-xs text-[#b45309] font-label-md text-label-md font-medium">
+<span class="material-symbols-outlined text-[14px]">event</span>
+<span>Kết thúc: 15/12/2023</span>
+</div>
+</div>
+<div class="text-right">
+<p class="font-label-md text-label-md text-on-surface-variant mb-0.5">Tiền thuê/tháng</p>
+<p class="font-numeric-data text-numeric-data text-primary">5.200.000đ</p>
+</div>
+</div>
+</div>
+<!-- Contract Card 3 (Expired) -->
+<div class="bg-surface-container-lowest rounded-xl border border-outline-variant shadow-[0_2px_4px_rgba(0,0,0,0.04)] p-md flex flex-col gap-sm opacity-75">
+<div class="flex justify-between items-start">
+<div>
+<h3 class="font-title-lg text-title-lg text-on-surface-variant">Phòng 302 - Tòa A</h3>
+<div class="flex items-center gap-xs text-on-surface-variant mt-1">
+<span class="material-symbols-outlined text-[16px]">person</span>
+<span class="font-body-md text-body-md">Lê Văn Cường</span>
+</div>
+</div>
+<span class="px-2.5 py-1 rounded-full bg-surface-container-high text-on-surface-variant font-label-md text-label-md font-medium">Đã hết hạn</span>
+</div>
+<div class="h-[1px] w-full bg-outline-variant/30 my-xs"></div>
+<div class="flex justify-between items-end">
+<div class="flex flex-col gap-xs">
+<div class="flex items-center gap-xs text-on-surface-variant font-label-md text-label-md">
+<span class="material-symbols-outlined text-[14px]">calendar_today</span>
+<span>Bắt đầu: 01/01/2023</span>
+</div>
+<div class="flex items-center gap-xs text-error font-label-md text-label-md">
+<span class="material-symbols-outlined text-[14px]">event</span>
+<span>Kết thúc: 01/07/2023</span>
+</div>
+</div>
+<div class="text-right">
+<p class="font-label-md text-label-md text-on-surface-variant mb-0.5">Tiền thuê/tháng</p>
+<p class="font-numeric-data text-numeric-data text-on-surface-variant">3.800.000đ</p>
+</div>
+</div>
+</div>
+</main>
+<!-- BottomNavBar -->
+<nav class="fixed bottom-0 left-0 w-full flex justify-around items-center bg-surface py-2 px-margin-mobile border-t border-outline-variant/30 shadow-[0_-2px_10px_rgba(0,0,0,0.02)] z-50 md:hidden">
+<button class="flex flex-col items-center justify-center text-on-surface-variant px-4 py-1 hover:bg-surface-container-low transition-all active:scale-90 duration-150">
+<span class="material-symbols-outlined text-[24px]">meeting_room</span>
+<span class="font-label-md text-label-md mt-1">Rooms</span>
+</button>
+<button class="flex flex-col items-center justify-center text-on-surface-variant px-4 py-1 hover:bg-surface-container-low transition-all active:scale-90 duration-150">
+<span class="material-symbols-outlined text-[24px]">groups</span>
+<span class="font-label-md text-label-md mt-1">Tenants</span>
+</button>
+<!-- Active Tab: Contracts -->
+<button class="flex flex-col items-center justify-center bg-primary-container text-on-primary-container rounded-xl px-4 py-1 active:scale-90 duration-150">
+<span class="material-symbols-outlined fill text-[24px]">description</span>
+<span class="font-label-md text-label-md mt-1">Contracts</span>
+</button>
+<button class="flex flex-col items-center justify-center text-on-surface-variant px-4 py-1 hover:bg-surface-container-low transition-all active:scale-90 duration-150">
+<span class="material-symbols-outlined text-[24px]">receipt_long</span>
+<span class="font-label-md text-label-md mt-1">Bills</span>
+</button>
+<button class="flex flex-col items-center justify-center text-on-surface-variant px-4 py-1 hover:bg-surface-container-low transition-all active:scale-90 duration-150">
+<span class="material-symbols-outlined text-[24px]">settings</span>
+<span class="font-label-md text-label-md mt-1">Settings</span>
+</button>
+</nav>
+</body></html>

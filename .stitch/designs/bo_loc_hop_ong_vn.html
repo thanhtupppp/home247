@@ -1,0 +1,117 @@
+<!DOCTYPE html>
+
+<html lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" name="viewport"/>
+<title>Lọc hợp đồng - Home247</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com" rel="preconnect"/>
+<link crossorigin="" href="https://fonts.gstatic.com" rel="preconnect"/>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&amp;display=swap" rel="stylesheet"/>
+<script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          fontFamily: {
+            sans: ['Inter', 'sans-serif'],
+          },
+          colors: {
+            primary: {
+              DEFAULT: '#4aa6f8', // Bright blue matching the active states
+            },
+            surface: {
+              DEFAULT: '#ffffff',
+              dim: '#f3f4f6', // gray-100 for chips
+            }
+          },
+          borderRadius: {
+            'sys': '8px', // Round 8 from design system
+          }
+        }
+      }
+    }
+  </script>
+<style data-purpose="custom-utilities">
+    /* Hide scrollbar for clean mobile look */
+    .no-scrollbar::-webkit-scrollbar {
+      display: none;
+    }
+    .no-scrollbar {
+      -ms-overflow-style: none;
+      scrollbar-width: none;
+    }
+  </style>
+</head>
+<body class="bg-gray-800/40 h-screen w-full flex items-end justify-center font-sans antialiased overflow-hidden selection:bg-primary selection:text-white">
+<!-- BEGIN: BottomSheetModal -->
+<main class="w-full max-w-md bg-white rounded-t-[24px] flex flex-col h-[85vh] shadow-2xl relative">
+<!-- Drag Handle -->
+<div class="w-full flex justify-center pt-3 pb-1 shrink-0">
+<div class="w-10 h-1 bg-gray-200 rounded-full"></div>
+</div>
+<!-- BEGIN: Header -->
+<header class="flex items-center justify-between px-5 pt-4 pb-4 shrink-0">
+<h1 class="text-xl font-bold text-gray-900">Lọc hợp đồng</h1>
+<button aria-label="Đóng" class="p-2 -mr-2 text-gray-500 hover:text-gray-800 transition-colors rounded-full">
+<svg class="h-6 w-6" fill="none" stroke="currentColor" stroke-width="1.5" viewbox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+<path d="M6 18L18 6M6 6l12 12" stroke-linecap="round" stroke-linejoin="round"></path>
+</svg>
+</button>
+</header>
+<!-- END: Header -->
+<!-- BEGIN: ScrollableContent -->
+<div class="flex-1 overflow-y-auto no-scrollbar px-5 pb-20">
+<!-- Building Selection Section -->
+<section class="mb-8 mt-2">
+<label class="block text-[15px] font-semibold text-gray-900 mb-3">Tòa nhà</label>
+<!-- Custom Dropdown Button -->
+<button class="w-full flex items-center justify-between bg-white border border-gray-200 rounded-sys p-3.5 focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all shadow-sm">
+<div class="flex items-center gap-3">
+<!-- Building Icon -->
+<svg class="w-[22px] h-[22px] text-gray-700" fill="none" stroke="currentColor" stroke-width="1.5" viewbox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+<path d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4" stroke-linecap="round" stroke-linejoin="round"></path>
+</svg>
+<span class="text-[15px] font-medium text-gray-900">Tất cả tòa nhà</span>
+</div>
+<!-- Chevron Icon -->
+<svg class="w-5 h-5 text-gray-500" fill="currentColor" viewbox="0 0 20 20" xmlns="http://www.w3.org/2000/svg">
+<path clip-rule="evenodd" d="M5.293 7.293a1 1 0 011.414 0L10 10.586l3.293-3.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414z" fill-rule="evenodd"></path>
+</svg>
+</button>
+</section>
+<!-- Contract Status Filter Section -->
+<section>
+<label class="block text-[15px] font-semibold text-gray-900 mb-3">Trạng thái hợp đồng</label>
+<!-- Filter Chips Container -->
+<div class="flex flex-wrap gap-2.5">
+<!-- Active Chip -->
+<button class="px-5 py-2.5 bg-primary text-white rounded-full text-[14px] font-medium transition-colors">
+            Tất cả
+          </button>
+<!-- Inactive Chips -->
+<button class="px-5 py-2.5 bg-surface-dim text-gray-700 rounded-full text-[14px] font-medium hover:bg-gray-200 transition-colors">
+            Đang ở
+          </button>
+<button class="px-5 py-2.5 bg-surface-dim text-gray-700 rounded-full text-[14px] font-medium hover:bg-gray-200 transition-colors">
+            Sắp đến hạn
+          </button>
+<button class="px-5 py-2.5 bg-surface-dim text-gray-700 rounded-full text-[14px] font-medium hover:bg-gray-200 transition-colors">
+            Đã hết hạn
+          </button>
+</div>
+</section>
+</div>
+<!-- END: ScrollableContent -->
+<!-- BEGIN: FooterActions -->
+<footer class="absolute bottom-0 left-0 w-full bg-white pt-3 pb-8 px-5 border-t border-gray-50">
+<!-- Apply Button -->
+<button class="w-full bg-primary text-white py-3.5 rounded-[12px] text-[16px] font-semibold shadow-sm hover:bg-blue-500 active:bg-blue-600 transition-colors">
+        Áp dụng
+      </button>
+<!-- iOS Home Indicator -->
+<div class="absolute bottom-2 left-1/2 -translate-x-1/2 w-[134px] h-[5px] bg-gray-300 rounded-full"></div>
+</footer>
+<!-- END: FooterActions -->
+</main>
+<!-- END: BottomSheetModal -->
+</body></html>

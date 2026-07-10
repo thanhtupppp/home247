@@ -1,0 +1,401 @@
+<!DOCTYPE html>
+
+<html lang="vi"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>Ghi chỉ số Điện &amp; Nước - Home247</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;900&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script id="tailwind-config">
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    "colors": {
+                        "tertiary-container": "#656d84",
+                        "on-primary-fixed-variant": "#003ea8",
+                        "secondary-fixed-dim": "#ffb690",
+                        "outline-variant": "#c3c6d7",
+                        "secondary-fixed": "#ffdbca",
+                        "on-primary-container": "#eeefff",
+                        "tertiary-fixed": "#dae2fd",
+                        "on-tertiary": "#ffffff",
+                        "on-primary-fixed": "#00174b",
+                        "on-surface": "#0b1c30",
+                        "on-secondary": "#ffffff",
+                        "error-container": "#ffdad6",
+                        "on-tertiary-container": "#eef0ff",
+                        "surface-variant": "#d3e4fe",
+                        "secondary-container": "#fd761a",
+                        "surface-bright": "#f8f9ff",
+                        "surface": "#f8f9ff",
+                        "on-error-container": "#93000a",
+                        "inverse-primary": "#b4c5ff",
+                        "surface-container-high": "#dce9ff",
+                        "primary-fixed": "#dbe1ff",
+                        "inverse-surface": "#213145",
+                        "on-secondary-container": "#5c2400",
+                        "on-error": "#ffffff",
+                        "tertiary-fixed-dim": "#bec6e0",
+                        "on-tertiary-fixed-variant": "#3f465c",
+                        "primary": "#004ac6",
+                        "error": "#ba1a1a",
+                        "primary-fixed-dim": "#b4c5ff",
+                        "outline": "#737686",
+                        "background": "#f8f9ff",
+                        "on-secondary-fixed-variant": "#783200",
+                        "surface-container-lowest": "#ffffff",
+                        "surface-container-highest": "#d3e4fe",
+                        "primary-container": "#2563eb",
+                        "surface-tint": "#0053db",
+                        "tertiary": "#4d556b",
+                        "surface-container-low": "#eff4ff",
+                        "secondary": "#9d4300",
+                        "on-background": "#0b1c30",
+                        "inverse-on-surface": "#eaf1ff",
+                        "on-tertiary-fixed": "#131b2e",
+                        "on-surface-variant": "#434655",
+                        "surface-container": "#e5eeff",
+                        "on-secondary-fixed": "#341100",
+                        "surface-dim": "#cbdbf5",
+                        "on-primary": "#ffffff"
+                    },
+                    "borderRadius": {
+                        "DEFAULT": "0.25rem",
+                        "lg": "0.5rem",
+                        "xl": "0.75rem",
+                        "full": "9999px"
+                    },
+                    "spacing": {
+                        "md": "16px",
+                        "sm": "8px",
+                        "xs": "4px",
+                        "2xl": "48px",
+                        "gutter": "24px",
+                        "base": "4px",
+                        "xl": "32px",
+                        "margin-desktop": "40px",
+                        "margin-mobile": "16px",
+                        "lg": "24px"
+                    },
+                    "fontFamily": {
+                        "body-lg": ["Inter"],
+                        "display-lg": ["Inter"],
+                        "title-lg": ["Inter"],
+                        "label-md": ["Inter"],
+                        "headline-md": ["Inter"],
+                        "headline-lg-mobile": ["Inter"],
+                        "headline-lg": ["Inter"],
+                        "numeric-data": ["Inter"],
+                        "body-md": ["Inter"]
+                    },
+                    "fontSize": {
+                        "body-lg": ["16px", { "lineHeight": "24px", "fontWeight": "400" }],
+                        "display-lg": ["48px", { "lineHeight": "56px", "letterSpacing": "-0.02em", "fontWeight": "700" }],
+                        "title-lg": ["18px", { "lineHeight": "28px", "fontWeight": "600" }],
+                        "label-md": ["12px", { "lineHeight": "16px", "letterSpacing": "0.02em", "fontWeight": "500" }],
+                        "headline-md": ["24px", { "lineHeight": "32px", "fontWeight": "600" }],
+                        "headline-lg-mobile": ["24px", { "lineHeight": "32px", "letterSpacing": "-0.01em", "fontWeight": "600" }],
+                        "headline-lg": ["32px", { "lineHeight": "40px", "letterSpacing": "-0.01em", "fontWeight": "600" }],
+                        "numeric-data": ["16px", { "lineHeight": "24px", "fontWeight": "600" }],
+                        "body-md": ["14px", { "lineHeight": "20px", "fontWeight": "400" }]
+                    }
+                }
+            }
+        }
+    </script>
+<style>
+        body { font-family: 'Inter', sans-serif; background-color: #f8f9ff; }
+        .glass-card {
+            background: rgba(255, 255, 255, 0.9);
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05), 0 2px 4px -1px rgba(0, 0, 0, 0.03);
+        }
+        .input-glow:focus {
+            outline: none;
+            border-color: #2563eb;
+            box-shadow: 0 0 0 2px rgba(37, 99, 235, 0.2);
+        }
+    </style>
+<style>
+    body {
+      min-height: max(884px, 100dvh);
+    }
+  </style>
+  </head>
+<body class="bg-background text-on-background min-h-screen pb-24 md:pb-0 md:flex">
+<!-- NavigationDrawer (Web) -->
+<nav class="bg-inverse-surface dark:bg-surface-container-lowest text-primary dark:text-primary-fixed font-body-md text-body-md h-full w-72 flex flex-col shadow-md hidden md:flex flex-col h-screen sticky top-0 z-40 shrink-0">
+<div class="p-lg border-b border-outline/20">
+<h1 class="font-headline-md text-headline-md font-bold text-surface-container-lowest dark:text-primary">Home247</h1>
+</div>
+<div class="p-lg flex items-center gap-md border-b border-outline/20">
+<div class="w-12 h-12 rounded-full overflow-hidden bg-surface-container-low shrink-0">
+<img alt="Alex Morgan" class="w-full h-full object-cover" data-alt="A professional headshot of a property manager named Alex Morgan. The background is clean and modern, evoking a sense of trust and competence in a corporate setting." src="https://lh3.googleusercontent.com/aida-public/AB6AXuAotuZXpV-_lNPDRXLXtrYob008jZ12zp4sBB6Z6iBs2WtXPB_ZZzXjavsZbenEAMQB9SDlFbNrSIp0sFWIRqcPBka131Xk2GQyg1-GuA8UwF_Ejr2SUSnnyBBigEfTq67lfcvy40LMyCkzEvjz5MGET2VXhWQnewjuREiAwTWNPLtJFrl9czC89jbpJ813wzSFnNqJuqD1AfK-ermo0jca0hmfCMG_pJ06WbXMCD17lKJu3fkNe_45"/>
+</div>
+<div>
+<div class="font-title-lg text-title-lg text-surface-container-lowest">Alex Morgan</div>
+<div class="font-label-md text-label-md text-tertiary-fixed-dim">Senior Manager</div>
+</div>
+</div>
+<ul class="flex-1 overflow-y-auto py-md space-y-sm px-md">
+<li>
+<a class="flex items-center gap-md px-lg py-md text-on-surface-variant hover:text-on-surface hover:bg-surface-variant/10 transition-colors rounded-lg active:scale-95 duration-150" href="#">
+<span class="material-symbols-outlined" data-icon="dashboard">dashboard</span>
+<span>Dashboard</span>
+</a>
+</li>
+<li>
+<a class="flex items-center gap-md px-lg py-md text-on-surface-variant hover:text-on-surface hover:bg-surface-variant/10 transition-colors rounded-lg active:scale-95 duration-150" href="#">
+<span class="material-symbols-outlined" data-icon="domain">domain</span>
+<span>Properties</span>
+</a>
+</li>
+<li>
+<a class="flex items-center gap-md px-lg py-md bg-primary-container text-on-primary-container rounded-lg transition-colors active:scale-95 duration-150" href="#">
+<span class="material-symbols-outlined" data-icon="receipt_long">receipt_long</span>
+<span>Payments</span>
+</a>
+</li>
+<li>
+<a class="flex items-center gap-md px-lg py-md text-on-surface-variant hover:text-on-surface hover:bg-surface-variant/10 transition-colors rounded-lg active:scale-95 duration-150" href="#">
+<span class="material-symbols-outlined" data-icon="contact_support">contact_support</span>
+<span>Support</span>
+</a>
+</li>
+</ul>
+</nav>
+<!-- Main Content Area -->
+<main class="flex-1 flex flex-col min-w-0">
+<!-- TopAppBar (Mobile & Web Context) -->
+<header class="bg-surface dark:bg-surface-dim text-primary dark:text-primary-fixed-dim font-title-lg text-title-lg w-full h-16 shadow-sm flex justify-between items-center px-margin-mobile md:px-margin-desktop sticky top-0 z-30">
+<div class="flex items-center gap-md">
+<button class="md:hidden text-primary hover:bg-surface-container-low transition-all p-sm rounded-full active:opacity-80">
+<span class="material-symbols-outlined" data-icon="menu">menu</span>
+</button>
+<span class="font-headline-md text-headline-md font-black text-primary dark:text-primary-fixed md:hidden">Home247</span>
+<span class="hidden md:block font-bold">Ghi chỉ số Điện &amp; Nước</span>
+</div>
+<div class="flex items-center gap-sm">
+<div class="md:hidden w-8 h-8 rounded-full overflow-hidden bg-surface-container-low">
+<img alt="User Profile" class="w-full h-full object-cover" data-alt="A small, circular avatar image of a property manager. The style is clean, corporate, and minimalist." src="https://lh3.googleusercontent.com/aida-public/AB6AXuCGSHXkXlF3L67ZPkimELPFQ5R_PcxKjk3eaxcQApsLG38rCFF-Ycq0vVST87fUzLPxQ3u6GXGyRfDby7b-QqZYANvNdUAA7Va6nijs9kEykzf47Tg1DEcGyXYxvkelUerq-wQNyewc-PSvVoIy9ccQd3Dw9R0OOkCwZDtFv16UKH5CBF9S-_2QkPR03HwUwHPa1iA-Uzwf-68acSpaw1qhBTT5ogzAEAIPbNvYz24XI7mCi1Kuq_pf"/>
+</div>
+</div>
+</header>
+<div class="p-margin-mobile md:p-margin-desktop max-w-7xl mx-auto w-full space-y-lg">
+<div class="md:hidden mb-md">
+<h2 class="font-headline-lg-mobile text-headline-lg-mobile text-on-background">Ghi chỉ số Điện &amp; Nước</h2>
+</div>
+<!-- Filter / Room Selector -->
+<section class="glass-card rounded-xl p-md flex flex-col md:flex-row gap-md items-end md:items-center justify-between">
+<div class="w-full md:w-auto flex-1 flex flex-col md:flex-row gap-md">
+<div class="flex-1">
+<label class="block font-label-md text-label-md text-on-surface-variant mb-xs">Tòa nhà / Khu vực</label>
+<select class="w-full h-10 px-sm border border-outline-variant rounded-lg bg-surface focus:input-glow font-body-md text-body-md text-on-surface appearance-none">
+<option>Tòa A - 45 Nguyễn Trãi</option>
+<option>Tòa B - 12 Lê Lợi</option>
+</select>
+</div>
+<div class="flex-1">
+<label class="block font-label-md text-label-md text-on-surface-variant mb-xs">Tầng / Phòng</label>
+<select class="w-full h-10 px-sm border border-outline-variant rounded-lg bg-surface focus:input-glow font-body-md text-body-md text-on-surface appearance-none">
+<option>Tầng 1 - Phòng 101</option>
+<option>Tầng 1 - Phòng 102</option>
+<option>Tầng 2 - Phòng 201</option>
+</select>
+</div>
+<div class="flex-1">
+<label class="block font-label-md text-label-md text-on-surface-variant mb-xs">Kỳ ghi chỉ số</label>
+<input class="w-full h-10 px-sm border border-outline-variant rounded-lg bg-surface focus:input-glow font-body-md text-body-md text-on-surface" type="month" value="2023-10"/>
+</div>
+</div>
+<div class="w-full md:w-auto flex items-center justify-between md:justify-end gap-md pt-sm md:pt-0">
+<span class="font-label-md text-label-md text-tertiary">Trạng thái: <span class="text-error font-bold">Chưa ghi</span></span>
+<button class="bg-surface-container-highest text-primary px-md py-sm rounded-lg font-label-md text-label-md hover:bg-surface-variant transition-colors flex items-center gap-xs">
+<span class="material-symbols-outlined text-[18px]" data-icon="search">search</span> Tìm
+                    </button>
+</div>
+</section>
+<!-- Grid Layout for Inputs and Status -->
+<div class="grid grid-cols-1 lg:grid-cols-3 gap-lg items-start">
+<!-- Main Input Area (Left 2 cols on Desktop) -->
+<div class="lg:col-span-2 space-y-lg">
+<!-- Electricity Card -->
+<div class="glass-card rounded-xl overflow-hidden border border-outline-variant/50">
+<div class="bg-surface-container-low px-md py-sm border-b border-outline-variant/50 flex items-center gap-sm">
+<div class="w-8 h-8 rounded-full bg-secondary-fixed flex items-center justify-center text-on-secondary-fixed">
+<span class="material-symbols-outlined" data-icon="bolt">bolt</span>
+</div>
+<h3 class="font-title-lg text-title-lg text-on-surface">Điện</h3>
+</div>
+<div class="p-md space-y-md">
+<div class="grid grid-cols-2 md:grid-cols-3 gap-md">
+<div class="bg-surface-bright p-sm rounded-lg border border-outline-variant/30">
+<div class="font-label-md text-label-md text-on-surface-variant">Chỉ số cũ (Tháng 9)</div>
+<div class="font-numeric-data text-numeric-data text-on-surface text-xl mt-xs">1,245</div>
+</div>
+<div class="col-span-1 md:col-span-2">
+<label class="block font-label-md text-label-md text-on-surface-variant mb-xs">Chỉ số mới</label>
+<div class="relative">
+<input class="w-full h-12 pl-sm pr-10 border border-outline-variant rounded-lg bg-surface focus:input-glow font-numeric-data text-numeric-data text-on-surface text-lg" placeholder="Nhập số..." type="number"/>
+<button class="absolute right-2 top-1/2 -translate-y-1/2 text-tertiary hover:text-primary transition-colors p-xs" title="Chụp ảnh đồng hồ">
+<span class="material-symbols-outlined" data-icon="photo_camera">photo_camera</span>
+</button>
+</div>
+</div>
+</div>
+<div class="flex items-center justify-between bg-surface-container-lowest p-sm rounded-lg border border-outline-variant/30 mt-sm">
+<div class="flex items-center gap-sm">
+<span class="material-symbols-outlined text-tertiary" data-icon="monitoring">monitoring</span>
+<span class="font-body-md text-body-md text-on-surface-variant">Tiêu thụ: <strong class="text-primary font-numeric-data">0 kWh</strong></span>
+</div>
+<div class="text-right">
+<div class="font-label-md text-label-md text-on-surface-variant">Thành tiền dự kiến (3,500đ/kWh)</div>
+<div class="font-numeric-data text-numeric-data text-on-surface text-lg">0 VNĐ</div>
+</div>
+</div>
+</div>
+</div>
+<!-- Water Card -->
+<div class="glass-card rounded-xl overflow-hidden border border-outline-variant/50">
+<div class="bg-surface-container-low px-md py-sm border-b border-outline-variant/50 flex items-center gap-sm">
+<div class="w-8 h-8 rounded-full bg-primary-fixed flex items-center justify-center text-on-primary-fixed">
+<span class="material-symbols-outlined" data-icon="water_drop">water_drop</span>
+</div>
+<h3 class="font-title-lg text-title-lg text-on-surface">Nước</h3>
+</div>
+<div class="p-md space-y-md">
+<div class="grid grid-cols-2 md:grid-cols-3 gap-md">
+<div class="bg-surface-bright p-sm rounded-lg border border-outline-variant/30">
+<div class="font-label-md text-label-md text-on-surface-variant">Chỉ số cũ (Tháng 9)</div>
+<div class="font-numeric-data text-numeric-data text-on-surface text-xl mt-xs">342</div>
+</div>
+<div class="col-span-1 md:col-span-2">
+<label class="block font-label-md text-label-md text-on-surface-variant mb-xs">Chỉ số mới</label>
+<div class="relative">
+<input class="w-full h-12 pl-sm pr-10 border border-outline-variant rounded-lg bg-surface focus:input-glow font-numeric-data text-numeric-data text-on-surface text-lg" placeholder="Nhập số..." type="number"/>
+<button class="absolute right-2 top-1/2 -translate-y-1/2 text-tertiary hover:text-primary transition-colors p-xs" title="Chụp ảnh đồng hồ">
+<span class="material-symbols-outlined" data-icon="photo_camera">photo_camera</span>
+</button>
+</div>
+</div>
+</div>
+<div class="flex items-center justify-between bg-surface-container-lowest p-sm rounded-lg border border-outline-variant/30 mt-sm">
+<div class="flex items-center gap-sm">
+<span class="material-symbols-outlined text-tertiary" data-icon="water_ph">water_ph</span>
+<span class="font-body-md text-body-md text-on-surface-variant">Tiêu thụ: <strong class="text-primary font-numeric-data">0 m³</strong></span>
+</div>
+<div class="text-right">
+<div class="font-label-md text-label-md text-on-surface-variant">Thành tiền dự kiến (25,000đ/m³)</div>
+<div class="font-numeric-data text-numeric-data text-on-surface text-lg">0 VNĐ</div>
+</div>
+</div>
+</div>
+</div>
+<!-- Action Area -->
+<div class="flex justify-end pt-md">
+<button class="bg-primary-container text-on-primary-container font-title-lg text-title-lg px-xl py-sm rounded-lg shadow-sm hover:opacity-90 transition-opacity active:scale-95 duration-150 flex items-center gap-sm">
+<span class="material-symbols-outlined" data-icon="save">save</span>
+                            Lưu và Chốt số
+                        </button>
+</div>
+</div>
+<!-- Status List (Right Col on Desktop) -->
+<div class="glass-card rounded-xl overflow-hidden border border-outline-variant/50 lg:sticky lg:top-24">
+<div class="bg-surface-container-low px-md py-sm border-b border-outline-variant/50 flex justify-between items-center">
+<h3 class="font-title-lg text-title-lg text-on-surface">Tiến độ tháng này</h3>
+<span class="bg-surface-variant text-on-surface-variant text-xs font-bold px-2 py-1 rounded-full">1/12 Phòng</span>
+</div>
+<div class="p-xs">
+<ul class="space-y-xs max-h-[400px] overflow-y-auto">
+<li class="flex items-center justify-between p-sm hover:bg-surface-container-lowest rounded-lg cursor-pointer transition-colors bg-surface-container-lowest border border-outline-variant/20 shadow-sm">
+<div class="flex items-center gap-sm">
+<div class="w-2 h-2 rounded-full bg-[#10b981]"></div>
+<span class="font-body-md text-body-md font-semibold text-on-surface">Phòng 101</span>
+</div>
+<span class="font-label-md text-label-md text-[#10b981] bg-[#10b981]/10 px-2 py-0.5 rounded">Đã ghi</span>
+</li>
+<li class="flex items-center justify-between p-sm hover:bg-surface-container-lowest rounded-lg cursor-pointer transition-colors border border-transparent">
+<div class="flex items-center gap-sm">
+<div class="w-2 h-2 rounded-full bg-primary-container animate-pulse"></div>
+<span class="font-body-md text-body-md font-bold text-primary">Phòng 102</span>
+</div>
+<span class="font-label-md text-label-md text-primary bg-primary/10 px-2 py-0.5 rounded">Đang ghi</span>
+</li>
+<li class="flex items-center justify-between p-sm hover:bg-surface-container-lowest rounded-lg cursor-pointer transition-colors border border-transparent">
+<div class="flex items-center gap-sm">
+<div class="w-2 h-2 rounded-full bg-outline-variant"></div>
+<span class="font-body-md text-body-md text-on-surface-variant">Phòng 201</span>
+</div>
+<span class="font-label-md text-label-md text-on-surface-variant bg-surface-variant px-2 py-0.5 rounded">Chưa ghi</span>
+</li>
+<li class="flex items-center justify-between p-sm hover:bg-surface-container-lowest rounded-lg cursor-pointer transition-colors border border-transparent">
+<div class="flex items-center gap-sm">
+<div class="w-2 h-2 rounded-full bg-outline-variant"></div>
+<span class="font-body-md text-body-md text-on-surface-variant">Phòng 202</span>
+</div>
+<span class="font-label-md text-label-md text-on-surface-variant bg-surface-variant px-2 py-0.5 rounded">Chưa ghi</span>
+</li>
+<li class="flex items-center justify-between p-sm hover:bg-surface-container-lowest rounded-lg cursor-pointer transition-colors border border-transparent">
+<div class="flex items-center gap-sm">
+<div class="w-2 h-2 rounded-full bg-outline-variant"></div>
+<span class="font-body-md text-body-md text-on-surface-variant">Phòng 301</span>
+</div>
+<span class="font-label-md text-label-md text-on-surface-variant bg-surface-variant px-2 py-0.5 rounded">Chưa ghi</span>
+</li>
+</ul>
+</div>
+</div>
+</div>
+</div>
+</main>
+<!-- BottomNavBar (Mobile) -->
+<nav class="bg-surface dark:bg-surface-container-high text-primary dark:text-primary-fixed font-label-md text-label-md md:hidden fixed bottom-0 left-0 w-full z-50 flex justify-around items-center h-16 pb-safe border-t border-outline-variant dark:border-outline shadow-lg rounded-t-xl">
+<a class="flex flex-col items-center justify-center text-on-surface-variant hover:text-primary active:scale-90 duration-200" href="#">
+<span class="material-symbols-outlined" data-icon="home">home</span>
+<span>Home</span>
+</a>
+<a class="flex flex-col items-center justify-center bg-secondary-container text-on-secondary-container rounded-full px-4 py-1 active:scale-90 duration-200" href="#">
+<span class="material-symbols-outlined" data-icon="bed">bed</span>
+<span>Rooms</span>
+</a>
+<a class="flex flex-col items-center justify-center text-on-surface-variant hover:text-primary active:scale-90 duration-200" href="#">
+<span class="material-symbols-outlined" data-icon="credit_card">credit_card</span>
+<span>Bills</span>
+</a>
+<a class="flex flex-col items-center justify-center text-on-surface-variant hover:text-primary active:scale-90 duration-200" href="#">
+<span class="material-symbols-outlined" data-icon="help_outline">help_outline</span>
+<span>Help</span>
+</a>
+</nav>
+<script>
+        // Simple mock interaction for inputs
+        document.querySelectorAll('input[type="number"]').forEach(input => {
+            input.addEventListener('input', (e) => {
+                const card = e.target.closest('.glass-card');
+                const oldValText = card.querySelector('.font-numeric-data.text-xl').innerText.replace(/,/g, '');
+                const oldVal = parseFloat(oldValText) || 0;
+                const newVal = parseFloat(e.target.value) || 0;
+                
+                const consumeSpan = card.querySelector('.font-body-md strong');
+                const priceDiv = card.querySelector('.text-right .font-numeric-data');
+                
+                if (newVal >= oldVal && e.target.value !== '') {
+                    const consumption = newVal - oldVal;
+                    const isElec = card.querySelector('[data-icon="bolt"]') !== null;
+                    const unit = isElec ? 'kWh' : 'm³';
+                    const rate = isElec ? 3500 : 25000;
+                    
+                    consumeSpan.innerText = `${consumption.toLocaleString()} ${unit}`;
+                    priceDiv.innerText = `${(consumption * rate).toLocaleString()} VNĐ`;
+                } else {
+                    consumeSpan.innerText = `0 ${card.querySelector('[data-icon="bolt"]') ? 'kWh' : 'm³'}`;
+                    priceDiv.innerText = `0 VNĐ`;
+                }
+            });
+        });
+    </script>
+</body></html>

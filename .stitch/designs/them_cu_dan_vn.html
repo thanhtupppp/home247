@@ -1,0 +1,391 @@
+<!DOCTYPE html>
+
+<html lang="vi"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>Thêm cư dân</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script id="tailwind-config">
+        tailwind.config = {
+          darkMode: "class",
+          theme: {
+            extend: {
+              "colors": {
+                      "surface-container-highest": "#d3e4fe",
+                      "inverse-surface": "#213145",
+                      "surface-tint": "#0053db",
+                      "on-error": "#ffffff",
+                      "on-background": "#0b1c30",
+                      "error-container": "#ffdad6",
+                      "on-secondary": "#ffffff",
+                      "on-primary-fixed-variant": "#003ea8",
+                      "primary-fixed-dim": "#b4c5ff",
+                      "surface": "#f8f9ff",
+                      "secondary": "#9d4300",
+                      "surface-container-low": "#eff4ff",
+                      "outline-variant": "#c3c6d7",
+                      "on-secondary-fixed": "#341100",
+                      "background": "#f8f9ff",
+                      "tertiary-fixed-dim": "#bec6e0",
+                      "surface-container": "#e5eeff",
+                      "primary": "#004ac6",
+                      "on-tertiary": "#ffffff",
+                      "on-secondary-container": "#5c2400",
+                      "on-error-container": "#93000a",
+                      "on-tertiary-fixed": "#131b2e",
+                      "on-surface": "#0b1c30",
+                      "secondary-fixed-dim": "#ffb690",
+                      "inverse-primary": "#b4c5ff",
+                      "primary-container": "#2563eb",
+                      "on-primary-container": "#eeefff",
+                      "on-tertiary-container": "#eef0ff",
+                      "on-surface-variant": "#434655",
+                      "tertiary-fixed": "#dae2fd",
+                      "outline": "#737686",
+                      "primary-fixed": "#dbe1ff",
+                      "surface-container-lowest": "#ffffff",
+                      "secondary-fixed": "#ffdbca",
+                      "tertiary-container": "#656d84",
+                      "inverse-on-surface": "#eaf1ff",
+                      "secondary-container": "#fd761a",
+                      "on-secondary-fixed-variant": "#783200",
+                      "surface-bright": "#f8f9ff",
+                      "on-primary": "#ffffff",
+                      "on-tertiary-fixed-variant": "#3f465c",
+                      "tertiary": "#4d556b",
+                      "surface-variant": "#d3e4fe",
+                      "surface-dim": "#cbdbf5",
+                      "surface-container-high": "#dce9ff",
+                      "on-primary-fixed": "#00174b",
+                      "error": "#ba1a1a"
+              },
+              "borderRadius": {
+                      "DEFAULT": "0.25rem",
+                      "lg": "0.5rem",
+                      "xl": "0.75rem",
+                      "full": "9999px"
+              },
+              "spacing": {
+                      "base": "4px",
+                      "gutter": "24px",
+                      "xl": "32px",
+                      "margin-desktop": "40px",
+                      "2xl": "48px",
+                      "xs": "4px",
+                      "margin-mobile": "16px",
+                      "md": "16px",
+                      "lg": "24px",
+                      "sm": "8px"
+              },
+              "fontFamily": {
+                      "headline-lg-mobile": [
+                              "Inter"
+                      ],
+                      "display-lg": [
+                              "Inter"
+                      ],
+                      "headline-md": [
+                              "Inter"
+                      ],
+                      "body-lg": [
+                              "Inter"
+                      ],
+                      "title-lg": [
+                              "Inter"
+                      ],
+                      "body-md": [
+                              "Inter"
+                      ],
+                      "headline-lg": [
+                              "Inter"
+                      ],
+                      "numeric-data": [
+                              "Inter"
+                      ],
+                      "label-md": [
+                              "Inter"
+                      ]
+              },
+              "fontSize": {
+                      "headline-lg-mobile": [
+                              "24px",
+                              {
+                                      "lineHeight": "32px",
+                                      "letterSpacing": "-0.01em",
+                                      "fontWeight": "600"
+                              }
+                      ],
+                      "display-lg": [
+                              "48px",
+                              {
+                                      "lineHeight": "56px",
+                                      "letterSpacing": "-0.02em",
+                                      "fontWeight": "700"
+                              }
+                      ],
+                      "headline-md": [
+                              "24px",
+                              {
+                                      "lineHeight": "32px",
+                                      "fontWeight": "600"
+                              }
+                      ],
+                      "body-lg": [
+                              "16px",
+                              {
+                                      "lineHeight": "24px",
+                                      "fontWeight": "400"
+                              }
+                      ],
+                      "title-lg": [
+                              "18px",
+                              {
+                                      "lineHeight": "28px",
+                                      "fontWeight": "600"
+                              }
+                      ],
+                      "body-md": [
+                              "14px",
+                              {
+                                      "lineHeight": "20px",
+                                      "fontWeight": "400"
+                              }
+                      ],
+                      "headline-lg": [
+                              "32px",
+                              {
+                                      "lineHeight": "40px",
+                                      "letterSpacing": "-0.01em",
+                                      "fontWeight": "600"
+                              }
+                      ],
+                      "numeric-data": [
+                              "16px",
+                              {
+                                      "lineHeight": "24px",
+                                      "fontWeight": "600"
+                              }
+                      ],
+                      "label-md": [
+                              "12px",
+                              {
+                                      "lineHeight": "16px",
+                                      "letterSpacing": "0.02em",
+                                      "fontWeight": "500"
+                              }
+                      ]
+              }
+      },
+          },
+        }
+      </script>
+<style>
+        body {
+            background-color: #f8f9ff;
+        }
+      </style>
+<style>
+    body {
+      min-height: max(884px, 100dvh);
+    }
+  </style>
+  </head>
+<body class="text-on-surface bg-surface-container-low min-h-screen flex flex-col font-body-md pb-24 md:pb-0">
+<!-- TopAppBar -->
+<header class="bg-surface dark:bg-surface w-full top-0 sticky flex items-center h-16 px-margin-mobile z-50">
+<button class="text-on-surface-variant dark:text-on-surface-variant hover:bg-surface-container-low dark:hover:bg-surface-container-high transition-colors active:scale-95 duration-100 p-2 rounded-full mr-4 flex items-center justify-center">
+<span class="material-symbols-outlined" style="font-variation-settings: 'FILL' 0;">arrow_back</span>
+</button>
+<h1 class="font-title-lg text-title-lg text-primary dark:text-primary-fixed-dim">Add Resident</h1>
+</header>
+<!-- Main Content -->
+<main class="flex-1 w-full max-w-3xl mx-auto px-margin-mobile py-lg md:py-margin-desktop space-y-lg">
+<!-- Thông tin cơ bản Card -->
+<section class="bg-surface rounded-xl shadow-sm border border-outline-variant/30 p-md space-y-md">
+<h2 class="font-title-lg text-title-lg text-on-surface">Thông tin cơ bản</h2>
+<div class="space-y-sm">
+<label class="block font-label-md text-label-md text-on-surface-variant" for="fullName">Họ và tên</label>
+<div class="relative">
+<div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+<span class="material-symbols-outlined text-outline">person</span>
+</div>
+<input class="block w-full pl-10 pr-3 py-2 border border-outline-variant rounded-lg text-on-surface focus:ring-primary focus:border-primary sm:text-sm transition-colors" id="fullName" placeholder="Nhập họ tên đầy đủ" type="text"/>
+</div>
+</div>
+<div class="grid grid-cols-1 md:grid-cols-2 gap-md">
+<div class="space-y-sm">
+<label class="block font-label-md text-label-md text-on-surface-variant" for="phone">Số điện thoại</label>
+<div class="relative">
+<div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+<span class="material-symbols-outlined text-outline">call</span>
+</div>
+<input class="block w-full pl-10 pr-3 py-2 border border-outline-variant rounded-lg text-on-surface focus:ring-primary focus:border-primary sm:text-sm transition-colors" id="phone" placeholder="09xx xxx ..." type="tel"/>
+</div>
+</div>
+<div class="space-y-sm">
+<label class="block font-label-md text-label-md text-on-surface-variant" for="email">Email</label>
+<div class="relative">
+<div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+<span class="material-symbols-outlined text-outline">mail</span>
+</div>
+<input class="block w-full pl-10 pr-3 py-2 border border-outline-variant rounded-lg text-on-surface focus:ring-primary focus:border-primary sm:text-sm transition-colors" id="email" placeholder="ten@email..." type="email"/>
+</div>
+</div>
+</div>
+<div class="space-y-sm">
+<label class="block font-label-md text-label-md text-on-surface-variant" for="dob">Ngày sinh</label>
+<div class="relative">
+<div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+<span class="material-symbols-outlined text-outline">calendar_today</span>
+</div>
+<input class="block w-full pl-10 pr-3 py-2 border border-outline-variant rounded-lg text-on-surface focus:ring-primary focus:border-primary sm:text-sm transition-colors" id="dob" type="date"/>
+</div>
+</div>
+<div class="space-y-sm">
+<label class="block font-label-md text-label-md text-on-surface-variant">Giới tính</label>
+<div class="flex gap-2">
+<button class="flex items-center gap-1 px-4 py-2 bg-primary-container text-on-primary-container border border-primary rounded-lg font-label-md text-label-md">
+<span class="material-symbols-outlined text-sm">check</span>
+                        Nam
+                    </button>
+<button class="px-4 py-2 bg-surface-container-low text-on-surface-variant border border-outline-variant rounded-lg font-label-md text-label-md hover:bg-surface-container transition-colors">
+                        Nữ
+                    </button>
+<button class="px-4 py-2 bg-surface-container-low text-on-surface-variant border border-outline-variant rounded-lg font-label-md text-label-md hover:bg-surface-container transition-colors">
+                        Khác
+                    </button>
+</div>
+</div>
+</section>
+<!-- CCCD/CMND Card -->
+<section class="bg-surface rounded-xl shadow-sm border border-outline-variant/30 p-md space-y-md">
+<h2 class="font-title-lg text-title-lg text-on-surface">CCCD/CMND</h2>
+<div class="grid grid-cols-2 gap-md">
+<div class="border-2 border-dashed border-outline-variant rounded-xl flex flex-col items-center justify-center p-6 text-center cursor-pointer hover:bg-surface-container-low transition-colors min-h-[140px]">
+<span class="material-symbols-outlined text-primary text-4xl mb-2" style="font-variation-settings: 'FILL' 1;">add_a_photo</span>
+<span class="font-label-md text-label-md text-on-surface font-medium block">Mặt trước</span>
+<span class="text-xs text-outline mt-1">Chạm để tải lên</span>
+</div>
+<div class="border-2 border-dashed border-outline-variant rounded-xl flex flex-col items-center justify-center p-6 text-center cursor-pointer hover:bg-surface-container-low transition-colors min-h-[140px]">
+<span class="material-symbols-outlined text-primary text-4xl mb-2" style="font-variation-settings: 'FILL' 1;">add_a_photo</span>
+<span class="font-label-md text-label-md text-on-surface font-medium block">Mặt sau</span>
+<span class="text-xs text-outline mt-1">Chạm để tải lên</span>
+</div>
+</div>
+</section>
+<!-- Căn hộ Card -->
+<section class="bg-surface rounded-xl shadow-sm border border-outline-variant/30 p-md space-y-md">
+<h2 class="font-title-lg text-title-lg text-on-surface">Căn hộ</h2>
+<div class="grid grid-cols-1 md:grid-cols-2 gap-md">
+<div class="space-y-sm">
+<label class="block font-label-md text-label-md text-on-surface-variant" for="building">Nhà</label>
+<div class="relative">
+<select class="block w-full pl-3 pr-10 py-2 border border-outline-variant rounded-lg text-on-surface focus:ring-primary focus:border-primary sm:text-sm appearance-none bg-transparent" id="building">
+<option value="">Chọn tòa nhà</option>
+<option value="A">Tòa A</option>
+<option value="B">Tòa B</option>
+</select>
+<div class="pointer-events-none absolute inset-y-0 right-0 flex items-center px-2 text-on-surface-variant">
+<span class="material-symbols-outlined">expand_more</span>
+</div>
+</div>
+</div>
+<div class="space-y-sm">
+<label class="block font-label-md text-label-md text-on-surface-variant" for="apartment">Căn hộ</label>
+<div class="relative">
+<select class="block w-full pl-3 pr-10 py-2 border border-outline-variant rounded-lg text-on-surface focus:ring-primary focus:border-primary sm:text-sm appearance-none bg-transparent" id="apartment">
+<option value="">Chọn căn hộ</option>
+<option value="101">101</option>
+<option value="102">102</option>
+</select>
+<div class="pointer-events-none absolute inset-y-0 right-0 flex items-center px-2 text-on-surface-variant">
+<span class="material-symbols-outlined">expand_more</span>
+</div>
+</div>
+</div>
+</div>
+<div class="grid grid-cols-1 md:grid-cols-2 gap-md">
+<div class="space-y-sm">
+<label class="block font-label-md text-label-md text-on-surface-variant" for="moveInDate">Ngày vào ở</label>
+<div class="relative">
+<div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+<span class="material-symbols-outlined text-outline">calendar_month</span>
+</div>
+<input class="block w-full pl-10 pr-3 py-2 border border-outline-variant rounded-lg text-on-surface focus:ring-primary focus:border-primary sm:text-sm transition-colors" id="moveInDate" type="date"/>
+</div>
+</div>
+<div class="space-y-sm">
+<label class="block font-label-md text-label-md text-on-surface-variant" for="note">Ghi chú</label>
+<div class="relative">
+<div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+<span class="material-symbols-outlined text-outline">description</span>
+</div>
+<input class="block w-full pl-10 pr-3 py-2 border border-outline-variant rounded-lg text-on-surface focus:ring-primary focus:border-primary sm:text-sm transition-colors" id="note" placeholder="VD: Thẻ ..." type="text"/>
+</div>
+</div>
+</div>
+</section>
+<!-- Hợp đồng Card -->
+<section class="bg-surface rounded-xl shadow-sm border border-outline-variant/30 p-md space-y-md">
+<h2 class="font-title-lg text-title-lg text-on-surface">Hợp đồng</h2>
+<div class="border-2 border-dashed border-outline-variant rounded-xl flex flex-col items-center justify-center p-8 text-center cursor-pointer hover:bg-surface-container-low transition-colors max-w-sm">
+<div class="w-16 h-16 bg-surface-container-high rounded-full flex items-center justify-center mb-4">
+<span class="material-symbols-outlined text-primary text-3xl" style="font-variation-settings: 'FILL' 1;">description</span>
+</div>
+<span class="font-label-md text-label-md text-on-surface font-medium block text-base mb-1">Tải lên hợp đồng</span>
+<span class="text-sm text-outline">Chọn file PDF (tối đa 10MB)</span>
+</div>
+</section>
+<!-- Tuỳ chọn Card -->
+<section class="bg-surface rounded-xl shadow-sm border border-outline-variant/30 p-md space-y-md">
+<h2 class="font-title-lg text-title-lg text-on-surface mb-4">Tuỳ chọn</h2>
+<div class="flex items-center justify-between py-2">
+<div class="pr-4">
+<h3 class="font-body-lg text-body-lg text-on-surface font-medium">Gửi lời mời đăng nhập</h3>
+<p class="font-body-md text-body-md text-on-surface-variant mt-1">Gửi SMS/Email để cư dân tự kích hoạt tài khoản.</p>
+</div>
+<button aria-checked="true" class="relative inline-flex h-6 w-11 flex-shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-2 bg-primary" role="switch" type="button">
+<span class="translate-x-5 pointer-events-none inline-block h-5 w-5 transform rounded-full bg-white shadow ring-0 transition duration-200 ease-in-out"></span>
+</button>
+</div>
+<hr class="border-outline-variant/30"/>
+<div class="flex items-center justify-between py-2">
+<div class="pr-4">
+<h3 class="font-body-lg text-body-lg text-on-surface font-medium">Nhận thông báo</h3>
+<p class="font-body-md text-body-md text-on-surface-variant mt-1">Cho phép cư dân nhận cập nhật khi có xử lý.</p>
+</div>
+<button aria-checked="true" class="relative inline-flex h-6 w-11 flex-shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-2 bg-primary" role="switch" type="button">
+<span class="translate-x-5 pointer-events-none inline-block h-5 w-5 transform rounded-full bg-white shadow ring-0 transition duration-200 ease-in-out"></span>
+</button>
+</div>
+</section>
+<!-- Submit Button Area (Mobile fixed bottom, Desktop inline) -->
+<div class="fixed bottom-20 left-0 w-full p-4 bg-surface md:static md:p-0 md:bg-transparent border-t md:border-0 border-outline-variant/20 z-40">
+<button class="w-full bg-primary text-on-primary py-3 rounded-lg font-title-lg text-title-lg hover:bg-primary-fixed-variant transition-colors shadow-sm">
+                Lưu cư dân
+            </button>
+</div>
+</main>
+<!-- BottomNavBar (Mobile Only) -->
+<nav class="md:hidden flex justify-around items-center w-full h-20 bg-surface dark:bg-inverse-surface px-margin-mobile pb-safe fixed bottom-0 z-50 shadow-[0_-2px_4px_0_rgba(0,0,0,0.04)]">
+<a class="flex flex-col items-center justify-center text-on-surface-variant dark:text-outline-variant hover:text-primary dark:hover:text-primary-fixed active:scale-90 transition-transform duration-200" href="#">
+<span class="material-symbols-outlined mb-1">domain</span>
+<span class="font-label-md text-label-md">Properties</span>
+</a>
+<a class="flex flex-col items-center justify-center bg-primary-container dark:bg-secondary-container text-on-primary-container dark:text-on-secondary-container rounded-full px-4 py-1 active:scale-90 transition-transform duration-200" href="#">
+<span class="material-symbols-outlined mb-1" style="font-variation-settings: 'FILL' 1;">person_add</span>
+<span class="font-label-md text-label-md">Residents</span>
+</a>
+<a class="flex flex-col items-center justify-center text-on-surface-variant dark:text-outline-variant hover:text-primary dark:hover:text-primary-fixed active:scale-90 transition-transform duration-200" href="#">
+<span class="material-symbols-outlined mb-1">account_balance_wallet</span>
+<span class="font-label-md text-label-md">Finance</span>
+</a>
+<a class="flex flex-col items-center justify-center text-on-surface-variant dark:text-outline-variant hover:text-primary dark:hover:text-primary-fixed active:scale-90 transition-transform duration-200" href="#">
+<span class="material-symbols-outlined mb-1">settings</span>
+<span class="font-label-md text-label-md">Profile</span>
+</a>
+</nav>
+</body></html>

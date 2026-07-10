@@ -1,0 +1,151 @@
+<!DOCTYPE html>
+
+<html lang="vi"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>Tài khoản - Home247</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&amp;display=swap" rel="stylesheet"/>
+<link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet"/>
+<script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          fontFamily: {
+            sans: ['Inter', 'sans-serif'],
+          },
+          colors: {
+            brand: '#2563eb',
+            surface: '#f8f9ff',
+            'surface-container-lowest': '#ffffff',
+            'surface-container': '#dce7f9',
+            'on-surface': '#111824',
+            'on-surface-variant': '#3a485f',
+            outline: '#68778f',
+            'outline-variant': '#b7c7e3',
+            error: '#ba1a1a',
+            'error-container': '#ffdad6',
+            'on-error-container': '#410002',
+          },
+          borderRadius: {
+            'xl': '0.75rem',
+            '2xl': '1rem',
+          }
+        }
+      }
+    }
+  </script>
+<style data-purpose="custom-styles">
+    body {
+      background-color: theme('colors.surface');
+      color: theme('colors.on-surface');
+      -webkit-tap-highlight-color: transparent;
+    }
+    
+    .settings-list-item:not(:last-child) {
+      border-bottom: 1px solid theme('colors.outline-variant');
+    }
+  </style>
+</head>
+<body class="flex flex-col min-h-screen bg-surface font-sans text-on-surface pb-[80px]">
+<!-- BEGIN: Header -->
+<header class="sticky top-0 z-10 bg-surface px-4 py-4 text-center">
+<h1 class="text-xl font-bold text-on-surface">Tài khoản</h1>
+</header>
+<!-- END: Header -->
+<!-- BEGIN: Main Content -->
+<main class="flex-grow px-4 pb-6 space-y-4">
+<!-- Profile Section (Placeholder based on image clipping) -->
+<section class="bg-surface-container-lowest rounded-2xl p-4 shadow-sm -mt-2 text-center">
+<p class="text-on-surface-variant text-sm truncate">thanhntapv@gmail.com</p>
+</section>
+<!-- Settings List -->
+<section class="bg-surface-container-lowest rounded-2xl shadow-sm overflow-hidden">
+<!-- Account Info -->
+<div class="settings-list-item flex items-center p-4 active:bg-surface-container/50 cursor-pointer transition-colors">
+<div class="w-10 h-10 rounded-full bg-surface-container flex items-center justify-center mr-4 shrink-0">
+<i class="fa-regular fa-user text-on-surface-variant text-lg"></i>
+</div>
+<span class="text-base font-semibold text-on-surface flex-grow">Thông tin tài khoản</span>
+</div>
+<!-- Change Password -->
+<div class="settings-list-item flex items-center p-4 active:bg-surface-container/50 cursor-pointer transition-colors">
+<div class="w-10 h-10 rounded-full bg-surface-container flex items-center justify-center mr-4 shrink-0">
+<i class="fa-solid fa-lock text-on-surface-variant text-lg"></i>
+</div>
+<span class="text-base font-semibold text-on-surface flex-grow">Đổi mật khẩu</span>
+</div>
+<!-- Language -->
+<div class="settings-list-item flex items-center p-4 active:bg-surface-container/50 cursor-pointer transition-colors">
+<div class="w-10 h-10 rounded-full bg-surface-container flex items-center justify-center mr-4 shrink-0">
+<i class="fa-solid fa-globe text-on-surface-variant text-lg"></i>
+</div>
+<span class="text-base font-semibold text-on-surface flex-grow">Ngôn ngữ</span>
+</div>
+<!-- Terms & Conditions -->
+<div class="settings-list-item flex items-center p-4 active:bg-surface-container/50 cursor-pointer transition-colors">
+<div class="w-10 h-10 rounded-full bg-surface-container flex items-center justify-center mr-4 shrink-0">
+<i class="fa-regular fa-file-lines text-on-surface-variant text-lg"></i>
+</div>
+<span class="text-base font-semibold text-on-surface flex-grow">Điều khoản &amp; Điều kiện</span>
+</div>
+<!-- About App -->
+<div class="settings-list-item flex items-center p-4 active:bg-surface-container/50 cursor-pointer transition-colors">
+<div class="w-10 h-10 rounded-full bg-surface-container flex items-center justify-center mr-4 shrink-0">
+<i class="fa-solid fa-circle-info text-on-surface-variant text-lg"></i>
+</div>
+<div class="flex-grow flex justify-between items-center">
+<span class="text-base font-semibold text-on-surface">Về ứng dụng</span>
+<span class="text-sm text-outline">Phiên bản 1.0.3</span>
+</div>
+</div>
+<!-- Test Notification -->
+<div class="settings-list-item flex items-center p-4 active:bg-surface-container/50 cursor-pointer transition-colors">
+<div class="w-10 h-10 rounded-full bg-surface-container flex items-center justify-center mr-4 shrink-0">
+<i class="fa-regular fa-bell text-on-surface-variant text-lg"></i>
+</div>
+<span class="text-base font-semibold text-on-surface flex-grow">Test thông báo</span>
+</div>
+<!-- Logout -->
+<div class="settings-list-item flex items-center p-4 active:bg-error-container/50 cursor-pointer transition-colors">
+<div class="w-10 h-10 rounded-full bg-[#fff0ed] flex items-center justify-center mr-4 shrink-0">
+<i class="fa-solid fa-arrow-right-from-bracket text-[#e74c3c] text-lg"></i>
+</div>
+<span class="text-base font-semibold text-[#e74c3c] flex-grow">Đăng xuất</span>
+</div>
+<!-- Delete Account -->
+<div class="settings-list-item flex items-center p-4 active:bg-error-container/50 cursor-pointer transition-colors">
+<div class="w-10 h-10 rounded-full bg-[#fff0ed] flex items-center justify-center mr-4 shrink-0">
+<i class="fa-regular fa-trash-can text-[#e74c3c] text-lg"></i>
+</div>
+<span class="text-base font-semibold text-[#e74c3c] flex-grow">Xóa tài khoản</span>
+</div>
+</section>
+</main>
+<!-- END: Main Content -->
+<!-- BEGIN: Bottom Navigation -->
+<nav class="fixed bottom-0 left-0 right-0 bg-surface-container-lowest border-t border-outline-variant flex justify-around items-end pb-safe pt-2 px-2 z-50">
+<a class="flex flex-col items-center justify-center p-2 text-outline w-16" href="#">
+<i class="fa-solid fa-house mb-1 text-xl"></i>
+<span class="text-[10px] font-medium leading-none">Trang chủ</span>
+</a>
+<a class="flex flex-col items-center justify-center p-2 text-outline w-16" href="#">
+<i class="fa-solid fa-money-bill-wave mb-1 text-xl"></i>
+<span class="text-[10px] font-medium leading-none">Tài chính</span>
+</a>
+<a class="flex flex-col items-center justify-center p-2 text-outline w-16" href="#">
+<i class="fa-solid fa-users mb-1 text-xl"></i>
+<span class="text-[10px] font-medium leading-none">Cư dân</span>
+</a>
+<a class="flex flex-col items-center justify-center p-2 text-outline w-16" href="#">
+<i class="fa-solid fa-building mb-1 text-xl"></i>
+<span class="text-[10px] font-medium leading-none">Căn hộ</span>
+</a>
+<a class="flex flex-col items-center justify-center p-2 text-brand w-16 relative" href="#">
+<div class="absolute top-0 left-1/2 -translate-x-1/2 w-10 h-0.5 bg-brand rounded-b-full"></div>
+<i class="fa-solid fa-gear mb-1 text-xl mt-1"></i>
+<span class="text-[10px] font-medium leading-none">Cài đặt</span>
+</a>
+</nav>
+<!-- END: Bottom Navigation -->
+</body></html>
