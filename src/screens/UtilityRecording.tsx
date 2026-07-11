@@ -9,12 +9,20 @@ export const UtilityRecording: React.FC = () => {
   const navigation = useNavigation();
   const route = useRoute<any>();
   const initialBuilding = route.params?.building || 'nơ trang long';
+  const initialRoom = route.params?.room || '';
 
   const [activeTab, setActiveTab] = React.useState<'room' | 'bulk'>('room');
   const [selectedBuilding, setSelectedBuilding] = React.useState(initialBuilding);
-  const [selectedRoom, setSelectedRoom] = React.useState('');
+  const [selectedRoom, setSelectedRoom] = React.useState(initialRoom);
   const [showBuildingDropdown, setShowBuildingDropdown] = React.useState(false);
   const [showRoomDropdown, setShowRoomDropdown] = React.useState(false);
+
+  React.useEffect(() => {
+    if (route.params?.room) {
+      setSelectedRoom(route.params.room);
+      setActiveTab('room');
+    }
+  }, [route.params?.room]);
 
   // States for recording data
   const [singleElectricNew, setSingleElectricNew] = React.useState('');

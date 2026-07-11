@@ -3,6 +3,7 @@ import { View, Text, StyleSheet, ScrollView, Pressable } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
 import { MaterialIcons } from '@expo/vector-icons';
 import { theme } from '../theme';
+import { mockRooms } from '../data/mockData';
 
 export const UtilityManagement: React.FC = () => {
   const navigation = useNavigation<any>();
@@ -49,7 +50,7 @@ export const UtilityManagement: React.FC = () => {
           </View>
           <View style={styles.selectorRight}>
             <View style={styles.badge}>
-              <Text style={styles.badgeText}>0</Text>
+              <Text style={styles.badgeText}>{String(mockRooms.length)}</Text>
             </View>
             <MaterialIcons name="keyboard-arrow-down" size={24} color={theme.colors.primary} />
           </View>
@@ -71,6 +72,31 @@ export const UtilityManagement: React.FC = () => {
             ))}
           </View>
         )}
+
+        {/* Progress List */}
+        <Text style={styles.sectionTitle}>Tiến độ tháng này</Text>
+        <ScrollView style={styles.roomsList} showsVerticalScrollIndicator={false}>
+          {mockRooms.map((room) => {
+            const isRecorded = room.code === 'P.101' || room.code === 'P.201';
+            return (
+              <Pressable 
+                key={room.id} 
+                style={styles.roomItem}
+                onPress={() => navigation.navigate('dien-nuoc/ghi', { building: selectedBuilding, room: room.code })}
+              >
+                <View style={styles.roomLeft}>
+                  <View style={[styles.statusDot, { backgroundColor: isRecorded ? '#10b981' : '#a1a1aa' }]} />
+                  <Text style={styles.roomCode}>{room.code}</Text>
+                </View>
+                <View style={[styles.statusBadge, { backgroundColor: isRecorded ? '#e6f4ea' : '#f1f5f9' }]}>
+                  <Text style={[styles.statusBadgeText, { color: isRecorded ? '#137333' : '#475569' }]}>
+                    {isRecorded ? 'Đã ghi' : 'Chưa ghi'}
+                  </Text>
+                </View>
+              </Pressable>
+            );
+          })}
+        </ScrollView>
       </View>
 
       {/* Bottom Button */}
@@ -220,6 +246,59 @@ const styles = StyleSheet.create({
   actionBtnText: {
     ...theme.typography.bodyLg,
     color: theme.colors.onPrimary,
+    fontWeight: 'bold',
+  },
+  sectionTitle: {
+    ...theme.typography.titleLg,
+    color: theme.colors.onSurface,
+    fontWeight: 'bold',
+    marginTop: 24,
+    marginBottom: 12,
+  },
+  roomsList: {
+    flex: 1,
+    marginTop: 8,
+  },
+  roomItem: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    backgroundColor: theme.colors.surfaceContainerLowest,
+    borderWidth: 1,
+    borderColor: 'rgba(0,0,0,0.05)',
+    borderRadius: theme.borderRadius.xl,
+    paddingHorizontal: 16,
+    paddingVertical: 14,
+    marginBottom: 10,
+    boxShadow: [{
+      offsetX: 0,
+      offsetY: 2,
+      blurRadius: 4,
+      color: 'rgba(0, 0, 0, 0.02)'
+    }],
+  },
+  roomLeft: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+  },
+  statusDot: {
+    width: 8,
+    height: 8,
+    borderRadius: 4,
+  },
+  roomCode: {
+    ...theme.typography.bodyMd,
+    fontWeight: 'bold',
+    color: theme.colors.onSurface,
+  },
+  statusBadge: {
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    borderRadius: theme.borderRadius.lg,
+  },
+  statusBadgeText: {
+    fontSize: 10,
     fontWeight: 'bold',
   },
 });
