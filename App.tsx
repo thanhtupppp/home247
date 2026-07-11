@@ -28,6 +28,7 @@ import CreateBuilding from './src/screens/CreateBuilding';
 import SettingsScreen from './src/screens/SettingsScreen';
 import EditProfile from './src/screens/EditProfile';
 import AddBankAccount from './src/screens/AddBankAccount';
+import LoginScreen from './src/screens/LoginScreen';
 
 
 const Stack = createNativeStackNavigator();
@@ -112,10 +113,12 @@ export function App() {
       <StatusBar style="auto" />
       <NavigationContainer>
         <Stack.Navigator
+          initialRouteName="Login"
           screenOptions={{
             headerShown: false,
           }}
         >
+          <Stack.Screen name="Login" component={LoginScreen} />
           {/* Main Tab Views */}
           <Stack.Screen name="MainTabs" component={MainTabNavigator} />
 
