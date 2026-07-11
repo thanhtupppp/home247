@@ -14,6 +14,7 @@ import InvoicesList from './src/screens/InvoicesList';
 import GenericScreen from './src/screens/GenericScreen';
 import UtilityManagement from './src/screens/UtilityManagement';
 import UtilityRecording from './src/screens/UtilityRecording';
+import CreateInvoice from './src/screens/CreateInvoice';
 
 
 const Stack = createNativeStackNavigator();
@@ -242,6 +243,7 @@ export function App() {
 
           <Stack.Screen name="dien-nuoc" component={UtilityManagement} />
           <Stack.Screen name="dien-nuoc/ghi" component={UtilityRecording} />
+          <Stack.Screen name="hoa-don/them" component={CreateInvoice} />
 
           <Stack.Screen name="cau-hinh-gia">
             {() => (
