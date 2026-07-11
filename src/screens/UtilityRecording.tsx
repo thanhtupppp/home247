@@ -22,9 +22,9 @@ export const UtilityRecording: React.FC = () => {
 
   // Bulk rooms state (simulating rooms P.101, P.102, P.201, P.202)
   const [bulkRooms, setBulkRooms] = React.useState([
-    { id: '1', code: 'Phòng p1', enabled: true, electricOld: 0, electricNew: '' },
-    { id: '2', code: 'Phòng p2', enabled: false, electricOld: 124, electricNew: '' },
-    { id: '3', code: 'Phòng p3', enabled: true, electricOld: 256, electricNew: '' },
+    { id: '1', code: 'Phòng p1', enabled: true, electricOld: 0, electricNew: '', waterOld: 0, waterNew: '' },
+    { id: '2', code: 'Phòng p2', enabled: false, electricOld: 124, electricNew: '', waterOld: 34, waterNew: '' },
+    { id: '3', code: 'Phòng p3', enabled: true, electricOld: 256, electricNew: '', waterOld: 88, waterNew: '' },
   ]);
 
   const buildings = ['nơ trang long', 'Home247 Landmark', 'Home247 Riverside'];
@@ -39,6 +39,12 @@ export const UtilityRecording: React.FC = () => {
   const handleBulkElectricChange = (id: string, value: string) => {
     setBulkRooms(bulkRooms.map(item => 
       item.id === id ? { ...item, electricNew: value } : item
+    ));
+  };
+
+  const handleBulkWaterChange = (id: string, value: string) => {
+    setBulkRooms(bulkRooms.map(item => 
+      item.id === id ? { ...item, waterNew: value } : item
     ));
   };
 
@@ -195,6 +201,7 @@ export const UtilityRecording: React.FC = () => {
 
                   {room.enabled && (
                     <View style={styles.bulkInputsContainer}>
+                      {/* Điện */}
                       <Text style={styles.bulkSubTitle}>điện</Text>
                       <View style={styles.cardRow}>
                         <View style={styles.inputCol}>
@@ -209,6 +216,25 @@ export const UtilityRecording: React.FC = () => {
                             keyboardType="numeric"
                             value={room.electricNew}
                             onChangeText={(val) => handleBulkElectricChange(room.id, val)}
+                          />
+                        </View>
+                      </View>
+
+                      {/* Nước */}
+                      <Text style={[styles.bulkSubTitle, { color: theme.colors.primary, marginTop: 12 }]}>nước</Text>
+                      <View style={styles.cardRow}>
+                        <View style={styles.inputCol}>
+                          <Text style={styles.inputLabel}>Chỉ số cũ</Text>
+                          <TextInput style={styles.textInputRead} value={String(room.waterOld)} editable={false} />
+                        </View>
+                        <View style={styles.inputCol}>
+                          <Text style={styles.inputLabel}>Chỉ số mới</Text>
+                          <TextInput 
+                            style={styles.textInput} 
+                            placeholder="Nhập chỉ số" 
+                            keyboardType="numeric"
+                            value={room.waterNew}
+                            onChangeText={(val) => handleBulkWaterChange(room.id, val)}
                           />
                         </View>
                       </View>
