@@ -15,6 +15,8 @@ import GenericScreen from './src/screens/GenericScreen';
 import UtilityManagement from './src/screens/UtilityManagement';
 import UtilityRecording from './src/screens/UtilityRecording';
 import CreateInvoice from './src/screens/CreateInvoice';
+import ContractsList from './src/screens/ContractsList';
+import CreateContract from './src/screens/CreateContract';
 
 
 const Stack = createNativeStackNavigator();
@@ -131,15 +133,7 @@ export function App() {
             )}
           </Stack.Screen>
 
-          <Stack.Screen name="hop-dong">
-            {() => (
-              <GenericScreen 
-                title="Danh sách Hợp đồng" 
-                type="contract" 
-                description="Hồ sơ quản lý các hợp đồng thuê phòng của khách thuê, bao gồm hợp đồng đang hoạt động và đã hết hạn." 
-              />
-            )}
-          </Stack.Screen>
+          <Stack.Screen name="hop-dong" component={ContractsList} />
 
           <Stack.Screen name="hop-dong/loc">
             {() => (
@@ -151,15 +145,7 @@ export function App() {
             )}
           </Stack.Screen>
 
-          <Stack.Screen name="hop-dong/moi">
-            {() => (
-              <GenericScreen 
-                title="Tạo hợp đồng mới" 
-                type="contract" 
-                description="Nhập thông tin đăng ký hợp đồng thuê phòng mới cho khách hàng." 
-              />
-            )}
-          </Stack.Screen>
+          <Stack.Screen name="hop-dong/moi" component={CreateContract} />
 
           <Stack.Screen name="hoa-don/id">
             {() => (
