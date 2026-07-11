@@ -5,7 +5,7 @@ import { MaterialIcons } from '@expo/vector-icons';
 import { theme } from '../theme';
 
 export const TenantsList: React.FC = () => {
-  const navigation = useNavigation();
+  const navigation = useNavigation<any>();
   const [searchText, setSearchText] = React.useState('');
   const [activeTab, setActiveTab] = React.useState<'active' | 'expiring' | 'expired'>('active');
 
@@ -78,7 +78,7 @@ export const TenantsList: React.FC = () => {
 
       {/* Bottom Button */}
       <View style={styles.bottomBar}>
-        <Pressable style={styles.addBtn} onPress={() => navigation.goBack()}>
+        <Pressable style={styles.addBtn} onPress={() => navigation.navigate('cu-dan/them')}>
           <MaterialIcons name="add" size={24} color={theme.colors.onPrimary} />
           <Text style={styles.addBtnText}>Thêm cư dân</Text>
         </Pressable>
