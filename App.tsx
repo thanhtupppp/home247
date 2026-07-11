@@ -23,6 +23,7 @@ import DevicesList from './src/screens/DevicesList';
 import CreateDevice from './src/screens/CreateDevice';
 import TenantsManagement from './src/screens/TenantsManagement';
 import TenantsList from './src/screens/TenantsList';
+import CreateTenant from './src/screens/CreateTenant';
 
 
 const Stack = createNativeStackNavigator();
@@ -196,15 +197,6 @@ export function App() {
             )}
           </Stack.Screen>
 
-          <Stack.Screen name="cu-dan/them">
-            {() => (
-              <GenericScreen 
-                title="Thêm cư dân mới" 
-                type="tenant" 
-                description="Khai báo thông tin nhân khẩu và đăng ký tạm trú cho cư dân mới dọn vào." 
-              />
-            )}
-          </Stack.Screen>
 
           <Stack.Screen name="toa-nha">
             {() => (
@@ -219,6 +211,7 @@ export function App() {
           <Stack.Screen name="thiet-bi" component={DevicesList} />
           <Stack.Screen name="thiet-bi/them" component={CreateDevice} />
           <Stack.Screen name="cu-dan/danh-sach" component={TenantsList} />
+          <Stack.Screen name="cu-dan/them" component={CreateTenant} />
 
           <Stack.Screen name="dien-nuoc" component={UtilityManagement} />
           <Stack.Screen name="dien-nuoc/ghi" component={UtilityRecording} />
