@@ -21,6 +21,8 @@ import ServicesList from './src/screens/ServicesList';
 import CreateService from './src/screens/CreateService';
 import DevicesList from './src/screens/DevicesList';
 import CreateDevice from './src/screens/CreateDevice';
+import TenantsManagement from './src/screens/TenantsManagement';
+import TenantsList from './src/screens/TenantsList';
 
 
 const Stack = createNativeStackNavigator();
@@ -81,16 +83,9 @@ function MainTabNavigator() {
       />
       <Tab.Screen 
         name="Residents" 
+        component={TenantsManagement}
         options={{ tabBarLabel: 'Cư dân' }}
-      >
-        {() => (
-          <GenericScreen 
-            title="Quản lý Cư dân" 
-            type="tenant" 
-            description="Hồ sơ quản lý toàn bộ cư dân lưu trú, nhân khẩu tạm trú trong tòa nhà." 
-          />
-        )}
-      </Tab.Screen>
+      />
       <Tab.Screen 
         name="Rooms" 
         component={RoomsManagement} 
@@ -223,6 +218,7 @@ export function App() {
 
           <Stack.Screen name="thiet-bi" component={DevicesList} />
           <Stack.Screen name="thiet-bi/them" component={CreateDevice} />
+          <Stack.Screen name="cu-dan/danh-sach" component={TenantsList} />
 
           <Stack.Screen name="dien-nuoc" component={UtilityManagement} />
           <Stack.Screen name="dien-nuoc/ghi" component={UtilityRecording} />
