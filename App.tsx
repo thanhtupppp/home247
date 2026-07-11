@@ -11,8 +11,10 @@ import { theme } from './src/theme';
 import Dashboard from './src/screens/Dashboard';
 import RoomsManagement from './src/screens/RoomsManagement';
 import InvoicesList from './src/screens/InvoicesList';
-import SupportRequests from './src/screens/SupportRequests';
 import GenericScreen from './src/screens/GenericScreen';
+import UtilityManagement from './src/screens/UtilityManagement';
+import UtilityRecording from './src/screens/UtilityRecording';
+
 
 const Stack = createNativeStackNavigator();
 const Tab = createBottomTabNavigator();
@@ -238,15 +240,8 @@ export function App() {
             )}
           </Stack.Screen>
 
-          <Stack.Screen name="dien-nuoc">
-            {() => (
-              <GenericScreen 
-                title="Ghi chỉ số Điện & Nước" 
-                type="utility" 
-                description="Nhập chỉ số điện và nước tiêu thụ đầu kỳ, cuối kỳ để tính toán hóa đơn." 
-              />
-            )}
-          </Stack.Screen>
+          <Stack.Screen name="dien-nuoc" component={UtilityManagement} />
+          <Stack.Screen name="dien-nuoc/ghi" component={UtilityRecording} />
 
           <Stack.Screen name="cau-hinh-gia">
             {() => (
