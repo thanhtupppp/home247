@@ -19,6 +19,8 @@ import ContractsList from './src/screens/ContractsList';
 import CreateContract from './src/screens/CreateContract';
 import ServicesList from './src/screens/ServicesList';
 import CreateService from './src/screens/CreateService';
+import DevicesList from './src/screens/DevicesList';
+import CreateDevice from './src/screens/CreateDevice';
 
 
 const Stack = createNativeStackNavigator();
@@ -219,15 +221,8 @@ export function App() {
             )}
           </Stack.Screen>
 
-          <Stack.Screen name="thiet-bi">
-            {() => (
-              <GenericScreen 
-                title="Quản lý Thiết bị" 
-                type="device" 
-                description="Danh mục tài sản, trang thiết bị cố định được cấp phát tại từng phòng trọ." 
-              />
-            )}
-          </Stack.Screen>
+          <Stack.Screen name="thiet-bi" component={DevicesList} />
+          <Stack.Screen name="thiet-bi/them" component={CreateDevice} />
 
           <Stack.Screen name="dien-nuoc" component={UtilityManagement} />
           <Stack.Screen name="dien-nuoc/ghi" component={UtilityRecording} />
