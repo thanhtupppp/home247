@@ -38,15 +38,17 @@ function MainTabNavigator() {
           fontWeight: '500',
         },
         tabBarIcon: ({ color, size, focused }) => {
-          let iconName: keyof typeof MaterialIcons.glyphMap = 'dashboard';
+          let iconName: keyof typeof MaterialIcons.glyphMap = 'home';
           if (route.name === 'Overview') {
-            iconName = 'dashboard';
-          } else if (route.name === 'Rooms') {
-            iconName = 'king-bed';
+            iconName = 'home';
           } else if (route.name === 'Invoices') {
-            iconName = 'receipt-long';
-          } else if (route.name === 'Support') {
-            iconName = 'chat-bubble-outline';
+            iconName = 'payments';
+          } else if (route.name === 'Residents') {
+            iconName = 'group';
+          } else if (route.name === 'Rooms') {
+            iconName = 'apartment';
+          } else if (route.name === 'Settings') {
+            iconName = 'settings';
           }
           return (
             <MaterialIcons 
@@ -61,23 +63,42 @@ function MainTabNavigator() {
       <Tab.Screen 
         name="Overview" 
         component={Dashboard} 
-        options={{ tabBarLabel: 'Tổng quan' }}
-      />
-      <Tab.Screen 
-        name="Rooms" 
-        component={RoomsManagement} 
-        options={{ tabBarLabel: 'Quản lý Phòng' }}
+        options={{ tabBarLabel: 'Trang chủ' }}
       />
       <Tab.Screen 
         name="Invoices" 
         component={InvoicesList} 
-        options={{ tabBarLabel: 'Hóa đơn' }}
+        options={{ tabBarLabel: 'Tài chính' }}
       />
       <Tab.Screen 
-        name="Support" 
-        component={SupportRequests} 
-        options={{ tabBarLabel: 'Hỗ trợ' }}
+        name="Residents" 
+        options={{ tabBarLabel: 'Cư dân' }}
+      >
+        {() => (
+          <GenericScreen 
+            title="Quản lý Cư dân" 
+            type="tenant" 
+            description="Hồ sơ quản lý toàn bộ cư dân lưu trú, nhân khẩu tạm trú trong tòa nhà." 
+          />
+        )}
+      </Tab.Screen>
+      <Tab.Screen 
+        name="Rooms" 
+        component={RoomsManagement} 
+        options={{ tabBarLabel: 'Căn hộ' }}
       />
+      <Tab.Screen 
+        name="Settings" 
+        options={{ tabBarLabel: 'Cài đặt' }}
+      >
+        {() => (
+          <GenericScreen 
+            title="Cài đặt hệ thống" 
+            type="settings" 
+            description="Thiết lập các thông số thông báo tự động, cấu hình nhắc nợ và tích hợp cổng thanh toán." 
+          />
+        )}
+      </Tab.Screen>
     </Tab.Navigator>
   );
 }
