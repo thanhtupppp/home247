@@ -25,6 +25,9 @@ import TenantsManagement from './src/screens/TenantsManagement';
 import TenantsList from './src/screens/TenantsList';
 import CreateTenant from './src/screens/CreateTenant';
 import CreateBuilding from './src/screens/CreateBuilding';
+import SettingsScreen from './src/screens/SettingsScreen';
+import EditProfile from './src/screens/EditProfile';
+import AddBankAccount from './src/screens/AddBankAccount';
 
 
 const Stack = createNativeStackNavigator();
@@ -95,16 +98,9 @@ function MainTabNavigator() {
       />
       <Tab.Screen 
         name="Settings" 
+        component={SettingsScreen}
         options={{ tabBarLabel: 'Cài đặt' }}
-      >
-        {() => (
-          <GenericScreen 
-            title="Cài đặt hệ thống" 
-            type="settings" 
-            description="Thiết lập các thông số thông báo tự động, cấu hình nhắc nợ và tích hợp cổng thanh toán." 
-          />
-        )}
-      </Tab.Screen>
+      />
     </Tab.Navigator>
   );
 }
@@ -214,15 +210,9 @@ export function App() {
           <Stack.Screen name="cau-hinh-gia" component={ServicesList} />
           <Stack.Screen name="cau-hinh-gia/them" component={CreateService} />
 
-          <Stack.Screen name="cai-dat">
-            {() => (
-              <GenericScreen 
-                title="Cài đặt hệ thống" 
-                type="settings" 
-                description="Thiết lập các thông số thông báo tự động, cấu hình nhắc nợ và tích hợp cổng thanh toán." 
-              />
-            )}
-          </Stack.Screen>
+          <Stack.Screen name="cai-dat" component={SettingsScreen} />
+          <Stack.Screen name="cai-dat/chinh-sua" component={EditProfile} />
+          <Stack.Screen name="cai-dat/ngan-hang" component={AddBankAccount} />
         </Stack.Navigator>
       </NavigationContainer>
     </SafeAreaProvider>
