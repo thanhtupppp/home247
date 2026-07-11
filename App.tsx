@@ -24,6 +24,7 @@ import CreateDevice from './src/screens/CreateDevice';
 import TenantsManagement from './src/screens/TenantsManagement';
 import TenantsList from './src/screens/TenantsList';
 import CreateTenant from './src/screens/CreateTenant';
+import CreateBuilding from './src/screens/CreateBuilding';
 
 
 const Stack = createNativeStackNavigator();
@@ -198,15 +199,8 @@ export function App() {
           </Stack.Screen>
 
 
-          <Stack.Screen name="toa-nha">
-            {() => (
-              <GenericScreen 
-                title="Quản lý Tòa nhà" 
-                type="building" 
-                description="Cấu hình các tòa nhà, chung cư mini, chi nhánh phòng cho thuê đang hoạt động." 
-              />
-            )}
-          </Stack.Screen>
+          <Stack.Screen name="toa-nha" component={RoomsManagement} />
+          <Stack.Screen name="toa-nha/them" component={CreateBuilding} />
 
           <Stack.Screen name="thiet-bi" component={DevicesList} />
           <Stack.Screen name="thiet-bi/them" component={CreateDevice} />
