@@ -17,6 +17,8 @@ import UtilityRecording from './src/screens/UtilityRecording';
 import CreateInvoice from './src/screens/CreateInvoice';
 import ContractsList from './src/screens/ContractsList';
 import CreateContract from './src/screens/CreateContract';
+import ServicesList from './src/screens/ServicesList';
+import CreateService from './src/screens/CreateService';
 
 
 const Stack = createNativeStackNavigator();
@@ -231,15 +233,8 @@ export function App() {
           <Stack.Screen name="dien-nuoc/ghi" component={UtilityRecording} />
           <Stack.Screen name="hoa-don/them" component={CreateInvoice} />
 
-          <Stack.Screen name="cau-hinh-gia">
-            {() => (
-              <GenericScreen 
-                title="Cấu hình Dịch vụ & Giá" 
-                type="pricing" 
-                description="Điều chỉnh giá điện, giá nước, phí dịch vụ chung và các gói Internet áp dụng cho tòa nhà." 
-              />
-            )}
-          </Stack.Screen>
+          <Stack.Screen name="cau-hinh-gia" component={ServicesList} />
+          <Stack.Screen name="cau-hinh-gia/them" component={CreateService} />
 
           <Stack.Screen name="cai-dat">
             {() => (
