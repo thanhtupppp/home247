@@ -6,6 +6,7 @@ import {
 import * as ImagePicker from 'expo-image-picker';
 import { useNavigation } from '@react-navigation/native';
 import { MaterialIcons } from '@expo/vector-icons';
+import DateTimePicker from '@react-native-community/datetimepicker';
 import { theme } from '../theme';
 import { collection, addDoc, getDocs, query, where, orderBy, doc, updateDoc } from 'firebase/firestore';
 import { db, auth } from '../firebase';
@@ -33,6 +34,28 @@ export const CreateTenant: React.FC = () => {
   const [cccdFront, setCccdFront] = React.useState<string | null>(null);
   const [cccdBack, setCccdBack] = React.useState<string | null>(null);
   const [gender, setGender] = React.useState<'Nam' | 'Nữ' | 'Khác'>('Nam');
+
+  // Date picker states
+  const [showDobPicker, setShowDobPicker] = React.useState(false);
+  const [showMoveInDatePicker, setShowMoveInDatePicker] = React.useState(false);
+
+  const formatDate = (date: Date) => {
+    const dd = String(date.getDate()).padStart(2, '0');
+    const mm = String(date.getMonth() + 1).padStart(2, '0');
+    const yyyy = date.getFullYear();
+    return `${dd}/${mm}/${yyyy}`;
+  };
+
+  const parseDate = (dateStr: string) => {
+    if (!dateStr) return new Date();
+    const parts = dateStr.split('/');
+    if (parts.length === 3) {
+      const [dd, mm, yyyy] = parts.map(Number);
+      const parsed = new Date(yyyy, mm - 1, dd);
+      if (!isNaN(parsed.getTime())) return parsed;
+    }
+    return new Date();
+  };
 
   // ── CCCD Photo Picker ──────────────────────────────────────────────────────
   const pickCccdImage = async (side: 'front' | 'back') => {
@@ -329,15 +352,25 @@ export const CreateTenant: React.FC = () => {
           <View style={styles.row}>
             <View style={{ flex: 1 }}>
               <Text style={[styles.label, { marginTop: 14 }]}>Ngày sinh</Text>
-              <View style={styles.inputContainer}>
+              <Pressable onPress={() => setShowDobPicker(true)} style={styles.inputContainer}>
                 <MaterialIcons name="calendar-today" size={20} color="#94a3b8" />
-                <TextInput
-                  style={styles.textInput}
-                  placeholder="dd/mm/yyyy"
-                  value={dob}
-                  onChangeText={setDob}
+                <Text style={{ paddingVertical: 12, fontSize: 15, color: dob ? theme.colors.onSurface : '#94a3b8', flex: 1 }}>
+                  {dob || 'Chọn ngày sinh'}
+                </Text>
+              </Pressable>
+              {showDobPicker && (
+                <DateTimePicker
+                  value={parseDate(dob)}
+                  mode="date"
+                  display="default"
+                  onChange={(event, selectedDate) => {
+                    setShowDobPicker(false);
+                    if (selectedDate) {
+                      setDob(formatDate(selectedDate));
+                    }
+                  }}
                 />
-              </View>
+              )}
             </View>
             <View style={{ flex: 1 }}>
               <Text style={[styles.label, { marginTop: 14 }]}>CCCD/CMND</Text>
@@ -506,15 +539,25 @@ export const CreateTenant: React.FC = () => {
           <View style={styles.row}>
             <View style={{ flex: 1 }}>
               <Text style={[styles.label, { marginTop: 14 }]}>Ngày vào ở</Text>
-              <View style={styles.inputContainer}>
+              <Pressable onPress={() => setShowMoveInDatePicker(true)} style={styles.inputContainer}>
                 <MaterialIcons name="calendar-today" size={20} color="#94a3b8" />
-                <TextInput
-                  style={styles.textInput}
-                  placeholder="dd/mm/yyyy"
-                  value={moveInDate}
-                  onChangeText={setMoveInDate}
+                <Text style={{ paddingVertical: 12, fontSize: 15, color: moveInDate ? theme.colors.onSurface : '#94a3b8', flex: 1 }}>
+                  {moveInDate || 'Chọn ngày vào ở'}
+                </Text>
+              </Pressable>
+              {showMoveInDatePicker && (
+                <DateTimePicker
+                  value={parseDate(moveInDate)}
+                  mode="date"
+                  display="default"
+                  onChange={(event, selectedDate) => {
+                    setShowMoveInDatePicker(false);
+                    if (selectedDate) {
+                      setMoveInDate(formatDate(selectedDate));
+                    }
+                  }}
                 />
-              </View>
+              )}
             </View>
             <View style={{ flex: 1 }}>
               <Text style={[styles.label, { marginTop: 14 }]}>Ghi chú</Text>

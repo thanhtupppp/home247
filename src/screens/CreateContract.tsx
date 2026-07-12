@@ -5,6 +5,7 @@ import {
 } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
 import { MaterialIcons } from '@expo/vector-icons';
+import DateTimePicker from '@react-native-community/datetimepicker';
 import { theme } from '../theme';
 import * as ImagePicker from 'expo-image-picker';
 import { collection, addDoc, getDocs, query, where, orderBy, doc, updateDoc } from 'firebase/firestore';
@@ -61,6 +62,29 @@ export const CreateContract: React.FC = () => {
   const [showCycleDropdown, setShowCycleDropdown] = React.useState(false);
   const [collectionDay, setCollectionDay] = React.useState('05');
   const [paidUntilDate, setPaidUntilDate] = React.useState('12/08/2026');
+
+  // Date picker states
+  const [showStartDatePicker, setShowStartDatePicker] = React.useState(false);
+  const [showEndDatePicker, setShowEndDatePicker] = React.useState(false);
+  const [showPaidDatePicker, setShowPaidDatePicker] = React.useState(false);
+
+  const formatDate = (date: Date) => {
+    const dd = String(date.getDate()).padStart(2, '0');
+    const mm = String(date.getMonth() + 1).padStart(2, '0');
+    const yyyy = date.getFullYear();
+    return `${dd}/${mm}/${yyyy}`;
+  };
+
+  const parseDate = (dateStr: string) => {
+    if (!dateStr) return new Date();
+    const parts = dateStr.split('/');
+    if (parts.length === 3) {
+      const [dd, mm, yyyy] = parts.map(Number);
+      const parsed = new Date(yyyy, mm - 1, dd);
+      if (!isNaN(parsed.getTime())) return parsed;
+    }
+    return new Date();
+  };
 
   // ── Fetch Buildings ────────────────────────────────────────────────────────
   React.useEffect(() => {
@@ -427,20 +451,42 @@ export const CreateContract: React.FC = () => {
 
           {/* Dates & Rates */}
           <Text style={[styles.label, { marginTop: 14 }]}>Ngày bắt đầu hợp đồng</Text>
-          <TextInput
-            style={styles.textInput}
-            value={startDate}
-            onChangeText={setStartDate}
-            placeholder="dd/mm/yyyy"
-          />
+          <Pressable onPress={() => setShowStartDatePicker(true)} style={styles.dropdownButton}>
+            <Text style={styles.dropdownButtonText}>{startDate || 'Chọn ngày bắt đầu'}</Text>
+            <MaterialIcons name="calendar-today" size={20} color="#a1a1aa" />
+          </Pressable>
+          {showStartDatePicker && (
+            <DateTimePicker
+              value={parseDate(startDate)}
+              mode="date"
+              display="default"
+              onChange={(event, selectedDate) => {
+                setShowStartDatePicker(false);
+                if (selectedDate) {
+                  setStartDate(formatDate(selectedDate));
+                }
+              }}
+            />
+          )}
 
           <Text style={[styles.label, { marginTop: 14 }]}>Hạn hợp đồng</Text>
-          <TextInput
-            style={styles.textInput}
-            value={endDate}
-            onChangeText={setEndDate}
-            placeholder="dd/mm/yyyy"
-          />
+          <Pressable onPress={() => setShowEndDatePicker(true)} style={styles.dropdownButton}>
+            <Text style={styles.dropdownButtonText}>{endDate || 'Chọn ngày hết hạn'}</Text>
+            <MaterialIcons name="calendar-today" size={20} color="#a1a1aa" />
+          </Pressable>
+          {showEndDatePicker && (
+            <DateTimePicker
+              value={parseDate(endDate)}
+              mode="date"
+              display="default"
+              onChange={(event, selectedDate) => {
+                setShowEndDatePicker(false);
+                if (selectedDate) {
+                  setEndDate(formatDate(selectedDate));
+                }
+              }}
+            />
+          )}
 
           <Text style={[styles.label, { marginTop: 14 }]}>Tiền phòng *</Text>
           <TextInput
@@ -485,12 +531,23 @@ export const CreateContract: React.FC = () => {
           />
 
           <Text style={[styles.label, { marginTop: 14 }]}>Đã thanh toán đến ngày</Text>
-          <TextInput
-            style={styles.textInput}
-            value={paidUntilDate}
-            onChangeText={setPaidUntilDate}
-            placeholder="dd/mm/yyyy"
-          />
+          <Pressable onPress={() => setShowPaidDatePicker(true)} style={styles.dropdownButton}>
+            <Text style={styles.dropdownButtonText}>{paidUntilDate || 'Chọn ngày'}</Text>
+            <MaterialIcons name="calendar-today" size={20} color="#a1a1aa" />
+          </Pressable>
+          {showPaidDatePicker && (
+            <DateTimePicker
+              value={parseDate(paidUntilDate)}
+              mode="date"
+              display="default"
+              onChange={(event, selectedDate) => {
+                setShowPaidDatePicker(false);
+                if (selectedDate) {
+                  setPaidUntilDate(formatDate(selectedDate));
+                }
+              }}
+            />
+          )}
         </View>
       </ScrollView>
 
