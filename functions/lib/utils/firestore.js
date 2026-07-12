@@ -36,6 +36,7 @@ Object.defineProperty(exports, "__esModule", { value: true });
 exports.db = void 0;
 exports.getLandlordInvoices = getLandlordInvoices;
 exports.getLandlordContracts = getLandlordContracts;
+exports.getExpiringContracts = getExpiringContracts;
 exports.getLandlordSupportRequests = getLandlordSupportRequests;
 exports.getLandlordBuildings = getLandlordBuildings;
 exports.getLandlordRooms = getLandlordRooms;
@@ -66,6 +67,38 @@ async function getLandlordContracts(ownerId) {
         .where('status', '==', 'active')
         .get();
     return snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+}
+/**
+ * Safely fetch active contracts owned by landlord that are expiring within target days
+ */
+async function getExpiringContracts(ownerId, withinDays = 30) {
+    const snapshot = await db.collection('contracts')
+        .where('ownerId', '==', ownerId)
+        .where('status', '==', 'active')
+        .get();
+    const contracts = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+    const today = new Date();
+    const expiring = [];
+    for (const c of contracts) {
+        if (c.endDate) {
+            const parts = c.endDate.split('/');
+            if (parts.length === 3) {
+                const endD = new Date(Number(parts[2]), Number(parts[1]) - 1, Number(parts[0]));
+                const diffDays = Math.ceil((endD.getTime() - today.getTime()) / (1000 * 60 * 60 * 24));
+                if (diffDays >= 0 && diffDays <= withinDays) {
+                    expiring.push({
+                        id: c.id,
+                        tenantName: c.tenantName,
+                        roomCode: c.roomCode,
+                        buildingName: c.buildingName,
+                        endDate: c.endDate,
+                        diffDays
+                    });
+                }
+            }
+        }
+    }
+    return expiring;
 }
 /**
  * Safely fetch pending support requests owned by landlord
