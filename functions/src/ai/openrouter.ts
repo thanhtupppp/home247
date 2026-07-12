@@ -31,6 +31,8 @@ export interface CallOpenRouterOptions {
   response_format?: { type: 'json_object'; schema?: any };
   tools?: any[];
   tool_choice?: any;
+  max_tokens?: number;
+  timeoutMs?: number;
 }
 
 /**
@@ -42,11 +44,13 @@ export async function callOpenRouter(
 ): Promise<any> {
   const apiKey = getApiKey();
   const model = options.model || OpenRouterModels.DEFAULT;
+  const maxTokens = options.max_tokens || 1500; // Save budget, limit generated tokens
 
   const requestBody: any = {
     model,
     messages,
     temperature: options.temperature !== undefined ? options.temperature : 0.2,
+    max_tokens: maxTokens,
     // Enable privacy, zero data retention policies on provider
     provider: {
       data_collection: 'deny',
@@ -66,6 +70,13 @@ export async function callOpenRouter(
     requestBody.tool_choice = options.tool_choice;
   }
 
+  const timeout = options.timeoutMs || 30000; // Default 30s timeout
+  const controller = new AbortController();
+  const timer = setTimeout(() => {
+    logger.warn(`OpenRouter request to ${model} timed out after ${timeout}ms. Aborting.`);
+    controller.abort();
+  }, timeout);
+
   try {
     const response = await fetch('https://openrouter.ai/api/v1/chat/completions', {
       method: 'POST',
@@ -76,6 +87,7 @@ export async function callOpenRouter(
         'X-Title': 'Home247 Landlord Assistant',
       },
       body: JSON.stringify(requestBody),
+      signal: controller.signal,
     });
 
     if (!response.ok) {
@@ -86,8 +98,13 @@ export async function callOpenRouter(
 
     const data = await response.json();
     return data;
-  } catch (error) {
+  } catch (error: any) {
+    if (error.name === 'AbortError') {
+      throw new Error(`Mô hình AI phản hồi quá chậm (vượt quá ${timeout / 1000} giây). Vui lòng thử lại.`);
+    }
     logger.error('Error calling OpenRouter API:', error);
     throw error;
+  } finally {
+    clearTimeout(timer);
   }
 }

@@ -18,6 +18,13 @@ import {
   getExpiringContracts, 
   getLandlordSupportRequests 
 } from './utils/firestore';
+import { 
+  ocrUtilityMeterSchema, 
+  summarizeContractSchema, 
+  supportRequestSchema 
+} from './ai/schemas';
+import { checkAndIncrementQuota } from './ai/rateLimit';
+import { runInvoicesMigration } from './migrations/invoices';
 
 /**
  * Helper to check authenticated caller
@@ -34,12 +41,49 @@ function verifyAuth(context: functions.https.CallableContext): string {
 }
 
 /**
+ * helper to format rate limit errors nicely
+ */
+function handleAIError(err: any, defaultMsg: string): never {
+  if (err instanceof functions.https.HttpsError) {
+    throw err;
+  }
+  if (err.message && err.message.startsWith('QUOTA_EXCEEDED')) {
+    throw new functions.https.HttpsError(
+      'resource-exhausted',
+      'Bạn đã vượt quá giới hạn sử dụng AI cho tính năng này hôm nay.'
+    );
+  }
+  throw new functions.https.HttpsError('unavailable', err.message || defaultMsg);
+}
+
+/**
+ * 0. migrateOldInvoices - (P0 Invoice Migration Helper)
+ */
+export const migrateOldInvoices = functions.region('asia-east1').https.onCall(async (data, context) => {
+  const uid = verifyAuth(context);
+  const dryRun = !!data?.dryRun;
+
+  try {
+    // Apply quota to prevent continuous runs (max 2 per day)
+    await checkAndIncrementQuota(uid, 'migration');
+
+    const result = await runInvoicesMigration(uid, dryRun);
+    return result;
+  } catch (err: any) {
+    handleAIError(err, 'Lỗi trong quá trình di cư dữ liệu hóa đơn.');
+  }
+});
+
+/**
  * 1. getAISummary - Stage 1
  */
 export const getAISummary = functions.region('asia-east1').https.onCall(async (data, context) => {
   const uid = verifyAuth(context);
 
   try {
+    // 1. Quota check
+    await checkAndIncrementQuota(uid, 'summary');
+
     const [overdueInvoices, expiringContracts, supportRequests] = await Promise.all([
       getOverdueInvoices(uid),
       getExpiringContracts(uid, 30),
@@ -67,7 +111,8 @@ export const getAISummary = functions.region('asia-east1').https.onCall(async (d
 
     const result = await callOpenRouter(messages, { 
       model: OpenRouterModels.DEFAULT,
-      temperature: 0.3 
+      temperature: 0.3,
+      timeoutMs: 20000 // 20s timeout limit
     });
 
     return { 
@@ -77,7 +122,7 @@ export const getAISummary = functions.region('asia-east1').https.onCall(async (d
     if (err.message === 'OPENROUTER_API_KEY_NOT_CONFIGURED') {
       throw new functions.https.HttpsError('failed-precondition', 'API Key OpenRouter chưa được cấu hình.');
     }
-    throw new functions.https.HttpsError('unavailable', err.message || 'Hệ thống AI hiện chưa khả dụng.');
+    handleAIError(err, 'Hệ thống AI hiện chưa khả dụng.');
   }
 });
 
@@ -92,6 +137,9 @@ export const processSupportRequest = functions.region('asia-east1').https.onCall
   }
 
   try {
+    // 1. Quota check
+    await checkAndIncrementQuota(uid, 'ticket');
+
     const docRef = db.collection('supportRequests').doc(ticketId);
     const snap = await docRef.get();
     if (!snap.exists) {
@@ -115,14 +163,23 @@ export const processSupportRequest = functions.region('asia-east1').https.onCall
 
     const result = await callOpenRouter(messages, {
       model: OpenRouterModels.DEFAULT,
-      response_format: { type: 'json_object' }
+      response_format: { type: 'json_object' },
+      timeoutMs: 30000 // 30s timeout limit
     });
     
     const content = result.choices?.[0]?.message?.content || '{}';
-    return JSON.parse(content);
+    const parsed = JSON.parse(content);
+    
+    // Strict schema check using Zod
+    const validation = supportRequestSchema.safeParse(parsed);
+    if (!validation.success) {
+      functions.logger.error('Ticket Output validation failed:', validation.error.format());
+      throw new functions.https.HttpsError('internal', 'Dữ liệu phân tích phản ánh từ AI không hợp lệ.');
+    }
+
+    return validation.data;
   } catch (err: any) {
-    if (err.status) throw err; // Re-throw HttpsError directly
-    throw new functions.https.HttpsError('unavailable', err.message || 'Không thể phân tích phản ánh lúc này.');
+    handleAIError(err, 'Không thể phân tích phản ánh lúc này.');
   }
 });
 
@@ -136,7 +193,16 @@ export const ocrUtilityMeter = functions.region('asia-east1').https.onCall(async
     throw new functions.https.HttpsError('invalid-argument', 'Missing imageBase64.');
   }
 
+  // P0 INPUT LIMIT: Block base64 string larger than ~5MB (about 7 million base64 characters)
+  if (imageBase64.length > 7000000) {
+    throw new functions.https.HttpsError('invalid-argument', 'Ảnh vượt quá dung lượng cho phép (tối đa 5MB).');
+  }
+
   try {
+    // 1. Quota check
+    const uid = verifyAuth(context);
+    await checkAndIncrementQuota(uid, 'ocr');
+
     const messages: ChatMessage[] = [
       { role: 'system', content: SYSTEM_OCR_PROMPT },
       { 
@@ -153,22 +219,23 @@ export const ocrUtilityMeter = functions.region('asia-east1').https.onCall(async
 
     const result = await callOpenRouter(messages, {
       model: OpenRouterModels.VISION,
-      response_format: { type: 'json_object' }
+      response_format: { type: 'json_object' },
+      timeoutMs: 45000 // 45s timeout limit for Vision processing
     });
     
     const content = result.choices?.[0]?.message?.content || '{}';
     const parsed = JSON.parse(content);
     
-    if (parsed.reading === undefined || isNaN(parsed.reading)) {
-      throw new Error('Chỉ số nhận diện không hợp lệ.');
+    // Strict schema check using Zod
+    const validation = ocrUtilityMeterSchema.safeParse(parsed);
+    if (!validation.success) {
+      functions.logger.error('OCR Output validation failed:', validation.error.format());
+      throw new functions.https.HttpsError('internal', 'Chỉ số công tơ nhận dạng từ AI không hợp lệ.');
     }
-    
-    return parsed;
+
+    return validation.data;
   } catch (err: any) {
-    throw new functions.https.HttpsError(
-      'unavailable',
-      'Không thể nhận diện công tơ. Vui lòng chụp lại ảnh rõ nét hoặc tự nhập thủ công.'
-    );
+    handleAIError(err, 'Không thể nhận diện công tơ. Vui lòng chụp lại ảnh rõ nét hoặc tự nhập thủ công.');
   }
 });
 
@@ -182,7 +249,16 @@ export const summarizeContract = functions.region('asia-east1').https.onCall(asy
     throw new functions.https.HttpsError('invalid-argument', 'Missing contractDocBase64.');
   }
 
+  // P0 INPUT LIMIT: Block base64 string larger than ~5MB (about 7 million base64 characters)
+  if (contractDocBase64.length > 7000000) {
+    throw new functions.https.HttpsError('invalid-argument', 'Tài liệu ảnh vượt quá dung lượng cho phép (tối đa 5MB).');
+  }
+
   try {
+    // 1. Quota check
+    const uid = verifyAuth(context);
+    await checkAndIncrementQuota(uid, 'contract');
+
     const messages: ChatMessage[] = [
       { role: 'system', content: SYSTEM_CONTRACT_PROMPT },
       { 
@@ -199,16 +275,23 @@ export const summarizeContract = functions.region('asia-east1').https.onCall(asy
 
     const result = await callOpenRouter(messages, {
       model: OpenRouterModels.VISION,
-      response_format: { type: 'json_object' }
+      response_format: { type: 'json_object' },
+      timeoutMs: 45000 // 45s timeout limit for Vision processing
     });
     
     const content = result.choices?.[0]?.message?.content || '{}';
-    return JSON.parse(content);
+    const parsed = JSON.parse(content);
+
+    // Strict schema check using Zod
+    const validation = summarizeContractSchema.safeParse(parsed);
+    if (!validation.success) {
+      functions.logger.error('Contract Output validation failed:', validation.error.format());
+      throw new functions.https.HttpsError('internal', 'Dữ liệu trích xuất hợp đồng từ AI không đúng cấu trúc hợp lệ.');
+    }
+
+    return validation.data;
   } catch (err: any) {
-    throw new functions.https.HttpsError(
-      'unavailable',
-      'Không thể trích xuất thông tin hợp đồng tự động. Vui lòng tự nhập thủ công.'
-    );
+    handleAIError(err, 'Không thể trích xuất thông tin hợp đồng tự động. Vui lòng tự nhập thủ công.');
   }
 });
 
@@ -233,7 +316,15 @@ export const runAIAgent = functions.region('asia-east1').https.onCall(async (dat
     throw new functions.https.HttpsError('invalid-argument', 'Missing userMessage.');
   }
 
+  // P0 INPUT LIMITS: Block tin nhắn dài hơn 4.000 ký tự
+  if (userMessage.length > 4000) {
+    throw new functions.https.HttpsError('invalid-argument', 'Tin nhắn quá dài (vượt quá 4.000 ký tự).');
+  }
+
   try {
+    // 1. Quota check
+    await checkAndIncrementQuota(uid, 'chat');
+
     // Sanitize conversation history: only allow user & assistant messages, cap at 20 for rate limits / token budget
     const cleanHistory = history
       .filter((msg: any) => msg && (msg.role === 'user' || msg.role === 'assistant'))
@@ -248,7 +339,8 @@ export const runAIAgent = functions.region('asia-east1').https.onCall(async (dat
     const result = await callOpenRouter(messages, {
       model: OpenRouterModels.AGENT,
       tools: agentTools,
-      temperature: 0.1
+      temperature: 0.1,
+      timeoutMs: 30000 // 30s timeout limit
     });
 
     const responseMsg = result.choices?.[0]?.message;
@@ -281,7 +373,8 @@ export const runAIAgent = functions.region('asia-east1').https.onCall(async (dat
       // Recall OpenRouter to interpret all executed tools outputs
       const secondCallResult = await callOpenRouter(messages, {
         model: OpenRouterModels.AGENT,
-        temperature: 0.1
+        temperature: 0.1,
+        timeoutMs: 30000
       });
 
       return {
@@ -296,6 +389,6 @@ export const runAIAgent = functions.region('asia-east1').https.onCall(async (dat
       history: messages.slice(1)
     };
   } catch (err: any) {
-    throw new functions.https.HttpsError('unavailable', err.message || 'Trợ lý AI hiện đang bận.');
+    handleAIError(err, 'Trợ lý AI hiện đang bận.');
   }
 });

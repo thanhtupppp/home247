@@ -20,6 +20,9 @@ export interface DashboardProps {
   readonly className?: string;
 }
 
+let cachedAiSummary = '';
+let cachedAiSummaryTime = 0;
+
 export const Dashboard: React.FC<DashboardProps> = () => {
   const navigation = useNavigation<any>();
   const isFocused = useIsFocused();
@@ -54,16 +57,28 @@ export const Dashboard: React.FC<DashboardProps> = () => {
   const [userInput, setUserInput] = React.useState('');
   const [sendingChat, setSendingChat] = React.useState(false);
 
-  const fetchAISummary = React.useCallback(async () => {
+  const fetchAISummary = React.useCallback(async (forceRefresh = false) => {
+    const now = Date.now();
+    if (!forceRefresh && cachedAiSummary && (now - cachedAiSummaryTime < 10 * 60 * 1000)) {
+      setAiSummary(cachedAiSummary);
+      return;
+    }
     try {
       setLoadingSummary(true);
       const getSummary = httpsCallable(functions, 'getAISummary');
       const res = await getSummary();
       const resData = res.data as any;
-      setAiSummary(resData.summary || 'Không thể tạo tóm tắt vận hành.');
-    } catch (err) {
+      const newSummary = resData.summary || 'Không thể tạo tóm tắt vận hành.';
+      setAiSummary(newSummary);
+      cachedAiSummary = newSummary;
+      cachedAiSummaryTime = now;
+    } catch (err: any) {
       console.error('Error fetching AI summary:', err);
-      setAiSummary('Chào mừng bạn quay lại! Hệ thống AI đề xuất của bạn hiện đang sẵn sàng.');
+      if (err.message && err.message.includes('resource-exhausted')) {
+        setAiSummary('Bạn đã sử dụng hết lượt giới hạn AI tóm tắt cho ngày hôm nay.');
+      } else {
+        setAiSummary('Không thể tải phân tích AI lúc này. Các số liệu thống kê thông thường vẫn hoạt động bình thường.');
+      }
     } finally {
       setLoadingSummary(false);
     }
@@ -103,7 +118,7 @@ export const Dashboard: React.FC<DashboardProps> = () => {
     if (isFocused) {
       loadAdminName();
       loadRealStats();
-      fetchAISummary();
+      fetchAISummary(false);
     }
   }, [isFocused, fetchAISummary]);
 
@@ -361,9 +376,16 @@ export const Dashboard: React.FC<DashboardProps> = () => {
       <ScrollView contentContainerStyle={styles.scrollContent}>
         {/* AI Daily Brief Card */}
         <View style={styles.aiBriefCard}>
-          <View style={styles.aiBriefHeader}>
-            <MaterialIcons name="auto-awesome" size={20} color={theme.colors.primary} />
-            <Text style={styles.aiBriefTitle}>Trợ lý AI hôm nay</Text>
+          <View style={[styles.aiBriefHeader, { justifyContent: 'space-between', width: '100%', gap: 0 }]}>
+            <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
+              <MaterialIcons name="auto-awesome" size={20} color={theme.colors.primary} />
+              <Text style={styles.aiBriefTitle}>Trợ lý AI hôm nay</Text>
+            </View>
+            {!loadingSummary && (
+              <Pressable onPress={() => fetchAISummary(true)} style={{ padding: 4 }} hitSlop={12}>
+                <MaterialIcons name="refresh" size={18} color={theme.colors.primary} />
+              </Pressable>
+            )}
           </View>
           {loadingSummary ? (
             <View style={styles.aiBriefLoading}>
