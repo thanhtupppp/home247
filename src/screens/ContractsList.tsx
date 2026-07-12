@@ -1,20 +1,106 @@
 import React from 'react';
-import { View, Text, StyleSheet, ScrollView, Pressable, TextInput, FlatList } from 'react-native';
-import { useNavigation } from '@react-navigation/native';
+import {
+  View, Text, StyleSheet, ScrollView, Pressable, TextInput,
+  FlatList, ActivityIndicator, RefreshControl
+} from 'react-native';
+import { useNavigation, useIsFocused } from '@react-navigation/native';
 import { MaterialIcons } from '@expo/vector-icons';
 import { theme } from '../theme';
+import { collection, getDocs, query, orderBy } from 'firebase/firestore';
+import { db } from '../firebase';
+
+interface Contract {
+  id: string;
+  tenantName: string;
+  phoneNumber: string;
+  buildingName: string;
+  roomCode: string;
+  startDate: string;
+  endDate: string;
+  depositPrice: string;
+  rentPrice: string;
+  status: 'active' | 'expired' | 'pending';
+}
 
 const FILTERS = [
   { key: 'all', label: 'Tất cả' },
-  { key: 'active', label: 'Đang ở' },
-  { key: 'expiring', label: 'Sắp đến hạn' },
+  { key: 'active', label: 'Đang hoạt động' },
+  { key: 'pending', label: 'Chờ duyệt' },
   { key: 'expired', label: 'Đã hết hạn' },
 ] as const;
 
 export const ContractsList: React.FC = () => {
   const navigation = useNavigation<any>();
+  const isFocused = useIsFocused();
+
+  const [contracts, setContracts] = React.useState<Contract[]>([]);
+  const [loading, setLoading] = React.useState(true);
+  const [refreshing, setRefreshing] = React.useState(false);
   const [searchText, setSearchText] = React.useState('');
-  const [activeFilter, setActiveFilter] = React.useState<'active' | 'all' | 'expiring' | 'expired'>('active');
+  const [activeFilter, setActiveFilter] = React.useState<'active' | 'all' | 'pending' | 'expired'>('active');
+
+  // ── Fetch Contracts ────────────────────────────────────────────────────────
+  const fetchContracts = async (isRefresh = false) => {
+    try {
+      isRefresh ? setRefreshing(true) : setLoading(true);
+      const snap = await getDocs(
+        query(collection(db, 'contracts'), orderBy('createdAt', 'desc'))
+      );
+      const list: Contract[] = snap.docs.map((doc) => {
+        const data = doc.data();
+        let rent = data.rentPrice || '0';
+        if (typeof rent === 'number') {
+          rent = rent.toLocaleString('vi-VN');
+        }
+        let dep = data.depositPrice || '0';
+        if (typeof dep === 'number') {
+          dep = dep.toLocaleString('vi-VN');
+        }
+        return {
+          id: doc.id,
+          tenantName: data.tenantName || '',
+          phoneNumber: data.phoneNumber || '',
+          buildingName: data.buildingName || '',
+          roomCode: data.roomCode || '',
+          startDate: data.startDate || '',
+          endDate: data.endDate || '',
+          depositPrice: dep,
+          rentPrice: rent,
+          status: data.status || 'active',
+        };
+      });
+      setContracts(list);
+    } catch (err) {
+      console.error('Error fetching contracts:', err);
+    } finally {
+      setLoading(false);
+      setRefreshing(false);
+    }
+  };
+
+  React.useEffect(() => {
+    if (isFocused) {
+      fetchContracts();
+    }
+  }, [isFocused]);
+
+  // ── Computed Filtered Contracts ───────────────────────────────────────────
+  const filteredContracts = React.useMemo(() => {
+    return contracts
+      .filter((c) => {
+        if (activeFilter === 'all') return true;
+        return c.status === activeFilter;
+      })
+      .filter((c) => {
+        if (!searchText.trim()) return true;
+        const q = searchText.toLowerCase();
+        return (
+          c.tenantName.toLowerCase().includes(q) ||
+          c.roomCode.toLowerCase().includes(q) ||
+          c.buildingName.toLowerCase().includes(q)
+        );
+      });
+  }, [contracts, activeFilter, searchText]);
 
   return (
     <View style={styles.container}>
@@ -30,21 +116,22 @@ export const ContractsList: React.FC = () => {
         </Pressable>
       </View>
 
-      {/* Search Bar & Tune button */}
+      {/* Search Bar */}
       <View style={styles.searchSection}>
         <View style={styles.searchBar}>
           <MaterialIcons name="search" size={22} color="#94a3b8" />
           <TextInput
             style={styles.searchInput}
-            placeholder="Tìm kiếm hợp đồng"
+            placeholder="Tìm kiếm hợp đồng..."
             value={searchText}
             onChangeText={setSearchText}
           />
+          {searchText.length > 0 && (
+            <Pressable onPress={() => setSearchText('')}>
+              <MaterialIcons name="close" size={18} color="#94a3b8" />
+            </Pressable>
+          )}
         </View>
-        <Pressable style={styles.filterIconButton}>
-          <MaterialIcons name="tune" size={22} color="#475569" />
-          <View style={styles.badgeDot} />
-        </Pressable>
       </View>
 
       {/* Filter Pills */}
@@ -71,11 +158,61 @@ export const ContractsList: React.FC = () => {
         />
       </View>
 
-      {/* Empty State */}
-      <ScrollView contentContainerStyle={styles.scrollContent}>
-        <View style={styles.emptyState}>
-          <Text style={styles.emptyStateText}>Không có hợp đồng nào</Text>
-        </View>
+      {/* Content */}
+      <ScrollView
+        contentContainerStyle={styles.scrollContent}
+        refreshControl={<RefreshControl refreshing={refreshing} onRefresh={() => fetchContracts(true)} />}
+      >
+        {loading ? (
+          <View style={styles.centered}>
+            <ActivityIndicator size="large" color={theme.colors.primary} />
+            <Text style={styles.loadingText}>Đang tải danh sách hợp đồng...</Text>
+          </View>
+        ) : filteredContracts.length === 0 ? (
+          <View style={styles.emptyState}>
+            <MaterialIcons name="description" size={52} color="#cbd5e1" style={{ marginBottom: 8 }} />
+            <Text style={styles.emptyStateText}>Không có hợp đồng nào</Text>
+          </View>
+        ) : (
+          <View style={styles.listContainer}>
+            {filteredContracts.map((c) => (
+              <View key={c.id} style={styles.itemCard}>
+                <View style={styles.cardHeaderRow}>
+                  <Text style={styles.itemTitle}>Phòng {c.roomCode}</Text>
+                  <View
+                    style={[
+                      styles.statusBadge,
+                      c.status === 'active' ? styles.successBadge : styles.errorBadge,
+                    ]}
+                  >
+                    <Text
+                      style={[
+                        styles.statusText,
+                        c.status === 'active' ? styles.successText : styles.errorText,
+                      ]}
+                    >
+                      {c.status === 'active' ? 'Đang hiệu lực' : c.status === 'pending' ? 'Chờ duyệt' : 'Hết hạn'}
+                    </Text>
+                  </View>
+                </View>
+                <View style={styles.gridData}>
+                  <Text style={styles.gridLabel}>
+                    Khách thuê: <Text style={styles.gridValue}>{c.tenantName}</Text>
+                  </Text>
+                  <Text style={styles.gridLabel}>
+                    Tiền phòng: <Text style={styles.gridValue}>{c.rentPrice} đ</Text>
+                  </Text>
+                  <Text style={styles.gridLabel}>
+                    Tiền cọc: <Text style={styles.gridValue}>{c.depositPrice} đ</Text>
+                  </Text>
+                  <Text style={styles.gridLabel}>
+                    Thời hạn: <Text style={styles.gridValue}>{c.startDate} - {c.endDate}</Text>
+                  </Text>
+                </View>
+              </View>
+            ))}
+          </View>
+        )}
       </ScrollView>
     </View>
   );
@@ -145,28 +282,6 @@ const styles = StyleSheet.create({
     color: theme.colors.onSurface,
     padding: 0,
   },
-  filterIconButton: {
-    width: 46,
-    height: 46,
-    borderRadius: theme.borderRadius.xl,
-    borderWidth: 1,
-    borderColor: '#e2e8f0',
-    backgroundColor: theme.colors.surfaceContainerLowest,
-    alignItems: 'center',
-    justifyContent: 'center',
-    position: 'relative',
-  },
-  badgeDot: {
-    position: 'absolute',
-    top: 10,
-    right: 10,
-    width: 8,
-    height: 8,
-    borderRadius: 4,
-    backgroundColor: theme.colors.primary,
-    borderWidth: 1.5,
-    borderColor: theme.colors.surfaceContainerLowest,
-  },
   pillsContainer: {
     backgroundColor: theme.colors.surfaceContainerLowest,
     paddingBottom: 16,
@@ -198,17 +313,83 @@ const styles = StyleSheet.create({
     fontWeight: 'bold',
   },
   scrollContent: {
-    flexGrow: 1,
+    padding: theme.spacing.marginMobile,
+    paddingBottom: 40,
   },
   emptyState: {
-    flex: 1,
     alignItems: 'center',
     justifyContent: 'center',
-    paddingVertical: 180,
+    paddingVertical: 120,
   },
   emptyStateText: {
     ...theme.typography.bodyLg,
     color: theme.colors.onSurfaceVariant,
+  },
+  centered: {
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingVertical: 80,
+    gap: 12,
+  },
+  loadingText: {
+    color: theme.colors.onSurfaceVariant,
+  },
+  listContainer: {
+    gap: 12,
+  },
+  itemCard: {
+    padding: 16,
+    borderWidth: 1,
+    borderColor: theme.colors.outlineVariant,
+    borderRadius: theme.borderRadius.xl,
+    backgroundColor: theme.colors.surfaceContainerLowest,
+    gap: 8,
+  },
+  cardHeaderRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+  },
+  itemTitle: {
+    ...theme.typography.bodyLg,
+    fontWeight: 'bold',
+    color: theme.colors.onSurface,
+  },
+  statusBadge: {
+    paddingHorizontal: 8,
+    paddingVertical: 2,
+    borderRadius: theme.borderRadius.full,
+  },
+  successBadge: {
+    backgroundColor: '#e6f4ea',
+  },
+  successText: {
+    color: '#137333',
+    fontSize: 10,
+    fontWeight: 'bold',
+  },
+  errorBadge: {
+    backgroundColor: '#fce8e6',
+  },
+  errorText: {
+    color: '#c5221f',
+    fontSize: 10,
+    fontWeight: 'bold',
+  },
+  statusText: {
+    fontSize: 10,
+    fontWeight: 'bold',
+  },
+  gridData: {
+    gap: 6,
+  },
+  gridLabel: {
+    fontSize: 13,
+    color: theme.colors.onSurfaceVariant,
+  },
+  gridValue: {
+    color: theme.colors.onSurface,
+    fontWeight: '500',
   },
 });
 

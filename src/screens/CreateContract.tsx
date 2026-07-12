@@ -1,37 +1,272 @@
 import React from 'react';
-import { View, Text, StyleSheet, Pressable, ScrollView, TextInput } from 'react-native';
+import {
+  View, Text, StyleSheet, Pressable, ScrollView, TextInput,
+  ActivityIndicator, Alert, Image
+} from 'react-native';
 import { useNavigation } from '@react-navigation/native';
 import { MaterialIcons } from '@expo/vector-icons';
 import { theme } from '../theme';
+import * as ImagePicker from 'expo-image-picker';
+import { collection, addDoc, getDocs, query, where, orderBy, doc, updateDoc } from 'firebase/firestore';
+import { db, auth } from '../firebase';
 
-const BUILDINGS = ['nơ trang long', 'Home247 Landmark', 'Home247 Riverside'];
-const ROOMS = ['p1', 'p2', 'p3', 'p4', 'p5'];
+interface Building {
+  id: string;
+  name: string;
+}
+
+interface Room {
+  id: string;
+  code: string;
+  price?: number;
+}
+
 const CYCLES = ['1 tháng', '2 tháng', '3 tháng', '6 tháng', '12 tháng'];
 
 export const CreateContract: React.FC = () => {
-  const navigation = useNavigation();
+  const navigation = useNavigation<any>();
 
-  // Tenant Information
+  // ── Loading / Saving ───────────────────────────────────────────────────────
+  const [loadingBuildings, setLoadingBuildings] = React.useState(true);
+  const [loadingRooms, setLoadingRooms] = React.useState(false);
+  const [saving, setSaving] = React.useState(false);
+
+  // ── Tenant Information ─────────────────────────────────────────────────────
   const [fullName, setFullName] = React.useState('');
   const [phoneNumber, setPhoneNumber] = React.useState('');
   const [addressNote, setAddressNote] = React.useState('');
 
-  // Contract Information
-  const [selectedBuilding, setSelectedBuilding] = React.useState('');
-  const [selectedRoom, setSelectedRoom] = React.useState('');
+  // ── CCCD Photos (Base64 Picker) ────────────────────────────────────────────
+  const [cccdFront, setCccdFront] = React.useState<string | null>(null);
+  const [cccdBack, setCccdBack] = React.useState<string | null>(null);
+
+  // ── Contract Information ───────────────────────────────────────────────────
+  const [buildings, setBuildings] = React.useState<Building[]>([]);
+  const [rooms, setRooms] = React.useState<Room[]>([]);
+
+  const [selectedBuilding, setSelectedBuilding] = React.useState<Building | null>(null);
   const [showBuildingDropdown, setShowBuildingDropdown] = React.useState(false);
+
+  const [selectedRoom, setSelectedRoom] = React.useState<Room | null>(null);
   const [showRoomDropdown, setShowRoomDropdown] = React.useState(false);
 
-  const [startDate, setStartDate] = React.useState('');
-  const [signDate] = React.useState('11/07/2026');
-  const [endDate, setEndDate] = React.useState('');
+  const [startDate, setStartDate] = React.useState('12/07/2026');
+  const [signDate] = React.useState('12/07/2026');
+  const [endDate, setEndDate] = React.useState('12/07/2027');
   const [rentPrice, setRentPrice] = React.useState('');
   const [depositPrice, setDepositPrice] = React.useState('');
 
-  const [selectedCycle, setSelectedCycle] = React.useState('');
+  const [selectedCycle, setSelectedCycle] = React.useState('1 tháng');
   const [showCycleDropdown, setShowCycleDropdown] = React.useState(false);
-  const [collectionDay, setCollectionDay] = React.useState('');
-  const [paidUntilDate, setPaidUntilDate] = React.useState('');
+  const [collectionDay, setCollectionDay] = React.useState('05');
+  const [paidUntilDate, setPaidUntilDate] = React.useState('12/08/2026');
+
+  // ── Fetch Buildings ────────────────────────────────────────────────────────
+  React.useEffect(() => {
+    fetchBuildings();
+  }, []);
+
+  const fetchBuildings = async () => {
+    try {
+      setLoadingBuildings(true);
+      const snap = await getDocs(query(collection(db, 'buildings'), orderBy('name')));
+      const list = snap.docs.map((d) => ({ id: d.id, name: d.data().name }));
+      setBuildings(list);
+      if (list.length > 0) {
+        setSelectedBuilding(list[0]);
+        fetchRooms(list[0].id);
+      }
+    } catch (err) {
+      console.error('Error fetching buildings:', err);
+    } finally {
+      setLoadingBuildings(false);
+    }
+  };
+
+  const fetchRooms = async (buildingId: string) => {
+    try {
+      setLoadingRooms(true);
+      setSelectedRoom(null);
+      const snap = await getDocs(
+        query(collection(db, 'rooms'), where('buildingId', '==', buildingId), orderBy('code'))
+      );
+      const list = snap.docs.map((d) => ({
+        id: d.id,
+        code: d.data().code,
+        price: d.data().price ? Number(d.data().price) : undefined,
+      }));
+      setRooms(list);
+      if (list.length > 0) {
+        setSelectedRoom(list[0]);
+        if (list[0].price) {
+          setRentPrice(list[0].price.toString());
+          setDepositPrice(list[0].price.toString());
+        }
+      }
+    } catch (err) {
+      console.error('Error fetching rooms:', err);
+    } finally {
+      setLoadingRooms(false);
+    }
+  };
+
+  // ── Photo Upload Logic ─────────────────────────────────────────────────────
+  const pickCccdImage = async (side: 'front' | 'back') => {
+    Alert.alert(
+      side === 'front' ? 'CCCD Mặt trước' : 'CCCD Mặt sau',
+      'Chọn nguồn ảnh',
+      [
+        {
+          text: 'Thư viện ảnh',
+          onPress: async () => {
+            const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
+            if (status !== 'granted') {
+              Alert.alert('Quyền truy cập', 'Cần quyền truy cập thư viện ảnh.');
+              return;
+            }
+            const result = await ImagePicker.launchImageLibraryAsync({
+              mediaTypes: ['images'],
+              allowsEditing: true,
+              quality: 0.4,
+              base64: true,
+            });
+            if (!result.canceled && result.assets?.[0]?.base64) {
+              const dataUrl = `data:image/jpeg;base64,${result.assets[0].base64}`;
+              side === 'front' ? setCccdFront(dataUrl) : setCccdBack(dataUrl);
+            }
+          },
+        },
+        {
+          text: 'Chụp ảnh',
+          onPress: async () => {
+            const { status } = await ImagePicker.requestCameraPermissionsAsync();
+            if (status !== 'granted') {
+              Alert.alert('Quyền truy cập', 'Cần quyền truy cập camera.');
+              return;
+            }
+            const result = await ImagePicker.launchCameraAsync({
+              allowsEditing: true,
+              quality: 0.4,
+              base64: true,
+            });
+            if (!result.canceled && result.assets?.[0]?.base64) {
+              const dataUrl = `data:image/jpeg;base64,${result.assets[0].base64}`;
+              side === 'front' ? setCccdFront(dataUrl) : setCccdBack(dataUrl);
+            }
+          },
+        },
+        { text: 'Hủy', style: 'cancel' },
+      ]
+    );
+  };
+
+  // ── Selection Handlers ─────────────────────────────────────────────────────
+  const handleSelectBuilding = (b: Building) => {
+    setSelectedBuilding(b);
+    setShowBuildingDropdown(false);
+    fetchRooms(b.id);
+  };
+
+  const handleSelectRoom = (r: Room) => {
+    setSelectedRoom(r);
+    setShowRoomDropdown(false);
+    if (r.price) {
+      setRentPrice(r.price.toString());
+      setDepositPrice(r.price.toString());
+    }
+  };
+
+  // ── Save contract and link to tenant ──────────────────────────────────────
+  const handleSave = async () => {
+    if (!fullName.trim()) {
+      Alert.alert('Thông báo', 'Vui lòng nhập họ và tên khách thuê.');
+      return;
+    }
+    if (!phoneNumber.trim()) {
+      Alert.alert('Thông báo', 'Vui lòng nhập số điện thoại.');
+      return;
+    }
+    if (!selectedBuilding) {
+      Alert.alert('Thông báo', 'Vui lòng chọn tòa nhà.');
+      return;
+    }
+    if (!selectedRoom) {
+      Alert.alert('Thông báo', 'Vui lòng chọn phòng.');
+      return;
+    }
+
+    try {
+      setSaving(true);
+      const parsedRent = Number(rentPrice.replace(/[^0-9]/g, '')) || 0;
+      const parsedDeposit = Number(depositPrice.replace(/[^0-9]/g, '')) || 0;
+
+      // 1. Save Contract doc
+      const contractData = {
+        tenantName: fullName.trim(),
+        phoneNumber: phoneNumber.trim(),
+        addressNote: addressNote.trim(),
+        buildingId: selectedBuilding.id,
+        buildingName: selectedBuilding.name,
+        roomId: selectedRoom.id,
+        roomCode: selectedRoom.code,
+        startDate,
+        signDate,
+        endDate,
+        rentPrice: parsedRent,
+        depositPrice: parsedDeposit,
+        cycle: selectedCycle,
+        collectionDay: Number(collectionDay) || 5,
+        paidUntilDate,
+        status: 'active',
+        createdAt: new Date(),
+        createdBy: auth.currentUser?.uid || 'system',
+      };
+      
+      const contractRef = await addDoc(collection(db, 'contracts'), contractData);
+
+      // 2. Also register this person in the tenants collection
+      const tenantData = {
+        fullName: fullName.trim(),
+        phoneNumber: phoneNumber.trim(),
+        email: '',
+        dob: '',
+        cccd: '',
+        cccdFront: cccdFront ?? '',
+        cccdBack: cccdBack ?? '',
+        gender: 'Nam',
+        buildingId: selectedBuilding.id,
+        buildingName: selectedBuilding.name,
+        roomId: selectedRoom.id,
+        roomCode: selectedRoom.code,
+        moveInDate: startDate,
+        contractEndDate: endDate,
+        contractId: contractRef.id,
+        notes: addressNote.trim(),
+        sendInvite: false,
+        receiveNotif: true,
+        primaryContact: true,
+        status: 'active',
+        createdAt: new Date(),
+        createdBy: auth.currentUser?.uid || 'system',
+      };
+      await addDoc(collection(db, 'tenants'), tenantData);
+
+      // 3. Mark room status as occupied
+      const roomRef = doc(db, 'rooms', selectedRoom.id);
+      await updateDoc(roomRef, {
+        status: 'occupied',
+        price: parsedRent, // update price with negotiated rent
+      });
+
+      Alert.alert('Thành công', 'Đã tạo hợp đồng và thêm cư dân thành công!');
+      navigation.goBack();
+    } catch (err) {
+      console.error('Error creating contract:', err);
+      Alert.alert('Lỗi', 'Không thể tạo hợp đồng mới.');
+    } finally {
+      setSaving(false);
+    }
+  };
 
   return (
     <View style={styles.container}>
@@ -44,7 +279,7 @@ export const CreateContract: React.FC = () => {
         <View style={{ width: 40 }} />
       </View>
 
-      <ScrollView contentContainerStyle={styles.scrollContent}>
+      <ScrollView contentContainerStyle={styles.scrollContent} keyboardShouldPersistTaps="handled">
         <View style={styles.form}>
           
           {/* Section 1: Thông tin khách thuê */}
@@ -53,7 +288,7 @@ export const CreateContract: React.FC = () => {
             <Text style={styles.sectionTitle}>Thông tin khách thuê</Text>
           </View>
 
-          <Text style={styles.label}>Họ và tên</Text>
+          <Text style={styles.label}>Họ và tên *</Text>
           <TextInput
             style={styles.textInput}
             placeholder="Nhập họ và tên"
@@ -61,7 +296,7 @@ export const CreateContract: React.FC = () => {
             onChangeText={setFullName}
           />
 
-          <Text style={[styles.label, { marginTop: 14 }]}>Số điện thoại</Text>
+          <Text style={[styles.label, { marginTop: 14 }]}>Số điện thoại *</Text>
           <TextInput
             style={styles.textInput}
             placeholder="09xx xxx xxx"
@@ -70,14 +305,14 @@ export const CreateContract: React.FC = () => {
             onChangeText={setPhoneNumber}
           />
 
-          <Text style={[styles.label, { marginTop: 14 }]}>Địa chỉ (Ghi chú)</Text>
+          <Text style={[styles.label, { marginTop: 14 }]}>Địa chỉ / Ghi chú</Text>
           <TextInput
             style={[styles.textInput, styles.textArea]}
             placeholder="Nhập địa chỉ hoặc ghi chú (tùy chọn)"
-            multiline
-            numberOfLines={3}
             value={addressNote}
             onChangeText={setAddressNote}
+            multiline
+            numberOfLines={3}
           />
 
           {/* Section 2: Căn cước công dân */}
@@ -87,20 +322,46 @@ export const CreateContract: React.FC = () => {
           </View>
 
           <View style={styles.row}>
-            <Pressable style={styles.photoUploadCard}>
-              <View style={styles.photoUploadCircle}>
-                <MaterialIcons name="add-a-photo" size={22} color={theme.colors.primary} />
-              </View>
-              <Text style={styles.photoUploadTitle}>Mặt trước</Text>
-              <Text style={styles.photoUploadSubtext}>Chạm để chụp</Text>
+            {/* Front */}
+            <Pressable style={styles.photoUploadCard} onPress={() => pickCccdImage('front')}>
+              {cccdFront ? (
+                <>
+                  <Image source={{ uri: cccdFront }} style={styles.cccdPreview} resizeMode="cover" />
+                  <View style={styles.cccdOverlay}>
+                    <MaterialIcons name="edit" size={16} color="#fff" />
+                    <Text style={styles.cccdOverlayText}>Đổi ảnh</Text>
+                  </View>
+                </>
+              ) : (
+                <>
+                  <View style={styles.photoUploadCircle}>
+                    <MaterialIcons name="add-a-photo" size={22} color={theme.colors.primary} />
+                  </View>
+                  <Text style={styles.photoUploadTitle}>Mặt trước</Text>
+                  <Text style={styles.photoUploadSubtext}>Chạm để chọn</Text>
+                </>
+              )}
             </Pressable>
 
-            <Pressable style={styles.photoUploadCard}>
-              <View style={styles.photoUploadCircle}>
-                <MaterialIcons name="add-a-photo" size={22} color={theme.colors.primary} />
-              </View>
-              <Text style={styles.photoUploadTitle}>Mặt sau</Text>
-              <Text style={styles.photoUploadSubtext}>Chạm để chụp</Text>
+            {/* Back */}
+            <Pressable style={styles.photoUploadCard} onPress={() => pickCccdImage('back')}>
+              {cccdBack ? (
+                <>
+                  <Image source={{ uri: cccdBack }} style={styles.cccdPreview} resizeMode="cover" />
+                  <View style={styles.cccdOverlay}>
+                    <MaterialIcons name="edit" size={16} color="#fff" />
+                    <Text style={styles.cccdOverlayText}>Đổi ảnh</Text>
+                  </View>
+                </>
+              ) : (
+                <>
+                  <View style={styles.photoUploadCircle}>
+                    <MaterialIcons name="add-a-photo" size={22} color={theme.colors.primary} />
+                  </View>
+                  <Text style={styles.photoUploadTitle}>Mặt sau</Text>
+                  <Text style={styles.photoUploadSubtext}>Chạm để chọn</Text>
+                </>
+              )}
             </Pressable>
           </View>
 
@@ -110,37 +371,20 @@ export const CreateContract: React.FC = () => {
             <Text style={styles.sectionTitle}>Thông tin hợp đồng</Text>
           </View>
 
-          <Text style={styles.label}>Tòa nhà</Text>
-          <Pressable onPress={() => setShowBuildingDropdown(!showBuildingDropdown)} style={styles.dropdownButton}>
-            <Text style={styles.dropdownButtonText}>{selectedBuilding || 'Chọn tòa nhà'}</Text>
-            <MaterialIcons name="keyboard-arrow-down" size={24} color="#a1a1aa" />
-          </Pressable>
-          {showBuildingDropdown && (
-            <View style={styles.dropdown}>
-              {BUILDINGS.map((b) => (
-                <Pressable key={b} style={styles.dropdownItem} onPress={() => { setSelectedBuilding(b); setShowBuildingDropdown(false); }}>
-                  <Text style={styles.dropdownItemText}>{b}</Text>
-                </Pressable>
-              ))}
-            </View>
-          )}
-
-          <Text style={[styles.label, { marginTop: 14 }]}>Phòng</Text>
-          {!selectedBuilding ? (
-            <View style={styles.banner}>
-              <Text style={styles.bannerText}>Vui lòng chọn toà nhà trước</Text>
-            </View>
+          <Text style={styles.label}>Tòa nhà *</Text>
+          {loadingBuildings ? (
+            <ActivityIndicator size="small" color={theme.colors.primary} style={{ alignSelf: 'flex-start', marginVertical: 12 }} />
           ) : (
             <View>
-              <Pressable onPress={() => setShowRoomDropdown(!showRoomDropdown)} style={styles.dropdownButton}>
-                <Text style={styles.dropdownButtonText}>{selectedRoom || 'Chọn phòng'}</Text>
+              <Pressable onPress={() => setShowBuildingDropdown(!showBuildingDropdown)} style={styles.dropdownButton}>
+                <Text style={styles.dropdownButtonText}>{selectedBuilding?.name || 'Chọn tòa nhà'}</Text>
                 <MaterialIcons name="keyboard-arrow-down" size={24} color="#a1a1aa" />
               </Pressable>
-              {showRoomDropdown && (
+              {showBuildingDropdown && (
                 <View style={styles.dropdown}>
-                  {ROOMS.map((r) => (
-                    <Pressable key={r} style={styles.dropdownItem} onPress={() => { setSelectedRoom(r); setShowRoomDropdown(false); }}>
-                      <Text style={styles.dropdownItemText}>{r}</Text>
+                  {buildings.map((b) => (
+                    <Pressable key={b.id} style={styles.dropdownItem} onPress={() => handleSelectBuilding(b)}>
+                      <Text style={styles.dropdownItemText}>{b.name}</Text>
                     </Pressable>
                   ))}
                 </View>
@@ -148,28 +392,56 @@ export const CreateContract: React.FC = () => {
             </View>
           )}
 
+          <Text style={[styles.label, { marginTop: 14 }]}>Phòng *</Text>
+          {loadingRooms ? (
+            <ActivityIndicator size="small" color={theme.colors.primary} style={{ alignSelf: 'flex-start', marginVertical: 12 }} />
+          ) : !selectedBuilding ? (
+            <View style={styles.disabledDropdown}>
+              <Text style={styles.disabledDropdownText}>Vui lòng chọn tòa nhà trước</Text>
+            </View>
+          ) : (
+            <View>
+              <Pressable onPress={() => setShowRoomDropdown(!showRoomDropdown)} style={styles.dropdownButton}>
+                <Text style={styles.dropdownButtonText}>{selectedRoom?.code || 'Chọn phòng'}</Text>
+                <MaterialIcons name="keyboard-arrow-down" size={24} color="#a1a1aa" />
+              </Pressable>
+              {showRoomDropdown && (
+                <View style={styles.dropdown}>
+                  {rooms.length === 0 ? (
+                    <Text style={styles.emptyDropdown}>Chưa có phòng nào</Text>
+                  ) : (
+                    rooms.map((r) => (
+                      <Pressable key={r.id} style={styles.dropdownItem} onPress={() => handleSelectRoom(r)}>
+                        <Text style={styles.dropdownItemText}>{r.code}</Text>
+                      </Pressable>
+                    ))
+                  )}
+                </View>
+              )}
+            </View>
+          )}
+
+          {/* Dates & Rates */}
           <Text style={[styles.label, { marginTop: 14 }]}>Ngày bắt đầu hợp đồng</Text>
-          <Pressable style={styles.datePicker}>
-            <MaterialIcons name="calendar-today" size={18} color="#64748b" />
-            <Text style={styles.datePickerText}>{startDate || 'Chọn ngày bắt đầu'}</Text>
-          </Pressable>
-
-          <Text style={[styles.label, { marginTop: 14 }]}>Ngày ký hợp đồng</Text>
-          <Pressable style={styles.datePicker}>
-            <MaterialIcons name="calendar-today" size={18} color="#64748b" />
-            <Text style={styles.datePickerText}>{signDate}</Text>
-          </Pressable>
-
-          <Text style={[styles.label, { marginTop: 14 }]}>Hạn hợp đồng</Text>
-          <Pressable style={styles.datePicker}>
-            <MaterialIcons name="calendar-today" size={18} color="#64748b" />
-            <Text style={styles.datePickerText}>{endDate || 'Chọn ngày hết hạn'}</Text>
-          </Pressable>
-
-          <Text style={[styles.label, { marginTop: 14 }]}>Tiền phòng</Text>
           <TextInput
             style={styles.textInput}
-            placeholder="Vd: 5.500.000"
+            value={startDate}
+            onChangeText={setStartDate}
+            placeholder="dd/mm/yyyy"
+          />
+
+          <Text style={[styles.label, { marginTop: 14 }]}>Hạn hợp đồng</Text>
+          <TextInput
+            style={styles.textInput}
+            value={endDate}
+            onChangeText={setEndDate}
+            placeholder="dd/mm/yyyy"
+          />
+
+          <Text style={[styles.label, { marginTop: 14 }]}>Tiền phòng *</Text>
+          <TextInput
+            style={styles.textInput}
+            placeholder="Vd: 5500000"
             keyboardType="numeric"
             value={rentPrice}
             onChangeText={setRentPrice}
@@ -178,7 +450,7 @@ export const CreateContract: React.FC = () => {
           <Text style={[styles.label, { marginTop: 14 }]}>Tiền cọc (Tùy chọn)</Text>
           <TextInput
             style={styles.textInput}
-            placeholder="Vd: 5.500.000"
+            placeholder="Vd: 5500000"
             keyboardType="numeric"
             value={depositPrice}
             onChangeText={setDepositPrice}
@@ -186,7 +458,7 @@ export const CreateContract: React.FC = () => {
 
           <Text style={[styles.label, { marginTop: 14 }]}>Chu kỳ trả tiền phòng</Text>
           <Pressable onPress={() => setShowCycleDropdown(!showCycleDropdown)} style={styles.dropdownButton}>
-            <Text style={styles.dropdownButtonText}>{selectedCycle || 'Chọn chu kỳ'}</Text>
+            <Text style={styles.dropdownButtonText}>{selectedCycle}</Text>
             <MaterialIcons name="keyboard-arrow-down" size={24} color="#a1a1aa" />
           </Pressable>
           {showCycleDropdown && (
@@ -199,46 +471,36 @@ export const CreateContract: React.FC = () => {
             </View>
           )}
 
-          <Text style={[styles.label, { marginTop: 14 }]}>Ngày thu tiền phòng</Text>
+          <Text style={[styles.label, { marginTop: 14 }]}>Ngày chốt đóng tiền hàng tháng</Text>
           <TextInput
             style={styles.textInput}
-            placeholder="Nhập ngày (1-31)"
+            placeholder="Vd: 05"
             keyboardType="numeric"
             value={collectionDay}
             onChangeText={setCollectionDay}
           />
 
-          <Text style={[styles.label, { marginTop: 14 }]}>Đã trả đến ngày (Tùy chọn)</Text>
-          <Pressable style={styles.datePicker}>
-            <MaterialIcons name="calendar-today" size={18} color="#64748b" />
-            <Text style={styles.datePickerText}>{paidUntilDate || 'Chọn ngày đã trả đến'}</Text>
-          </Pressable>
-
-          {/* Section 4: Thiết bị */}
-          <View style={[styles.sectionHeader, { marginTop: 24 }]}>
-            <MaterialIcons name="router" size={22} color={theme.colors.onSurface} />
-            <Text style={styles.sectionTitle}>Thiết bị</Text>
-          </View>
-          <View style={styles.banner}>
-            <Text style={styles.bannerText}>Vui lòng chọn phòng để xem danh sách thiết bị</Text>
-          </View>
-
-          {/* Section 5: Dịch vụ */}
-          <View style={[styles.sectionHeader, { marginTop: 24 }]}>
-            <MaterialIcons name="payments" size={22} color={theme.colors.onSurface} />
-            <Text style={styles.sectionTitle}>Dịch vụ</Text>
-          </View>
-          <View style={styles.banner}>
-            <Text style={styles.bannerText}>Vui lòng chọn toà nhà để xem dịch vụ</Text>
-          </View>
+          <Text style={[styles.label, { marginTop: 14 }]}>Đã thanh toán đến ngày</Text>
+          <TextInput
+            style={styles.textInput}
+            value={paidUntilDate}
+            onChangeText={setPaidUntilDate}
+            placeholder="dd/mm/yyyy"
+          />
         </View>
       </ScrollView>
 
       {/* Bottom Button */}
       <View style={styles.bottomBar}>
-        <Pressable style={styles.saveBtn} onPress={() => navigation.goBack()}>
-          <MaterialIcons name="add" size={24} color={theme.colors.onPrimary} />
-          <Text style={styles.saveBtnText}>Tạo hợp đồng</Text>
+        <Pressable style={styles.saveBtn} onPress={handleSave} disabled={saving}>
+          {saving ? (
+            <ActivityIndicator size="small" color="#ffffff" />
+          ) : (
+            <>
+              <MaterialIcons name="add" size={24} color={theme.colors.onPrimary} />
+              <Text style={styles.saveBtnText}>Tạo hợp đồng</Text>
+            </>
+          )}
         </Pressable>
       </View>
     </View>
@@ -324,6 +586,9 @@ const styles = StyleSheet.create({
     padding: 16,
     alignItems: 'center',
     justifyContent: 'center',
+    borderStyle: 'dashed',
+    minHeight: 110,
+    overflow: 'hidden',
   },
   photoUploadCircle: {
     width: 44,
@@ -377,31 +642,6 @@ const styles = StyleSheet.create({
     ...theme.typography.bodyMd,
     color: theme.colors.onSurface,
   },
-  banner: {
-    backgroundColor: '#f1f5f9',
-    borderRadius: theme.borderRadius.lg,
-    paddingHorizontal: 16,
-    paddingVertical: 12,
-  },
-  bannerText: {
-    ...theme.typography.bodyMd,
-    color: '#64748b',
-  },
-  datePicker: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: theme.colors.surfaceContainerLowest,
-    borderWidth: 1,
-    borderColor: theme.colors.outlineVariant,
-    borderRadius: theme.borderRadius.xl,
-    paddingHorizontal: 16,
-    paddingVertical: 12,
-    gap: 8,
-  },
-  datePickerText: {
-    ...theme.typography.bodyMd,
-    color: theme.colors.onSurface,
-  },
   bottomBar: {
     padding: theme.spacing.marginMobile,
     backgroundColor: theme.colors.surfaceContainerLowest,
@@ -421,6 +661,48 @@ const styles = StyleSheet.create({
     ...theme.typography.bodyLg,
     color: theme.colors.onPrimary,
     fontWeight: 'bold',
+  },
+  cccdPreview: {
+    position: 'absolute',
+    top: 0, left: 0, right: 0, bottom: 0,
+    width: '100%',
+    height: '100%',
+    borderRadius: theme.borderRadius.xl,
+  },
+  cccdOverlay: {
+    position: 'absolute',
+    bottom: 0,
+    left: 0,
+    right: 0,
+    backgroundColor: 'rgba(0,0,0,0.45)',
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 4,
+    paddingVertical: 6,
+  },
+  cccdOverlayText: {
+    color: '#fff',
+    fontSize: 12,
+    fontWeight: 'bold',
+  },
+  disabledDropdown: {
+    backgroundColor: '#f1f5f9',
+    borderColor: theme.colors.outlineVariant,
+    borderWidth: 1,
+    borderRadius: theme.borderRadius.xl,
+    paddingHorizontal: 16,
+    paddingVertical: 12,
+  },
+  disabledDropdownText: {
+    ...theme.typography.bodyMd,
+    color: '#94a3b8',
+  },
+  emptyDropdown: {
+    paddingHorizontal: 16,
+    paddingVertical: 12,
+    color: '#94a3b8',
+    textAlign: 'center',
   },
 });
 
