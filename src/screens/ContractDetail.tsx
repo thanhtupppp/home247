@@ -305,16 +305,21 @@ export const ContractDetail: React.FC = () => {
         </html>
       `;
 
-      const { uri } = await Print.printToFileAsync({ html: htmlContent });
+      const printResult = await Print.printToFileAsync({
+        html: htmlContent,
+        base64: true
+      });
       
-      // Copy to Cache directory with a clean human-readable name to bypass Android permission restrictions
+      if (!printResult.base64) {
+        throw new Error('Không thể xuất dữ liệu PDF.');
+      }
+      
       const safeRoomCode = contract.roomCode.replace(/[^a-zA-Z0-9]/g, '_');
       const cleanFileName = `Hop_Dong_Thue_Phong_${safeRoomCode}.pdf`;
       const cachedUri = `${FileSystem.cacheDirectory}${cleanFileName}`;
       
-      await FileSystem.copyAsync({
-        from: uri,
-        to: cachedUri
+      await FileSystem.writeAsStringAsync(cachedUri, printResult.base64, {
+        encoding: FileSystem.EncodingType.Base64
       });
 
       await Sharing.shareAsync(cachedUri, {
