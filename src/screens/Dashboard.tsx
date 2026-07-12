@@ -684,8 +684,9 @@ export const Dashboard: React.FC<DashboardProps> = () => {
         onRequestClose={() => setShowChatModal(false)}
       >
         <KeyboardAvoidingView
-          behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+          behavior={Platform.OS === 'ios' ? 'padding' : undefined}
           style={styles.chatModalContainer}
+          keyboardVerticalOffset={Platform.OS === 'ios' ? 0 : 0}
         >
           {/* Header */}
           <View style={styles.chatHeader}>
@@ -713,6 +714,7 @@ export const Dashboard: React.FC<DashboardProps> = () => {
             data={chatMessages}
             keyExtractor={(_, index) => index.toString()}
             contentContainerStyle={styles.chatMessagesList}
+            style={{ flex: 1 }}
             renderItem={({ item }) => (
               <View style={[
                 styles.chatBubble,
