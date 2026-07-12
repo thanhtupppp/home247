@@ -16,7 +16,9 @@ import { agentTools, executeTool } from './ai/tools';
 import { 
   getOverdueInvoices, 
   getExpiringContracts, 
-  getLandlordSupportRequests 
+  getLandlordSupportRequests,
+  getLandlordBuildings,
+  getLandlordRooms
 } from './utils/firestore';
 import { 
   ocrUtilityMeterSchema, 
@@ -105,16 +107,25 @@ export const getAISummary = functions.region('asia-east1').https.onCall(async (d
     // 1. Quota check
     await checkAndIncrementQuota(uid, 'summary');
 
-    const [overdueInvoices, expiringContracts, supportRequests] = await Promise.all([
+    const [overdueInvoices, expiringContracts, supportRequests, buildings, rooms] = await Promise.all([
       getOverdueInvoices(uid),
       getExpiringContracts(uid, 30),
       getLandlordSupportRequests(uid),
+      getLandlordBuildings(uid),
+      getLandlordRooms(uid),
     ]);
 
     const totalOverdueAmount = overdueInvoices.reduce((sum, i) => sum + (Number(i.amount) || 0), 0);
+    const totalRooms = rooms.length;
+    const occupiedRooms = rooms.filter(r => r.status === 'occupied').length;
+    const emptyRooms = rooms.filter(r => r.status === 'empty').length;
 
     // Sanitize stats: remove tenant names to protect privacy
     const statsText = `
+    Quy mô hệ thống phòng của chủ nhà:
+    - Tổng số tòa nhà đang quản lý: ${buildings.length}
+    - Tổng số phòng trọ: ${totalRooms} (Phòng đang cho thuê/đang ở: ${occupiedRooms}, Phòng còn trống: ${emptyRooms})
+
     Dữ liệu thô vận hành hiện tại:
     - Tổng số hóa đơn trễ hạn: ${overdueInvoices.length}
     - Tổng số tiền trễ hạn cần thu hồi: ${totalOverdueAmount} VND
@@ -356,8 +367,19 @@ export const runAIAgent = functions.region('asia-east1').https.onCall(async (dat
     }
     const cleanHistory = validation.data;
 
+    // Get current landlord buildings and rooms context to feed into prompt
+    const [buildings, rooms] = await Promise.all([
+      getLandlordBuildings(uid),
+      getLandlordRooms(uid)
+    ]);
+    const totalRooms = rooms.length;
+    const occupiedRooms = rooms.filter(r => r.status === 'occupied').length;
+    const emptyRooms = rooms.filter(r => r.status === 'empty').length;
+
+    const contextPrompt = `${SYSTEM_AGENT_PROMPT}\n\nThông tin danh mục quản lý thực tế hiện tại của chủ nhà:\n- Tổng số tòa nhà đang quản lý: ${buildings.length}\n- Tổng số phòng trọ: ${totalRooms} (Đang ở/Có người thuê: ${occupiedRooms}, Phòng còn trống: ${emptyRooms}).`;
+
     const messages: ChatMessage[] = [
-      { role: 'system', content: SYSTEM_AGENT_PROMPT },
+      { role: 'system', content: contextPrompt },
       ...cleanHistory,
       { role: 'user', content: userMessage }
     ];
