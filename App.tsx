@@ -24,6 +24,7 @@ import CreateDevice from './src/screens/CreateDevice';
 import TenantsManagement from './src/screens/TenantsManagement';
 import TenantsList from './src/screens/TenantsList';
 import CreateTenant from './src/screens/CreateTenant';
+import TenantDetail from './src/screens/TenantDetail';
 import CreateBuilding from './src/screens/CreateBuilding';
 import SettingsScreen from './src/screens/SettingsScreen';
 import EditProfile from './src/screens/EditProfile';
@@ -205,6 +206,7 @@ export function App() {
           <Stack.Screen name="thiet-bi/them" component={CreateDevice} />
           <Stack.Screen name="cu-dan/danh-sach" component={TenantsList} />
           <Stack.Screen name="cu-dan/them" component={CreateTenant} />
+          <Stack.Screen name="cu-dan/chi-tiet" component={TenantDetail} />
 
           <Stack.Screen name="dien-nuoc" component={UtilityManagement} />
           <Stack.Screen name="dien-nuoc/ghi" component={UtilityRecording} />
