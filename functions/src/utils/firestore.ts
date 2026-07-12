@@ -139,3 +139,48 @@ export async function getLandlordUtilityReadings(ownerId: string, month: string)
   
   return snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
 }
+
+/**
+ * Safely fetch all invoices (paid and pending) owned by landlord
+ */
+export async function getAllLandlordInvoices(ownerId: string): Promise<any[]> {
+  const snapshot = await db.collection('invoices')
+    .where('ownerId', '==', ownerId)
+    .get();
+  
+  return snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+}
+
+/**
+ * Safely fetch all utility readings owned by landlord (no month filter)
+ */
+export async function getAllLandlordUtilityReadings(ownerId: string): Promise<any[]> {
+  const snapshot = await db.collection('utilityReadings')
+    .where('ownerId', '==', ownerId)
+    .get();
+  
+  return snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+}
+
+/**
+ * Safely fetch all services owned by landlord
+ */
+export async function getLandlordServices(ownerId: string): Promise<any[]> {
+  const snapshot = await db.collection('services')
+    .where('ownerId', '==', ownerId)
+    .get();
+  
+  return snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+}
+
+/**
+ * Safely fetch all devices owned by landlord
+ */
+export async function getLandlordDevices(ownerId: string): Promise<any[]> {
+  const snapshot = await db.collection('devices')
+    .where('ownerId', '==', ownerId)
+    .get();
+  
+  return snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+}
+

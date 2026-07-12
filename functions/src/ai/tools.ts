@@ -5,7 +5,11 @@ import {
   getLandlordBuildings,
   getLandlordRooms,
   getLandlordContracts,
-  getLandlordTenants
+  getLandlordTenants,
+  getAllLandlordInvoices,
+  getAllLandlordUtilityReadings,
+  getLandlordServices,
+  getLandlordDevices
 } from '../utils/firestore';
 
 export const agentTools = [
@@ -60,6 +64,50 @@ export const agentTools = [
     function: {
       name: 'get_tenants_and_contracts',
       description: 'Lấy danh sách tất cả cư dân (khách thuê) và hợp đồng thuê phòng của chủ nhà để tra cứu thông tin người ở.',
+      parameters: {
+        type: 'object',
+        properties: {}
+      }
+    }
+  },
+  {
+    type: 'function',
+    function: {
+      name: 'get_all_invoices',
+      description: 'Lấy danh sách tất cả các hóa đơn (bao gồm cả đã thanh toán paid và chưa thanh toán pending) của chủ nhà để đối soát doanh thu.',
+      parameters: {
+        type: 'object',
+        properties: {}
+      }
+    }
+  },
+  {
+    type: 'function',
+    function: {
+      name: 'get_utility_readings',
+      description: 'Lấy lịch sử chốt chỉ số điện/nước của tất cả các phòng trọ.',
+      parameters: {
+        type: 'object',
+        properties: {}
+      }
+    }
+  },
+  {
+    type: 'function',
+    function: {
+      name: 'get_services',
+      description: 'Lấy cấu hình bảng giá các dịch vụ (điện, nước, rác, internet...) của từng tòa nhà.',
+      parameters: {
+        type: 'object',
+        properties: {}
+      }
+    }
+  },
+  {
+    type: 'function',
+    function: {
+      name: 'get_devices',
+      description: 'Lấy danh sách các thiết bị công nghệ (công tơ thông minh, khóa cửa...) được lắp đặt tại các phòng.',
       parameters: {
         type: 'object',
         properties: {}
@@ -149,6 +197,59 @@ export async function executeTool(name: string, args: any, ownerId: string): Pro
             status: c.status
           }))
         };
+      }
+
+      case 'get_all_invoices': {
+        const invoices = await getAllLandlordInvoices(ownerId);
+        return invoices.map(i => ({
+          id: i.id,
+          roomCode: i.roomCode,
+          buildingName: i.buildingName,
+          month: i.month,
+          amount: i.amount,
+          status: i.status,
+          dueDate: i.dueDate ? (i.dueDate.toDate ? i.dueDate.toDate().toISOString() : i.dueDate) : null
+        }));
+      }
+
+      case 'get_utility_readings': {
+        const readings = await getAllLandlordUtilityReadings(ownerId);
+        return readings.map(r => ({
+          id: r.id,
+          roomCode: r.roomCode,
+          buildingName: r.buildingName,
+          month: r.month,
+          electricOld: r.electricOld,
+          electricNew: r.electricNew,
+          waterOld: r.waterOld,
+          waterNew: r.waterNew,
+          createdAt: r.createdAt ? (r.createdAt.toDate ? r.createdAt.toDate().toISOString() : r.createdAt) : null
+        }));
+      }
+
+      case 'get_services': {
+        const services = await getLandlordServices(ownerId);
+        return services.map(s => ({
+          id: s.id,
+          name: s.name,
+          type: s.type,
+          price: s.price,
+          unit: s.unit,
+          buildingId: s.buildingId,
+          buildingName: s.buildingName
+        }));
+      }
+
+      case 'get_devices': {
+        const devices = await getLandlordDevices(ownerId);
+        return devices.map(d => ({
+          id: d.id,
+          name: d.name,
+          type: d.type,
+          roomCode: d.roomCode,
+          buildingName: d.buildingName,
+          status: d.status
+        }));
       }
 
       default:
