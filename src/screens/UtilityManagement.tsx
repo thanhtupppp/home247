@@ -7,13 +7,25 @@ import { mockRooms } from '../data/mockData';
 import { collection, query, where, getDocs } from 'firebase/firestore';
 import { db } from '../firebase';
 
-const MONTHS = ['2026', '09/2026', '10/2026', '11/2026', '12/2026'];
+const generateMonthsList = (): string[] => {
+  const list: string[] = [];
+  const date = new Date();
+  for (let i = 5; i >= 0; i--) {
+    const d = new Date(date.getFullYear(), date.getMonth() - i, 1);
+    const mm = String(d.getMonth() + 1).padStart(2, '0');
+    const yyyy = d.getFullYear();
+    list.push(`${mm}/${yyyy}`);
+  }
+  return list;
+};
+
+const MONTHS = generateMonthsList();
 
 export const UtilityManagement: React.FC = () => {
   const navigation = useNavigation<any>();
   const isFocused = useIsFocused();
-  const [selectedMonth, setSelectedMonth] = React.useState('10/2026');
-  const [selectedBuilding, setSelectedBuilding] = React.useState('nơ trang long');
+  const [selectedMonth, setSelectedMonth] = React.useState(MONTHS[MONTHS.length - 1]);
+  const [selectedBuilding, setSelectedBuilding] = React.useState('');
   const [showBuildingDropdown, setShowBuildingDropdown] = React.useState(false);
   const [recordedRooms, setRecordedRooms] = React.useState<string[]>([]);
   const [buildings, setBuildings] = React.useState<any[]>([]);

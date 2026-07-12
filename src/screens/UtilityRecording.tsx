@@ -18,9 +18,23 @@ const getPreviousMonth = (monthStr: string): string => {
 export const UtilityRecording: React.FC = () => {
   const navigation = useNavigation<any>();
   const route = useRoute<any>();
+  const generateMonthsList = (): string[] => {
+    const list: string[] = [];
+    const date = new Date();
+    for (let i = 5; i >= 0; i--) {
+      const d = new Date(date.getFullYear(), date.getMonth() - i, 1);
+      const mm = String(d.getMonth() + 1).padStart(2, '0');
+      const yyyy = d.getFullYear();
+      list.push(`${mm}/${yyyy}`);
+    }
+    return list;
+  };
+  const monthsList = generateMonthsList();
+  const defaultMonth = monthsList[monthsList.length - 1];
+
   const initialBuilding = route.params?.building || 'nơ trang long';
   const initialRoom = route.params?.room || '';
-  const initialMonth = route.params?.month || '10/2026';
+  const initialMonth = route.params?.month || defaultMonth;
 
   const [activeTab, setActiveTab] = React.useState<'room' | 'bulk'>('room');
   const [selectedBuilding, setSelectedBuilding] = React.useState(initialBuilding);
@@ -31,8 +45,8 @@ export const UtilityRecording: React.FC = () => {
   const [showRoomDropdown, setShowRoomDropdown] = React.useState(false);
 
   // States for recording data
-  const [electricOld, setElectricOld] = React.useState(0);
-  const [waterOld, setWaterOld] = React.useState(0);
+  const [electricOld, setElectricOld] = React.useState('');
+  const [waterOld, setWaterOld] = React.useState('');
   const [singleElectricNew, setSingleElectricNew] = React.useState('');
   const [singleWaterNew, setSingleWaterNew] = React.useState('');
   
@@ -110,15 +124,15 @@ export const UtilityRecording: React.FC = () => {
         oldWater = prevSnap.data().waterNew || 0;
       }
       
-      setElectricOld(oldElectric);
-      setWaterOld(oldWater);
+      setElectricOld(String(oldElectric));
+      setWaterOld(String(oldWater));
       
       if (currentSnap.exists()) {
         const curData = currentSnap.data();
         setSingleElectricNew(String(curData.electricNew || ''));
         setSingleWaterNew(String(curData.waterNew || ''));
-        if (curData.electricOld !== undefined) setElectricOld(curData.electricOld);
-        if (curData.waterOld !== undefined) setWaterOld(curData.waterOld);
+        if (curData.electricOld !== undefined) setElectricOld(String(curData.electricOld));
+        if (curData.waterOld !== undefined) setWaterOld(String(curData.waterOld));
       } else {
         setSingleElectricNew('');
         setSingleWaterNew('');
@@ -215,10 +229,10 @@ export const UtilityRecording: React.FC = () => {
           building: selectedBuilding,
           room: selectedRoom,
           month: selectedMonth,
-          electricOld: Number(electricOld),
-          electricNew: Number(singleElectricNew),
-          waterOld: Number(waterOld),
-          waterNew: Number(singleWaterNew),
+          electricOld: Number(electricOld) || 0,
+          electricNew: Number(singleElectricNew) || 0,
+          waterOld: Number(waterOld) || 0,
+          waterNew: Number(singleWaterNew) || 0,
           recordedAt: new Date(),
           recordedBy: auth.currentUser?.uid || 'system'
         });
@@ -291,6 +305,18 @@ export const UtilityRecording: React.FC = () => {
   const handleBulkWaterChange = (id: string, value: string) => {
     setBulkRooms(bulkRooms.map(item => 
       item.id === id ? { ...item, waterNew: value } : item
+    ));
+  };
+
+  const handleBulkOldElectricChange = (id: string, value: string) => {
+    setBulkRooms(bulkRooms.map(item => 
+      item.id === id ? { ...item, electricOld: value } : item
+    ));
+  };
+
+  const handleBulkOldWaterChange = (id: string, value: string) => {
+    setBulkRooms(bulkRooms.map(item => 
+      item.id === id ? { ...item, waterOld: value } : item
     ));
   };
 
@@ -375,7 +401,13 @@ export const UtilityRecording: React.FC = () => {
                     <View style={styles.cardRow}>
                       <View style={styles.inputCol}>
                         <Text style={styles.inputLabel}>Chỉ số cũ</Text>
-                        <TextInput style={styles.textInputRead} value={String(electricOld)} editable={false} />
+                        <TextInput 
+                          style={styles.textInput} 
+                          placeholder="Chỉ số cũ" 
+                          keyboardType="numeric" 
+                          value={electricOld}
+                          onChangeText={setElectricOld}
+                        />
                       </View>
                       <View style={styles.inputCol}>
                         <Text style={styles.inputLabel}>Chỉ số mới</Text>
@@ -399,7 +431,13 @@ export const UtilityRecording: React.FC = () => {
                     <View style={styles.cardRow}>
                       <View style={styles.inputCol}>
                         <Text style={styles.inputLabel}>Chỉ số cũ</Text>
-                        <TextInput style={styles.textInputRead} value={String(waterOld)} editable={false} />
+                        <TextInput 
+                          style={styles.textInput} 
+                          placeholder="Chỉ số cũ" 
+                          keyboardType="numeric" 
+                          value={waterOld}
+                          onChangeText={setWaterOld}
+                        />
                       </View>
                       <View style={styles.inputCol}>
                         <Text style={styles.inputLabel}>Chỉ số mới</Text>
@@ -457,7 +495,13 @@ export const UtilityRecording: React.FC = () => {
                         <View style={styles.cardRow}>
                           <View style={styles.inputCol}>
                             <Text style={styles.inputLabel}>Chỉ số cũ</Text>
-                            <TextInput style={styles.textInputRead} value={String(room.electricOld)} editable={false} />
+                            <TextInput 
+                              style={styles.textInput} 
+                              placeholder="Nhập chỉ số" 
+                              keyboardType="numeric"
+                              value={String(room.electricOld)} 
+                              onChangeText={(val) => handleBulkOldElectricChange(room.id, val)}
+                            />
                           </View>
                           <View style={styles.inputCol}>
                             <Text style={styles.inputLabel}>Chỉ số mới</Text>
@@ -476,7 +520,13 @@ export const UtilityRecording: React.FC = () => {
                         <View style={styles.cardRow}>
                           <View style={styles.inputCol}>
                             <Text style={styles.inputLabel}>Chỉ số cũ</Text>
-                            <TextInput style={styles.textInputRead} value={String(room.waterOld)} editable={false} />
+                            <TextInput 
+                              style={styles.textInput} 
+                              placeholder="Nhập chỉ số" 
+                              keyboardType="numeric"
+                              value={String(room.waterOld)} 
+                              onChangeText={(val) => handleBulkOldWaterChange(room.id, val)}
+                            />
                           </View>
                           <View style={styles.inputCol}>
                             <Text style={styles.inputLabel}>Chỉ số mới</Text>
