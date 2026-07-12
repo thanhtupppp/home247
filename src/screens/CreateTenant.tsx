@@ -3,6 +3,9 @@ import { View, Text, StyleSheet, ScrollView, TextInput, Pressable, Switch } from
 import { useNavigation } from '@react-navigation/native';
 import { MaterialIcons } from '@expo/vector-icons';
 import { theme } from '../theme';
+import { getProvinceNames, getWardNamesByProvinceName } from '../data/vietnameseAddress';
+
+const ALL_PROVINCES = getProvinceNames();
 
 const BUILDINGS = ['nơ trang long', 'Home247 Landmark', 'Home247 Riverside'];
 const ROOMS = ['p1', 'p2', 'p3', 'p4', 'p5'];
@@ -24,6 +27,45 @@ export const CreateTenant: React.FC = () => {
   const [showRoomDropdown, setShowRoomDropdown] = React.useState(false);
   const [moveInDate, setMoveInDate] = React.useState('');
   const [notes, setNotes] = React.useState('');
+
+  // Address
+  const [selectedProvince, setSelectedProvince] = React.useState('');
+  const [showProvinceDropdown, setShowProvinceDropdown] = React.useState(false);
+  const [provinceSearch, setProvinceSearch] = React.useState('');
+  const [selectedWard, setSelectedWard] = React.useState('');
+  const [showWardDropdown, setShowWardDropdown] = React.useState(false);
+  const [wardSearch, setWardSearch] = React.useState('');
+  const [detailAddress, setDetailAddress] = React.useState('');
+
+  const filteredProvinces = React.useMemo(() => {
+    if (!provinceSearch.trim()) return ALL_PROVINCES;
+    const q = provinceSearch.toLowerCase();
+    return ALL_PROVINCES.filter((p) => p.toLowerCase().includes(q));
+  }, [provinceSearch]);
+
+  const allWards = React.useMemo(
+    () => (selectedProvince ? getWardNamesByProvinceName(selectedProvince) : []),
+    [selectedProvince]
+  );
+
+  const filteredWards = React.useMemo(() => {
+    if (!wardSearch.trim()) return allWards;
+    const q = wardSearch.toLowerCase();
+    return allWards.filter((w) => w.toLowerCase().includes(q));
+  }, [allWards, wardSearch]);
+
+  const handleSelectProvince = (p: string) => {
+    setSelectedProvince(p);
+    setSelectedWard('');
+    setShowProvinceDropdown(false);
+    setProvinceSearch('');
+  };
+
+  const handleSelectWard = (w: string) => {
+    setSelectedWard(w);
+    setShowWardDropdown(false);
+    setWardSearch('');
+  };
 
   // Options
   const [sendInvite, setSendInvite] = React.useState(true);
@@ -214,7 +256,101 @@ export const CreateTenant: React.FC = () => {
           </View>
         </View>
 
-        {/* Section 3: Hợp đồng */}
+        {/* Section 3: Địa chỉ thường trú */}
+        <View style={styles.cardSection}>
+          <Text style={styles.sectionTitle}>Địa chỉ thường trú</Text>
+
+          {/* Province */}
+          <Text style={styles.label}>Tỉnh/Thành phố</Text>
+          <Pressable
+            onPress={() => { setShowProvinceDropdown(!showProvinceDropdown); setProvinceSearch(''); }}
+            style={styles.dropdownButton}
+          >
+            <Text style={styles.dropdownButtonText} numberOfLines={1}>
+              {selectedProvince || 'Chọn tỉnh/thành'}
+            </Text>
+            <MaterialIcons name="keyboard-arrow-down" size={20} color="#a1a1aa" />
+          </Pressable>
+          {showProvinceDropdown && (
+            <View style={styles.dropdown}>
+              <TextInput
+                style={styles.searchInput}
+                placeholder="Tìm tỉnh/thành..."
+                value={provinceSearch}
+                onChangeText={setProvinceSearch}
+                autoFocus
+              />
+              <ScrollView style={styles.dropdownScrollable} keyboardShouldPersistTaps="handled" nestedScrollEnabled>
+                {filteredProvinces.length === 0 ? (
+                  <Text style={styles.emptyDropdown}>Không tìm thấy kết quả</Text>
+                ) : (
+                  filteredProvinces.map((p) => (
+                    <Pressable key={p} style={styles.dropdownItem} onPress={() => handleSelectProvince(p)}>
+                      <Text style={styles.dropdownItemText}>{p}</Text>
+                    </Pressable>
+                  ))
+                )}
+              </ScrollView>
+            </View>
+          )}
+
+          {/* Ward */}
+          <Text style={[styles.label, { marginTop: 14 }]}>Phường/Xã</Text>
+          {!selectedProvince ? (
+            <View style={styles.infoBanner}>
+              <MaterialIcons name="info-outline" size={15} color="#64748b" />
+              <Text style={styles.infoBannerText}>Vui lòng chọn tỉnh/thành trước</Text>
+            </View>
+          ) : (
+            <View>
+              <Pressable
+                onPress={() => { setShowWardDropdown(!showWardDropdown); setWardSearch(''); }}
+                style={styles.dropdownButton}
+              >
+                <Text style={styles.dropdownButtonText} numberOfLines={1}>
+                  {selectedWard || 'Chọn phường/xã'}
+                </Text>
+                <MaterialIcons name="keyboard-arrow-down" size={20} color="#a1a1aa" />
+              </Pressable>
+              {showWardDropdown && (
+                <View style={styles.dropdown}>
+                  <TextInput
+                    style={styles.searchInput}
+                    placeholder="Tìm phường/xã..."
+                    value={wardSearch}
+                    onChangeText={setWardSearch}
+                    autoFocus
+                  />
+                  <ScrollView style={styles.dropdownScrollable} keyboardShouldPersistTaps="handled" nestedScrollEnabled>
+                    {filteredWards.length === 0 ? (
+                      <Text style={styles.emptyDropdown}>Không tìm thấy kết quả</Text>
+                    ) : (
+                      filteredWards.map((w) => (
+                        <Pressable key={w} style={styles.dropdownItem} onPress={() => handleSelectWard(w)}>
+                          <Text style={styles.dropdownItemText}>{w}</Text>
+                        </Pressable>
+                      ))
+                    )}
+                  </ScrollView>
+                </View>
+              )}
+            </View>
+          )}
+
+          {/* Detail address */}
+          <Text style={[styles.label, { marginTop: 14 }]}>Số nhà, tên đường</Text>
+          <View style={styles.inputContainer}>
+            <MaterialIcons name="home" size={20} color="#94a3b8" />
+            <TextInput
+              style={styles.textInput}
+              placeholder="VD: 123 Nguyễn Văn A..."
+              value={detailAddress}
+              onChangeText={setDetailAddress}
+            />
+          </View>
+        </View>
+
+        {/* Section 4: Hợp đồng */}
         <View style={styles.cardSection}>
           <Text style={styles.sectionTitle}>Hợp đồng</Text>
           <Pressable style={styles.pdfUploadCard}>
@@ -425,6 +561,7 @@ const styles = StyleSheet.create({
   dropdownButtonText: {
     ...theme.typography.bodyMd,
     color: theme.colors.onSurface,
+    flex: 1,
   },
   dropdown: {
     backgroundColor: theme.colors.surfaceContainerLowest,
@@ -432,12 +569,19 @@ const styles = StyleSheet.create({
     borderColor: theme.colors.outlineVariant,
     borderRadius: theme.borderRadius.xl,
     marginTop: 4,
-    position: 'absolute',
-    left: 0,
-    right: 0,
-    top: 50,
-    zIndex: 10,
     overflow: 'hidden',
+  },
+  dropdownScrollable: {
+    maxHeight: 200,
+  },
+  searchInput: {
+    paddingHorizontal: 14,
+    paddingVertical: 10,
+    borderBottomWidth: 1,
+    borderBottomColor: theme.colors.outlineVariant,
+    fontSize: 14,
+    color: theme.colors.onSurface,
+    backgroundColor: '#f8fafc',
   },
   dropdownItem: {
     paddingHorizontal: 16,
@@ -448,6 +592,26 @@ const styles = StyleSheet.create({
   dropdownItemText: {
     ...theme.typography.bodyMd,
     color: theme.colors.onSurface,
+  },
+  emptyDropdown: {
+    padding: 16,
+    color: '#94a3b8',
+    textAlign: 'center',
+    fontSize: 13,
+  },
+  infoBanner: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    backgroundColor: '#f1f5f9',
+    borderRadius: theme.borderRadius.lg,
+    paddingHorizontal: 14,
+    paddingVertical: 11,
+  },
+  infoBannerText: {
+    ...theme.typography.bodyMd,
+    color: '#64748b',
+    fontSize: 13,
   },
   pdfUploadCard: {
     borderWidth: 1,
