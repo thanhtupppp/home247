@@ -4,6 +4,10 @@ import { useNavigation } from '@react-navigation/native';
 import { MaterialIcons } from '@expo/vector-icons';
 import { theme } from '../theme';
 
+const TYPES = ['Chung cư mini', 'Nhà nguyên căn', 'Dãy phòng trọ'];
+const PROVINCES = ['Hồ Chí Minh', 'Hà Nội', 'Đà Nẵng'];
+const WARDS = ['Phường 1', 'Phường 2', 'Phường 3'];
+
 export const CreateBuilding: React.FC = () => {
   const navigation = useNavigation();
 
@@ -18,10 +22,6 @@ export const CreateBuilding: React.FC = () => {
   const [showWardDropdown, setShowWardDropdown] = React.useState(false);
 
   const [detailAddress, setDetailAddress] = React.useState('');
-
-  const types = ['Chung cư mini', 'Nhà nguyên căn', 'Dãy phòng trọ'];
-  const provinces = ['Hồ Chí Minh', 'Hà Nội', 'Đà Nẵng'];
-  const wards = ['Phường 1', 'Phường 2', 'Phường 3'];
 
   return (
     <View style={styles.container}>
@@ -57,7 +57,7 @@ export const CreateBuilding: React.FC = () => {
           </Pressable>
           {showTypeDropdown && (
             <View style={styles.dropdown}>
-              {types.map((t) => (
+              {TYPES.map((t) => (
                 <Pressable key={t} style={styles.dropdownItem} onPress={() => { setSelectedType(t); setShowTypeDropdown(false); }}>
                   <Text style={styles.dropdownItemText}>{t}</Text>
                 </Pressable>
@@ -78,7 +78,7 @@ export const CreateBuilding: React.FC = () => {
           </Pressable>
           {showProvinceDropdown && (
             <View style={styles.dropdown}>
-              {provinces.map((p) => (
+              {PROVINCES.map((p) => (
                 <Pressable key={p} style={styles.dropdownItem} onPress={() => { setSelectedProvince(p); setShowProvinceDropdown(false); }}>
                   <Text style={styles.dropdownItemText}>{p}</Text>
                 </Pressable>
@@ -99,7 +99,7 @@ export const CreateBuilding: React.FC = () => {
               </Pressable>
               {showWardDropdown && (
                 <View style={styles.dropdown}>
-                  {wards.map((w) => (
+                  {WARDS.map((w) => (
                     <Pressable key={w} style={styles.dropdownItem} onPress={() => { setSelectedWard(w); setShowWardDropdown(false); }}>
                       <Text style={styles.dropdownItemText}>{w}</Text>
                     </Pressable>

@@ -4,6 +4,8 @@ import { useNavigation } from '@react-navigation/native';
 import { MaterialIcons } from '@expo/vector-icons';
 import { theme } from '../theme';
 
+const BANKS = ['Vietcombank', 'Techcombank', 'MB Bank', 'ACB'];
+
 export const AddBankAccount: React.FC = () => {
   const navigation = useNavigation();
 
@@ -13,8 +15,6 @@ export const AddBankAccount: React.FC = () => {
   const [accountNumber, setAccountNumber] = React.useState('');
   const [branch, setBranch] = React.useState('');
   const [ownerName, setOwnerName] = React.useState('NGUYEN VAN A');
-
-  const banks = ['Vietcombank', 'Techcombank', 'MB Bank', 'ACB'];
 
   return (
     <View style={styles.container}>
@@ -37,7 +37,7 @@ export const AddBankAccount: React.FC = () => {
           </Pressable>
           {showBankDropdown && (
             <View style={styles.dropdown}>
-              {banks.map((b) => (
+              {BANKS.map((b) => (
                 <Pressable key={b} style={styles.dropdownItem} onPress={() => { setSelectedBank(b); setShowBankDropdown(false); }}>
                   <Text style={styles.dropdownItemText}>{b}</Text>
                 </Pressable>

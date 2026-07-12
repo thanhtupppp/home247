@@ -7,6 +7,10 @@
     "userInterfaceStyle": "light",
     "android": {
       "package": "com.home247.propertymanagement"
-    }
+    },
+    "plugins": [
+      "expo-asset",
+      "expo-status-bar"
+    ]
   }
 }

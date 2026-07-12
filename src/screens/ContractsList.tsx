@@ -4,17 +4,17 @@ import { useNavigation } from '@react-navigation/native';
 import { MaterialIcons } from '@expo/vector-icons';
 import { theme } from '../theme';
 
+const FILTERS = [
+  { key: 'all', label: 'Tất cả' },
+  { key: 'active', label: 'Đang ở' },
+  { key: 'expiring', label: 'Sắp đến hạn' },
+  { key: 'expired', label: 'Đã hết hạn' },
+] as const;
+
 export const ContractsList: React.FC = () => {
   const navigation = useNavigation<any>();
   const [searchText, setSearchText] = React.useState('');
   const [activeFilter, setActiveFilter] = React.useState<'active' | 'all' | 'expiring' | 'expired'>('active');
-
-  const filters = [
-    { key: 'all', label: 'Tất cả' },
-    { key: 'active', label: 'Đang ở' },
-    { key: 'expiring', label: 'Sắp đến hạn' },
-    { key: 'expired', label: 'Đã hết hạn' },
-  ] as const;
 
   return (
     <View style={styles.container}>
@@ -50,7 +50,7 @@ export const ContractsList: React.FC = () => {
       {/* Filter Pills */}
       <View style={styles.pillsContainer}>
         <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.pillsScroll}>
-          {filters.map((filter) => {
+          {FILTERS.map((filter) => {
             const isActive = activeFilter === filter.key;
             return (
               <Pressable

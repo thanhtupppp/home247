@@ -36,3 +36,9 @@ yarn-error.log*
 
 # Superpowers Brainstorming
 .superpowers/
+
+# Environment Variables
+.env
+.env.local
+.env.*.local
+

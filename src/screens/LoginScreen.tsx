@@ -1,8 +1,10 @@
 import React from 'react';
-import { View, Text, StyleSheet, TextInput, Pressable, ScrollView, KeyboardAvoidingView, Platform } from 'react-native';
+import { View, Text, StyleSheet, TextInput, Pressable, ScrollView, KeyboardAvoidingView, Platform, Alert } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
 import { MaterialIcons } from '@expo/vector-icons';
 import { theme } from '../theme';
+import { signInWithEmailAndPassword } from 'firebase/auth';
+import { auth } from '../firebase';
 
 export const LoginScreen: React.FC = () => {
   const navigation = useNavigation<any>();
@@ -10,11 +12,34 @@ export const LoginScreen: React.FC = () => {
   const [password, setPassword] = React.useState('');
   const [showPassword, setShowPassword] = React.useState(false);
 
-  const handleLogin = () => {
-    navigation.reset({
-      index: 0,
-      routes: [{ name: 'MainTabs' }],
-    });
+  const handleLogin = async () => {
+    if (!identifier || !password) {
+      Alert.alert('Thông báo', 'Vui lòng nhập tài khoản và mật khẩu.');
+      return;
+    }
+
+    // Check if configuration uses dummy key
+    const isDummyConfig = auth.app.options.apiKey?.includes('DummyKeyForDevelopment');
+
+    if (isDummyConfig) {
+      // Mock success for development/dummy configuration
+      navigation.reset({
+        index: 0,
+        routes: [{ name: 'MainTabs' }],
+      });
+      return;
+    }
+
+    try {
+      const email = identifier.includes('@') ? identifier : `${identifier}@home247.vn`;
+      await signInWithEmailAndPassword(auth, email, password);
+      navigation.reset({
+        index: 0,
+        routes: [{ name: 'MainTabs' }],
+      });
+    } catch (error: any) {
+      Alert.alert('Đăng nhập thất bại', error.message || 'Tài khoản hoặc mật khẩu không chính xác.');
+    }
   };
 
   return (

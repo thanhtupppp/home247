@@ -4,6 +4,10 @@ import { useNavigation } from '@react-navigation/native';
 import { MaterialIcons } from '@expo/vector-icons';
 import { theme } from '../theme';
 
+const BUILDINGS = ['nơ trang long', 'Home247 Landmark', 'Home247 Riverside'];
+const ROOMS = ['p1', 'p2', 'p3', 'p4', 'p5'];
+const CYCLES = ['1 tháng', '2 tháng', '3 tháng', '6 tháng', '12 tháng'];
+
 export const CreateContract: React.FC = () => {
   const navigation = useNavigation();
 
@@ -28,10 +32,6 @@ export const CreateContract: React.FC = () => {
   const [showCycleDropdown, setShowCycleDropdown] = React.useState(false);
   const [collectionDay, setCollectionDay] = React.useState('');
   const [paidUntilDate, setPaidUntilDate] = React.useState('');
-
-  const buildings = ['nơ trang long', 'Home247 Landmark', 'Home247 Riverside'];
-  const rooms = ['p1', 'p2', 'p3', 'p4', 'p5'];
-  const cycles = ['1 tháng', '2 tháng', '3 tháng', '6 tháng', '12 tháng'];
 
   return (
     <View style={styles.container}>
@@ -117,7 +117,7 @@ export const CreateContract: React.FC = () => {
           </Pressable>
           {showBuildingDropdown && (
             <View style={styles.dropdown}>
-              {buildings.map((b) => (
+              {BUILDINGS.map((b) => (
                 <Pressable key={b} style={styles.dropdownItem} onPress={() => { setSelectedBuilding(b); setShowBuildingDropdown(false); }}>
                   <Text style={styles.dropdownItemText}>{b}</Text>
                 </Pressable>
@@ -138,7 +138,7 @@ export const CreateContract: React.FC = () => {
               </Pressable>
               {showRoomDropdown && (
                 <View style={styles.dropdown}>
-                  {rooms.map((r) => (
+                  {ROOMS.map((r) => (
                     <Pressable key={r} style={styles.dropdownItem} onPress={() => { setSelectedRoom(r); setShowRoomDropdown(false); }}>
                       <Text style={styles.dropdownItemText}>{r}</Text>
                     </Pressable>
@@ -191,7 +191,7 @@ export const CreateContract: React.FC = () => {
           </Pressable>
           {showCycleDropdown && (
             <View style={styles.dropdown}>
-              {cycles.map((c) => (
+              {CYCLES.map((c) => (
                 <Pressable key={c} style={styles.dropdownItem} onPress={() => { setSelectedCycle(c); setShowCycleDropdown(false); }}>
                   <Text style={styles.dropdownItemText}>{c}</Text>
                 </Pressable>
