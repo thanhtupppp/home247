@@ -3,7 +3,9 @@ import {
   getExpiringContracts, 
   getLandlordSupportRequests,
   getLandlordBuildings,
-  getLandlordRooms
+  getLandlordRooms,
+  getLandlordContracts,
+  getLandlordTenants
 } from '../utils/firestore';
 
 export const agentTools = [
@@ -47,6 +49,17 @@ export const agentTools = [
     function: {
       name: 'get_buildings_and_rooms',
       description: 'Lấy danh sách tất cả các tòa nhà và phòng trọ do chủ nhà này quản lý kèm trạng thái trống/đang ở.',
+      parameters: {
+        type: 'object',
+        properties: {}
+      }
+    }
+  },
+  {
+    type: 'function',
+    function: {
+      name: 'get_tenants_and_contracts',
+      description: 'Lấy danh sách tất cả cư dân (khách thuê) và hợp đồng thuê phòng của chủ nhà để tra cứu thông tin người ở.',
       parameters: {
         type: 'object',
         properties: {}
@@ -108,6 +121,33 @@ export async function executeTool(name: string, args: any, ownerId: string): Pro
         return {
           buildings: buildings.map(b => ({ id: b.id, name: b.name })),
           rooms: rooms.map(r => ({ id: r.id, code: r.code, buildingId: r.buildingId, status: r.status }))
+        };
+      }
+
+      case 'get_tenants_and_contracts': {
+        const tenants = await getLandlordTenants(ownerId);
+        const contracts = await getLandlordContracts(ownerId);
+        return {
+          tenants: tenants.map(t => ({
+            id: t.id,
+            fullName: t.fullName,
+            phoneNumber: t.phoneNumber,
+            email: t.email,
+            roomCode: t.roomCode,
+            buildingName: t.buildingName,
+            status: t.status
+          })),
+          contracts: contracts.map(c => ({
+            id: c.id,
+            tenantName: c.tenantName,
+            phoneNumber: c.phoneNumber,
+            roomCode: c.roomCode,
+            buildingName: c.buildingName,
+            rentPrice: c.rentPrice,
+            startDate: c.startDate,
+            endDate: c.endDate,
+            status: c.status
+          }))
         };
       }
 

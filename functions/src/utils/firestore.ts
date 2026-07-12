@@ -48,6 +48,18 @@ export async function getLandlordContracts(ownerId: string): Promise<any[]> {
 }
 
 /**
+ * Safely fetch tenants owned by landlord
+ */
+export async function getLandlordTenants(ownerId: string): Promise<any[]> {
+  const snapshot = await db.collection('tenants')
+    .where('ownerId', '==', ownerId)
+    .get();
+  
+  return snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+}
+
+
+/**
  * Safely fetch active contracts owned by landlord that are expiring within target days
  */
 export async function getExpiringContracts(ownerId: string, withinDays: number = 30): Promise<any[]> {
