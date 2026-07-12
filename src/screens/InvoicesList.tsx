@@ -1,28 +1,139 @@
 import React from 'react';
-import { View, Text, StyleSheet, ScrollView, Pressable } from 'react-native';
-import { useNavigation } from '@react-navigation/native';
+import {
+  View, Text, StyleSheet, ScrollView, Pressable,
+  ActivityIndicator, RefreshControl
+} from 'react-native';
+import { useNavigation, useIsFocused } from '@react-navigation/native';
 import { MaterialIcons } from '@expo/vector-icons';
 import { theme } from '../theme';
-import { recentTransactions } from '../data/mockData';
+import { collection, getDocs, query, orderBy, where } from 'firebase/firestore';
+import { db } from '../firebase';
 
-const MONTHS = ['2026', '09/2026', '10/2026', '11/2026', '12/2026'];
+interface Invoice {
+  id: string;
+  roomCode: string;
+  roomId: string;
+  buildingId: string;
+  buildingName: string;
+  tenantName: string;
+  type: string;
+  amount: string; // e.g. "5.500.000"
+  status: 'success' | 'pending' | 'overdue';
+  month: string; // e.g. "10/2026"
+}
+
+interface Building {
+  id: string;
+  name: string;
+}
+
+const MONTHS = ['05/2026', '06/2026', '07/2026', '08/2026', '09/2026', '10/2026', '11/2026', '12/2026'];
 const FILTERS = [
   { key: 'all', label: 'Tất cả' },
   { key: 'paid', label: 'Đã thu tiền' },
-  { key: 'unpaid', label: 'Chưa thu đủ' },
+  { key: 'unpaid', label: 'Chưa thanh toán' },
 ] as const;
-const BUILDINGS = ['nơ trang long', 'Home247 Landmark', 'Home247 Riverside'];
 
 export const InvoicesList: React.FC = () => {
   const navigation = useNavigation<any>();
-  const [selectedMonth, setSelectedMonth] = React.useState('10/2026');
-  const [activeFilter, setActiveFilter] = React.useState<'all' | 'paid' | 'unpaid'>('all');
-  const [selectedBuilding, setSelectedBuilding] = React.useState('nơ trang long');
+  const isFocused = useIsFocused();
+
+  const [buildings, setBuildings] = React.useState<Building[]>([]);
+  const [selectedBuilding, setSelectedBuilding] = React.useState<Building | null>(null);
   const [showBuildingDropdown, setShowBuildingDropdown] = React.useState(false);
 
-  // Filter invoices based on selected building
-  // "nơ trang long" defaults to 0 invoices as in screenshot
-  const filteredInvoices = selectedBuilding === 'nơ trang long' ? [] : recentTransactions;
+  const [invoices, setInvoices] = React.useState<Invoice[]>([]);
+  const [loading, setLoading] = React.useState(true);
+  const [refreshing, setRefreshing] = React.useState(false);
+
+  // Default month: Current Month
+  const currentMonthStr = React.useMemo(() => {
+    const now = new Date();
+    const mm = String(now.getMonth() + 1).padStart(2, '0');
+    return `${mm}/${now.getFullYear()}`;
+  }, []);
+
+  const [selectedMonth, setSelectedMonth] = React.useState(currentMonthStr);
+  const [activeFilter, setActiveFilter] = React.useState<'all' | 'paid' | 'unpaid'>('all');
+
+  // Ensure default month is in the MONTHS array
+  const finalMonths = React.useMemo(() => {
+    if (!MONTHS.includes(selectedMonth)) {
+      return [...MONTHS, selectedMonth].sort((a, b) => {
+        const [mA, yA] = a.split('/').map(Number);
+        const [mB, yB] = b.split('/').map(Number);
+        return yA !== yB ? yA - yB : mA - mB;
+      });
+    }
+    return MONTHS;
+  }, [selectedMonth]);
+
+  // ── Fetch Buildings ────────────────────────────────────────────────────────
+  const fetchBuildingsAndInvoices = async (isRefresh = false) => {
+    try {
+      isRefresh ? setRefreshing(true) : setLoading(true);
+      
+      // 1. Get buildings
+      const bSnap = await getDocs(query(collection(db, 'buildings'), orderBy('name')));
+      const bList = bSnap.docs.map(doc => ({ id: doc.id, name: doc.data().name }));
+      setBuildings(bList);
+
+      let currentB = selectedBuilding;
+      if (bList.length > 0 && !selectedBuilding) {
+        currentB = bList[0];
+        setSelectedBuilding(bList[0]);
+      }
+
+      // 2. Fetch invoices
+      const invSnap = await getDocs(query(collection(db, 'invoices'), orderBy('createdAt', 'desc')));
+      const invList: Invoice[] = invSnap.docs.map(doc => {
+        const data = doc.data();
+        // format amount
+        let amt = data.amount || '0';
+        if (typeof amt === 'number') {
+          amt = amt.toLocaleString('vi-VN');
+        }
+        return {
+          id: doc.id,
+          roomCode: data.roomCode || '',
+          roomId: data.roomId || '',
+          buildingId: data.buildingId || '',
+          buildingName: data.buildingName || '',
+          tenantName: data.tenantName || '',
+          type: data.type || 'Tiền điện nước',
+          amount: amt,
+          status: data.status || 'pending',
+          month: data.month || '',
+        };
+      });
+      setInvoices(invList);
+    } catch (err) {
+      console.error('Error fetching invoices/buildings:', err);
+    } finally {
+      setLoading(false);
+      setRefreshing(false);
+    }
+  };
+
+  React.useEffect(() => {
+    if (isFocused) {
+      fetchBuildingsAndInvoices();
+    }
+  }, [isFocused]);
+
+  // ── Computed Filtered Invoices ─────────────────────────────────────────────
+  const filteredInvoices = React.useMemo(() => {
+    return invoices.filter((inv) => {
+      // 1. Filter by Building
+      if (selectedBuilding && inv.buildingId !== selectedBuilding.id) return false;
+      // 2. Filter by Month
+      if (inv.month !== selectedMonth) return false;
+      // 3. Filter by Status Tab
+      if (activeFilter === 'paid' && inv.status !== 'success') return false;
+      if (activeFilter === 'unpaid' && inv.status === 'success') return false;
+      return true;
+    });
+  }, [invoices, selectedBuilding, selectedMonth, activeFilter]);
 
   return (
     <View style={styles.container}>
@@ -31,14 +142,14 @@ export const InvoicesList: React.FC = () => {
         <Pressable onPress={() => navigation.goBack()} style={styles.backButton}>
           <MaterialIcons name="arrow-back" size={24} color={theme.colors.onSurface} />
         </Pressable>
-        <Text style={styles.headerTitle}>Hoá đơn</Text>
+        <Text style={styles.headerTitle}>Hóa đơn</Text>
         <View style={{ width: 40 }} />
       </View>
 
       {/* Months Selector */}
       <View style={styles.monthsContainer}>
         <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.monthsScroll}>
-          {MONTHS.map((month) => {
+          {finalMonths.map((month) => {
             const isActive = selectedMonth === month;
             return (
               <Pressable key={month} onPress={() => setSelectedMonth(month)} style={styles.monthItem}>
@@ -69,44 +180,55 @@ export const InvoicesList: React.FC = () => {
         })}
       </View>
 
-      <ScrollView contentContainerStyle={styles.scrollContent}>
+      <ScrollView
+        contentContainerStyle={styles.scrollContent}
+        refreshControl={<RefreshControl refreshing={refreshing} onRefresh={() => fetchBuildingsAndInvoices(true)} />}
+      >
         {/* Building Selector Card */}
-        <View style={styles.buildingSelectorWrapper}>
-          <Pressable onPress={() => setShowBuildingDropdown(!showBuildingDropdown)} style={styles.selectorCard}>
-            <View style={styles.selectorLeft}>
-              <MaterialIcons name="apartment" size={20} color={theme.colors.primary} />
-              <Text style={styles.buildingName}>{selectedBuilding}</Text>
-            </View>
-            <View style={styles.selectorRight}>
-              <View style={styles.badge}>
-                <Text style={styles.badgeText}>{filteredInvoices.length}</Text>
+        {buildings.length > 0 && selectedBuilding && (
+          <View style={styles.buildingSelectorWrapper}>
+            <Pressable onPress={() => setShowBuildingDropdown(!showBuildingDropdown)} style={styles.selectorCard}>
+              <View style={styles.selectorLeft}>
+                <MaterialIcons name="apartment" size={20} color={theme.colors.primary} />
+                <Text style={styles.buildingName}>{selectedBuilding.name}</Text>
               </View>
-              <MaterialIcons name={showBuildingDropdown ? "keyboard-arrow-up" : "keyboard-arrow-down"} size={24} color={theme.colors.primary} />
-            </View>
-          </Pressable>
+              <View style={styles.selectorRight}>
+                <View style={styles.badge}>
+                  <Text style={styles.badgeText}>{filteredInvoices.length}</Text>
+                </View>
+                <MaterialIcons name={showBuildingDropdown ? "keyboard-arrow-up" : "keyboard-arrow-down"} size={24} color={theme.colors.primary} />
+              </View>
+            </Pressable>
 
-          {showBuildingDropdown && (
-            <View style={styles.dropdown}>
-              {BUILDINGS.map((building) => (
-                <Pressable
-                  key={building}
-                  style={styles.dropdownItem}
-                  onPress={() => {
-                    setSelectedBuilding(building);
-                    setShowBuildingDropdown(false);
-                  }}
-                >
-                  <Text style={styles.dropdownItemText}>{building}</Text>
-                </Pressable>
-              ))}
-            </View>
-          )}
-        </View>
+            {showBuildingDropdown && (
+              <View style={styles.dropdown}>
+                {buildings.map((b) => (
+                  <Pressable
+                    key={b.id}
+                    style={styles.dropdownItem}
+                    onPress={() => {
+                      setSelectedBuilding(b);
+                      setShowBuildingDropdown(false);
+                    }}
+                  >
+                    <Text style={styles.dropdownItemText}>{b.name}</Text>
+                  </Pressable>
+                ))}
+              </View>
+            )}
+          </View>
+        )}
 
         {/* Content Area */}
         <View style={styles.content}>
-          {filteredInvoices.length === 0 ? (
+          {loading ? (
+            <View style={styles.centered}>
+              <ActivityIndicator size="large" color={theme.colors.primary} />
+              <Text style={styles.loadingText}>Đang tải danh sách hóa đơn...</Text>
+            </View>
+          ) : filteredInvoices.length === 0 ? (
             <View style={styles.emptyState}>
+              <MaterialIcons name="receipt-long" size={48} color="#cbd5e1" style={{ marginBottom: 8 }} />
               <Text style={styles.emptyStateText}>Không có hoá đơn</Text>
             </View>
           ) : (
@@ -129,7 +251,7 @@ export const InvoicesList: React.FC = () => {
                           tx.status === 'success' ? styles.successText : styles.overdueText
                         ]}
                       >
-                        {tx.status === 'success' ? 'Đã thu tiền' : 'Chưa thu đủ'}
+                        {tx.status === 'success' ? 'Đã thu tiền' : 'Chưa thanh toán'}
                       </Text>
                     </View>
                   </View>
@@ -137,15 +259,15 @@ export const InvoicesList: React.FC = () => {
                   <View style={styles.cardMiddle}>
                     <View style={styles.infoCol}>
                       <Text style={styles.infoLabel}>Khách thuê</Text>
-                      <Text style={styles.infoValue}>{tx.tenantName}</Text>
+                      <Text style={styles.infoValue}>{tx.tenantName || 'Trống'}</Text>
                     </View>
                     <View style={styles.infoCol}>
                       <Text style={styles.infoLabel}>Hạng mục</Text>
-                      <Text style={styles.infoValue}>{tx.type}</Text>
+                      <Text style={styles.infoValue} numberOfLines={1}>{tx.type}</Text>
                     </View>
                     <View style={styles.infoColAlignRight}>
                       <Text style={styles.infoLabel}>Số tiền</Text>
-                      <Text style={styles.amountValue}>{tx.amount}</Text>
+                      <Text style={styles.amountValue}>{tx.amount} đ</Text>
                     </View>
                   </View>
                 </View>
@@ -159,7 +281,7 @@ export const InvoicesList: React.FC = () => {
       <View style={styles.bottomBar}>
         <Pressable 
           style={styles.actionBtn}
-          onPress={() => navigation.navigate('hoa-don/them', { building: selectedBuilding })}
+          onPress={() => navigation.navigate('hoa-don/them', { buildingId: selectedBuilding?.id })}
         >
           <MaterialIcons name="add" size={24} color={theme.colors.onPrimary} />
           <Text style={styles.actionBtnText}>Tạo hoá đơn</Text>
@@ -314,7 +436,7 @@ const styles = StyleSheet.create({
   emptyState: {
     alignItems: 'center',
     justifyContent: 'center',
-    paddingVertical: 60,
+    paddingVertical: 80,
   },
   emptyStateText: {
     ...theme.typography.bodyLg,
@@ -424,6 +546,15 @@ const styles = StyleSheet.create({
     ...theme.typography.bodyLg,
     color: theme.colors.onPrimary,
     fontWeight: 'bold',
+  },
+  centered: {
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingVertical: 60,
+  },
+  loadingText: {
+    marginTop: 8,
+    color: theme.colors.onSurfaceVariant,
   },
 });
 

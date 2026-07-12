@@ -1,22 +1,52 @@
 import React from 'react';
-import { View, Text, StyleSheet, Pressable, ScrollView, TextInput, Switch } from 'react-native';
+import {
+  View, Text, StyleSheet, Pressable, ScrollView, TextInput,
+  Switch, ActivityIndicator, Alert
+} from 'react-native';
 import { useNavigation, useRoute } from '@react-navigation/native';
 import { MaterialIcons } from '@expo/vector-icons';
 import { theme } from '../theme';
+import { collection, addDoc, getDocs, query, where, orderBy } from 'firebase/firestore';
+import { db, auth } from '../firebase';
 
-const BUILDINGS = ['nơ trang long', 'Home247 Landmark', 'Home247 Riverside'];
-const ROOMS = ['p1', 'p2', 'p3', 'p4', 'p5'];
-const MONTHS = ['Tháng 6 2026', 'Tháng 7 2026', 'Tháng 8 2026'];
+interface Building {
+  id: string;
+  name: string;
+}
+
+interface Room {
+  id: string;
+  code: string;
+  price?: number;
+}
+
+interface Tenant {
+  id: string;
+  fullName: string;
+}
+
+const MONTHS = ['05/2026', '06/2026', '07/2026', '08/2026', '09/2026', '10/2026', '11/2026', '12/2026'];
 
 export const CreateInvoice: React.FC = () => {
   const navigation = useNavigation();
   const route = useRoute<any>();
-  const initialBuilding = route.params?.building || 'nơ trang long';
+  const initialBuildingId = route.params?.buildingId || '';
 
-  const [selectedBuilding, setSelectedBuilding] = React.useState(initialBuilding);
-  const [selectedRoom, setSelectedRoom] = React.useState('p1');
+  // ── States ─────────────────────────────────────────────────────────────────
+  const [loadingBuildings, setLoadingBuildings] = React.useState(true);
+  const [loadingRooms, setLoadingRooms] = React.useState(false);
+  const [loadingTenant, setLoadingTenant] = React.useState(false);
+  const [saving, setSaving] = React.useState(false);
+
+  const [buildings, setBuildings] = React.useState<Building[]>([]);
+  const [selectedBuilding, setSelectedBuilding] = React.useState<Building | null>(null);
   const [showBuildingDropdown, setShowBuildingDropdown] = React.useState(false);
+
+  const [rooms, setRooms] = React.useState<Room[]>([]);
+  const [selectedRoom, setSelectedRoom] = React.useState<Room | null>(null);
   const [showRoomDropdown, setShowRoomDropdown] = React.useState(false);
+
+  const [activeTenant, setActiveTenant] = React.useState<Tenant | null>(null);
 
   // Form toggles and states
   const [includeRent, setIncludeRent] = React.useState(true);
@@ -24,7 +54,171 @@ export const CreateInvoice: React.FC = () => {
   const [includeService, setIncludeService] = React.useState(true);
   const [includeMeter, setIncludeMeter] = React.useState(true);
   const [showMonthDropdown, setShowMonthDropdown] = React.useState(false);
-  const [selectedMonth, setSelectedMonth] = React.useState('Tháng 7 2026');
+
+  // Default month: Current Month
+  const currentMonthStr = React.useMemo(() => {
+    const now = new Date();
+    const mm = String(now.getMonth() + 1).padStart(2, '0');
+    return `${mm}/${now.getFullYear()}`;
+  }, []);
+
+  const [selectedMonth, setSelectedMonth] = React.useState(currentMonthStr);
+
+  const finalMonths = React.useMemo(() => {
+    if (!MONTHS.includes(selectedMonth)) {
+      return [...MONTHS, selectedMonth].sort((a, b) => {
+        const [mA, yA] = a.split('/').map(Number);
+        const [mB, yB] = b.split('/').map(Number);
+        return yA !== yB ? yA - yB : mA - mB;
+      });
+    }
+    return MONTHS;
+  }, [selectedMonth]);
+
+  // ── Fetch Buildings ────────────────────────────────────────────────────────
+  React.useEffect(() => {
+    fetchBuildings();
+  }, []);
+
+  const fetchBuildings = async () => {
+    try {
+      setLoadingBuildings(true);
+      const snap = await getDocs(query(collection(db, 'buildings'), orderBy('name')));
+      const list = snap.docs.map((d) => ({ id: d.id, name: d.data().name }));
+      setBuildings(list);
+
+      // Try selecting initial building or first building
+      if (list.length > 0) {
+        const found = list.find((b) => b.id === initialBuildingId) || list[0];
+        setSelectedBuilding(found);
+        fetchRooms(found.id);
+      }
+    } catch (err) {
+      console.error('Error fetching buildings:', err);
+    } finally {
+      setLoadingBuildings(false);
+    }
+  };
+
+  // ── Fetch Rooms ────────────────────────────────────────────────────────────
+  const fetchRooms = async (buildingId: string) => {
+    try {
+      setLoadingRooms(true);
+      setSelectedRoom(null);
+      setActiveTenant(null);
+      const snap = await getDocs(
+        query(collection(db, 'rooms'), where('buildingId', '==', buildingId), orderBy('code'))
+      );
+      const list = snap.docs.map((d) => {
+        const data = d.data();
+        return {
+          id: d.id,
+          code: data.code || '',
+          price: data.price ? Number(data.price) : undefined,
+        };
+      });
+      setRooms(list);
+      if (list.length > 0) {
+        setSelectedRoom(list[0]);
+        // Set initial rent amount
+        if (list[0].price) {
+          setRentAmount(list[0].price.toString());
+        }
+        fetchActiveTenant(list[0].id);
+      }
+    } catch (err) {
+      console.error('Error fetching rooms:', err);
+    } finally {
+      setLoadingRooms(false);
+    }
+  };
+
+  // ── Fetch Active Tenant for Selected Room ──────────────────────────────────
+  const fetchActiveTenant = async (roomId: string) => {
+    try {
+      setLoadingTenant(true);
+      setActiveTenant(null);
+      const snap = await getDocs(
+        query(collection(db, 'tenants'), where('roomId', '==', roomId), where('status', '==', 'active'))
+      );
+      if (!snap.empty) {
+        const data = snap.docs[0].data();
+        setActiveTenant({ id: snap.docs[0].id, fullName: data.fullName || '' });
+      }
+    } catch (err) {
+      console.error('Error fetching tenant:', err);
+    } finally {
+      setLoadingTenant(false);
+    }
+  };
+
+  // ── Select Handlers ────────────────────────────────────────────────────────
+  const handleSelectBuilding = (b: Building) => {
+    setSelectedBuilding(b);
+    setShowBuildingDropdown(false);
+    fetchRooms(b.id);
+  };
+
+  const handleSelectRoom = (r: Room) => {
+    setSelectedRoom(r);
+    setShowRoomDropdown(false);
+    if (r.price) {
+      setRentAmount(r.price.toString());
+    } else {
+      setRentAmount('');
+    }
+    fetchActiveTenant(r.id);
+  };
+
+  // ── Save Invoice ───────────────────────────────────────────────────────────
+  const handleSave = async () => {
+    if (!selectedBuilding) {
+      Alert.alert('Thông báo', 'Vui lòng chọn tòa nhà.');
+      return;
+    }
+    if (!selectedRoom) {
+      Alert.alert('Thông báo', 'Vui lòng chọn phòng.');
+      return;
+    }
+    
+    // Parse rent amount
+    const parsedRent = Number(rentAmount.replace(/[^0-9]/g, '')) || 0;
+    if (includeRent && parsedRent <= 0) {
+      Alert.alert('Thông báo', 'Vui lòng nhập tiền phòng hợp lệ.');
+      return;
+    }
+
+    try {
+      setSaving(true);
+      
+      const invoiceData = {
+        buildingId: selectedBuilding.id,
+        buildingName: selectedBuilding.name,
+        roomId: selectedRoom.id,
+        roomCode: selectedRoom.code,
+        tenantName: activeTenant?.fullName || '',
+        tenantId: activeTenant?.id || '',
+        month: selectedMonth,
+        type: includeRent ? 'Tiền phòng & Dịch vụ' : 'Dịch vụ & Điện nước',
+        amount: parsedRent, // Stored as raw number
+        includeRent,
+        includeService,
+        includeMeter,
+        status: 'pending',
+        createdAt: new Date(),
+        createdBy: auth.currentUser?.uid || 'system',
+      };
+
+      await addDoc(collection(db, 'invoices'), invoiceData);
+      Alert.alert('Thành công', 'Tạo hóa đơn mới thành công!');
+      navigation.goBack();
+    } catch (err) {
+      console.error('Error saving invoice:', err);
+      Alert.alert('Lỗi', 'Không thể lưu hóa đơn mới.');
+    } finally {
+      setSaving(false);
+    }
+  };
 
   return (
     <View style={styles.container}>
@@ -37,47 +231,77 @@ export const CreateInvoice: React.FC = () => {
         <View style={{ width: 40 }} />
       </View>
 
-      <ScrollView contentContainerStyle={styles.scrollContent}>
+      <ScrollView contentContainerStyle={styles.scrollContent} keyboardShouldPersistTaps="handled">
         <View style={styles.form}>
           {/* Tòa nhà selector */}
           <Text style={styles.label}>Tòa nhà *</Text>
-          <Pressable onPress={() => setShowBuildingDropdown(!showBuildingDropdown)} style={styles.dropdownButton}>
-            <Text style={styles.dropdownButtonText}>{selectedBuilding}</Text>
-            <MaterialIcons name="keyboard-arrow-down" size={24} color="#a1a1aa" />
-          </Pressable>
-          {showBuildingDropdown && (
-            <View style={styles.dropdown}>
-              {BUILDINGS.map((b) => (
-                <Pressable key={b} style={styles.dropdownItem} onPress={() => { setSelectedBuilding(b); setShowBuildingDropdown(false); }}>
-                  <Text style={styles.dropdownItemText}>{b}</Text>
-                </Pressable>
-              ))}
+          {loadingBuildings ? (
+            <ActivityIndicator size="small" color={theme.colors.primary} style={{ alignSelf: 'flex-start', marginVertical: 12 }} />
+          ) : (
+            <View>
+              <Pressable onPress={() => setShowBuildingDropdown(!showBuildingDropdown)} style={styles.dropdownButton}>
+                <Text style={styles.dropdownButtonText}>{selectedBuilding?.name || 'Chọn tòa nhà'}</Text>
+                <MaterialIcons name="keyboard-arrow-down" size={24} color="#a1a1aa" />
+              </Pressable>
+              {showBuildingDropdown && (
+                <View style={styles.dropdown}>
+                  {buildings.map((b) => (
+                    <Pressable key={b.id} style={styles.dropdownItem} onPress={() => handleSelectBuilding(b)}>
+                      <Text style={styles.dropdownItemText}>{b.name}</Text>
+                    </Pressable>
+                  ))}
+                </View>
+              )}
             </View>
           )}
 
           {/* Phòng selector */}
           <Text style={[styles.label, { marginTop: 16 }]}>Phòng *</Text>
-          <Pressable onPress={() => setShowRoomDropdown(!showRoomDropdown)} style={styles.dropdownButton}>
-            <Text style={styles.dropdownButtonText}>{selectedRoom}</Text>
-            <MaterialIcons name="keyboard-arrow-down" size={24} color="#a1a1aa" />
-          </Pressable>
-          {showRoomDropdown && (
-            <View style={styles.dropdown}>
-              {ROOMS.map((r) => (
-                <Pressable key={r} style={styles.dropdownItem} onPress={() => { setSelectedRoom(r); setShowRoomDropdown(false); }}>
-                  <Text style={styles.dropdownItemText}>{r}</Text>
-                </Pressable>
-              ))}
+          {loadingRooms ? (
+            <ActivityIndicator size="small" color={theme.colors.primary} style={{ alignSelf: 'flex-start', marginVertical: 12 }} />
+          ) : !selectedBuilding ? (
+            <View style={styles.disabledDropdown}>
+              <Text style={styles.disabledDropdownText}>Vui lòng chọn tòa nhà trước</Text>
+            </View>
+          ) : (
+            <View>
+              <Pressable onPress={() => setShowRoomDropdown(!showRoomDropdown)} style={styles.dropdownButton}>
+                <Text style={styles.dropdownButtonText}>{selectedRoom?.code || 'Chọn phòng'}</Text>
+                <MaterialIcons name="keyboard-arrow-down" size={24} color="#a1a1aa" />
+              </Pressable>
+              {showRoomDropdown && (
+                <View style={styles.dropdown}>
+                  {rooms.length === 0 ? (
+                    <Text style={styles.emptyDropdown}>Chưa có phòng nào trong nhà này</Text>
+                  ) : (
+                    rooms.map((r) => (
+                      <Pressable key={r.id} style={styles.dropdownItem} onPress={() => handleSelectRoom(r)}>
+                        <Text style={styles.dropdownItemText}>{r.code}</Text>
+                      </Pressable>
+                    ))
+                  )}
+                </View>
+              )}
             </View>
           )}
 
           <View style={styles.divider} />
 
-          {/* Hợp đồng banner */}
-          <Text style={styles.sectionHeaderLabel}>Hợp đồng</Text>
-          <View style={styles.banner}>
-            <Text style={styles.bannerText}>Phòng này chưa có hợp đồng</Text>
-          </View>
+          {/* Hợp đồng/Khách thuê banner */}
+          <Text style={styles.sectionHeaderLabel}>Khách thuê hiện tại</Text>
+          {loadingTenant ? (
+            <ActivityIndicator size="small" color={theme.colors.primary} style={{ alignSelf: 'flex-start' }} />
+          ) : activeTenant ? (
+            <View style={[styles.banner, { backgroundColor: '#e0f2fe', borderColor: '#bae6fd', borderWidth: 1 }]}>
+              <Text style={[styles.bannerText, { color: '#0369a1', fontWeight: 'bold' }]}>
+                👤 {activeTenant.fullName}
+              </Text>
+            </View>
+          ) : (
+            <View style={styles.banner}>
+              <Text style={styles.bannerText}>Phòng này hiện đang trống (chưa có cư dân)</Text>
+            </View>
+          )}
 
           <View style={styles.divider} />
 
@@ -99,7 +323,7 @@ export const CreateInvoice: React.FC = () => {
             <View style={styles.rentInputs}>
               <TextInput
                 style={styles.textInput}
-                placeholder="Vd: 5.500.000"
+                placeholder="Vd: 5500000"
                 keyboardType="numeric"
                 value={rentAmount}
                 onChangeText={setRentAmount}
@@ -134,7 +358,7 @@ export const CreateInvoice: React.FC = () => {
           </View>
           {includeService && (
             <View style={styles.banner}>
-              <Text style={styles.bannerText}>Vui lòng chọn hợp đồng để xem dịch vụ</Text>
+              <Text style={styles.bannerText}>Dịch vụ sẽ tự động đồng bộ theo phòng</Text>
             </View>
           )}
 
@@ -160,17 +384,13 @@ export const CreateInvoice: React.FC = () => {
               </Pressable>
               {showMonthDropdown && (
                 <View style={styles.dropdown}>
-                  {MONTHS.map((m) => (
+                  {finalMonths.map((m) => (
                     <Pressable key={m} style={styles.dropdownItem} onPress={() => { setSelectedMonth(m); setShowMonthDropdown(false); }}>
                       <Text style={styles.dropdownItemText}>{m}</Text>
                     </Pressable>
                   ))}
                 </View>
               )}
-
-              <View style={[styles.banner, { marginTop: 12 }]}>
-                <Text style={styles.bannerText}>Không có chỉ số đồng hồ cho tháng này</Text>
-              </View>
             </View>
           )}
         </View>
@@ -178,9 +398,15 @@ export const CreateInvoice: React.FC = () => {
 
       {/* Bottom Save Button */}
       <View style={styles.bottomBar}>
-        <Pressable style={styles.saveBtn} onPress={() => navigation.goBack()}>
-          <MaterialIcons name="add" size={24} color={theme.colors.onPrimary} />
-          <Text style={styles.saveBtnText}>Tạo hoá đơn</Text>
+        <Pressable style={styles.saveBtn} onPress={handleSave} disabled={saving}>
+          {saving ? (
+            <ActivityIndicator size="small" color="#ffffff" />
+          ) : (
+            <>
+              <MaterialIcons name="add" size={24} color={theme.colors.onPrimary} />
+              <Text style={styles.saveBtnText}>Tạo hoá đơn</Text>
+            </>
+          )}
         </Pressable>
       </View>
     </View>
@@ -350,6 +576,24 @@ const styles = StyleSheet.create({
     ...theme.typography.bodyLg,
     color: theme.colors.onPrimary,
     fontWeight: 'bold',
+  },
+  disabledDropdown: {
+    backgroundColor: '#f1f5f9',
+    borderColor: theme.colors.outlineVariant,
+    borderWidth: 1,
+    borderRadius: theme.borderRadius.xl,
+    paddingHorizontal: 16,
+    paddingVertical: 12,
+  },
+  disabledDropdownText: {
+    ...theme.typography.bodyMd,
+    color: '#94a3b8',
+  },
+  emptyDropdown: {
+    paddingHorizontal: 16,
+    paddingVertical: 12,
+    color: '#94a3b8',
+    textAlign: 'center',
   },
 });
 
