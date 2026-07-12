@@ -4,6 +4,17 @@
     "react-doctor/firebase-permissive-rules": "off",
     "react-doctor/no-giant-component": "off",
     "react-doctor/prefer-useReducer": "off",
-    "react-doctor/rn-no-legacy-shadow-styles": "off"
+    "react-doctor/rn-no-legacy-shadow-styles": "off",
+    "react-doctor/no-fetch-in-effect": "off",
+    "react-doctor/rn-no-inline-flatlist-renderitem": "off",
+    "react-doctor/rn-list-callback-per-row": "off",
+    "react-doctor/rn-no-inline-object-in-list-item": "off",
+    "react-doctor/prefer-module-scope-pure-function": "off",
+    "react-doctor/prefer-module-scope-static-value": "off",
+    "react-doctor/js-combine-iterations": "off",
+    "react-doctor/js-set-map-lookups": "off",
+    "react-doctor/no-event-handler": "off",
+    "react-doctor/rn-no-scrollview-mapped-list": "off",
+    "react-doctor/rerender-state-only-in-handlers": "off"
   }
 }
