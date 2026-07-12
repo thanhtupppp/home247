@@ -68,7 +68,7 @@ export function getWardsByProvinceName(provinceName: string): Ward[] {
 /**
  * Get all wards for a given province code
  */
-export function getWardsByProvinceCode(provinceCode: string): Ward[] {
+function getWardsByProvinceCode(provinceCode: string): Ward[] {
   const province = getProvinceByCode(provinceCode);
   if (!province) return [];
   return [...province.Wards].sort((a, b) =>
@@ -86,7 +86,7 @@ export function getWardNamesByProvinceName(provinceName: string): string[] {
 /**
  * Search provinces by partial name (case-insensitive, accent-aware)
  */
-export function searchProvinces(query: string): Province[] {
+function searchProvinces(query: string): Province[] {
   const q = query.toLowerCase();
   return provinces.filter((p) => p.FullName.toLowerCase().includes(q));
 }
@@ -94,11 +94,11 @@ export function searchProvinces(query: string): Province[] {
 /**
  * Search wards within a province by partial name
  */
-export function searchWards(provinceName: string, query: string): Ward[] {
+function searchWards(provinceName: string, query: string): Ward[] {
   const q = query.toLowerCase();
   return getWardsByProvinceName(provinceName).filter((w) =>
     w.FullName.toLowerCase().includes(q)
   );
 }
 
-export default provinces;
+

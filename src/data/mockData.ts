@@ -83,7 +83,7 @@ export interface Building {
 }
 
 // Mock Data implementation
-export const dashboardStats: readonly StatItem[] = [
+const dashboardStats: readonly StatItem[] = [
   {
     id: '1',
     label: 'Tổng doanh thu tháng này',
