@@ -1,8 +1,9 @@
 import React from 'react';
 import {
   View, Text, StyleSheet, ScrollView, TextInput, Pressable,
-  Switch, Alert, ActivityIndicator
+  Switch, Alert, ActivityIndicator, Image
 } from 'react-native';
+import * as ImagePicker from 'expo-image-picker';
 import { useNavigation } from '@react-navigation/native';
 import { MaterialIcons } from '@expo/vector-icons';
 import { theme } from '../theme';
@@ -29,7 +30,59 @@ export const CreateTenant: React.FC = () => {
   const [email, setEmail] = React.useState('');
   const [dob, setDob] = React.useState('');
   const [cccd, setCccd] = React.useState('');
+  const [cccdFront, setCccdFront] = React.useState<string | null>(null);
+  const [cccdBack, setCccdBack] = React.useState<string | null>(null);
   const [gender, setGender] = React.useState<'Nam' | 'Nữ' | 'Khác'>('Nam');
+
+  // ── CCCD Photo Picker ──────────────────────────────────────────────────────
+  const pickCccdImage = async (side: 'front' | 'back') => {
+    Alert.alert(
+      side === 'front' ? 'CCCD Mặt trước' : 'CCCD Mặt sau',
+      'Chọn nguồn ảnh',
+      [
+        {
+          text: 'Thư viện ảnh',
+          onPress: async () => {
+            const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
+            if (status !== 'granted') {
+              Alert.alert('Quyền truy cập', 'Cần quyền truy cập thư viện ảnh.');
+              return;
+            }
+            const result = await ImagePicker.launchImageLibraryAsync({
+              mediaTypes: ['images'],
+              allowsEditing: true,
+              quality: 0.4,
+              base64: true,
+            });
+            if (!result.canceled && result.assets?.[0]?.base64) {
+              const dataUrl = `data:image/jpeg;base64,${result.assets[0].base64}`;
+              side === 'front' ? setCccdFront(dataUrl) : setCccdBack(dataUrl);
+            }
+          },
+        },
+        {
+          text: 'Chụp ảnh',
+          onPress: async () => {
+            const { status } = await ImagePicker.requestCameraPermissionsAsync();
+            if (status !== 'granted') {
+              Alert.alert('Quyền truy cập', 'Cần quyền truy cập camera.');
+              return;
+            }
+            const result = await ImagePicker.launchCameraAsync({
+              allowsEditing: true,
+              quality: 0.4,
+              base64: true,
+            });
+            if (!result.canceled && result.assets?.[0]?.base64) {
+              const dataUrl = `data:image/jpeg;base64,${result.assets[0].base64}`;
+              side === 'front' ? setCccdFront(dataUrl) : setCccdBack(dataUrl);
+            }
+          },
+        },
+        { text: 'Hủy', style: 'cancel' },
+      ]
+    );
+  };
 
   // ── Apartment (from Firestore) ─────────────────────────────────────────────
   const [buildings, setBuildings] = React.useState<Building[]>([]);
@@ -169,6 +222,8 @@ export const CreateTenant: React.FC = () => {
         email: email.trim(),
         dob: dob.trim(),
         cccd: cccd.trim(),
+        cccdFront: cccdFront ?? '',
+        cccdBack: cccdBack ?? '',
         gender,
         // Apartment
         buildingId: selectedBuilding.id,
@@ -293,22 +348,49 @@ export const CreateTenant: React.FC = () => {
             </View>
           </View>
 
-          {/* CCCD photo placeholders */}
+          {/* CCCD photo */}
           <Text style={[styles.label, { marginTop: 14 }]}>Ảnh CCCD/CMND</Text>
           <View style={styles.row}>
-            <Pressable style={styles.photoUploadCard}>
-              <View style={styles.photoUploadCircle}>
-                <MaterialIcons name="add-a-photo" size={22} color={theme.colors.primary} />
-              </View>
-              <Text style={styles.photoUploadTitle}>Mặt trước</Text>
-              <Text style={styles.photoUploadSubtext}>Chạm để tải lên</Text>
+            {/* Front */}
+            <Pressable style={styles.photoUploadCard} onPress={() => pickCccdImage('front')}>
+              {cccdFront ? (
+                <>
+                  <Image source={{ uri: cccdFront }} style={styles.cccdPreview} resizeMode="cover" />
+                  <View style={styles.cccdOverlay}>
+                    <MaterialIcons name="edit" size={18} color="#fff" />
+                    <Text style={styles.cccdOverlayText}>Đổi ảnh</Text>
+                  </View>
+                </>
+              ) : (
+                <>
+                  <View style={styles.photoUploadCircle}>
+                    <MaterialIcons name="add-a-photo" size={22} color={theme.colors.primary} />
+                  </View>
+                  <Text style={styles.photoUploadTitle}>Mặt trước</Text>
+                  <Text style={styles.photoUploadSubtext}>Chạm để tải lên</Text>
+                </>
+              )}
             </Pressable>
-            <Pressable style={styles.photoUploadCard}>
-              <View style={styles.photoUploadCircle}>
-                <MaterialIcons name="add-a-photo" size={22} color={theme.colors.primary} />
-              </View>
-              <Text style={styles.photoUploadTitle}>Mặt sau</Text>
-              <Text style={styles.photoUploadSubtext}>Chạm để tải lên</Text>
+
+            {/* Back */}
+            <Pressable style={styles.photoUploadCard} onPress={() => pickCccdImage('back')}>
+              {cccdBack ? (
+                <>
+                  <Image source={{ uri: cccdBack }} style={styles.cccdPreview} resizeMode="cover" />
+                  <View style={styles.cccdOverlay}>
+                    <MaterialIcons name="edit" size={18} color="#fff" />
+                    <Text style={styles.cccdOverlayText}>Đổi ảnh</Text>
+                  </View>
+                </>
+              ) : (
+                <>
+                  <View style={styles.photoUploadCircle}>
+                    <MaterialIcons name="add-a-photo" size={22} color={theme.colors.primary} />
+                  </View>
+                  <Text style={styles.photoUploadTitle}>Mặt sau</Text>
+                  <Text style={styles.photoUploadSubtext}>Chạm để tải lên</Text>
+                </>
+              )}
             </Pressable>
           </View>
 
@@ -710,6 +792,32 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     borderStyle: 'dashed',
+    overflow: 'hidden',
+    minHeight: 110,
+  },
+  cccdPreview: {
+    position: 'absolute',
+    top: 0, left: 0, right: 0, bottom: 0,
+    width: '100%',
+    height: '100%',
+    borderRadius: theme.borderRadius.xl,
+  },
+  cccdOverlay: {
+    position: 'absolute',
+    bottom: 0,
+    left: 0,
+    right: 0,
+    backgroundColor: 'rgba(0,0,0,0.45)',
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 4,
+    paddingVertical: 6,
+  },
+  cccdOverlayText: {
+    color: '#fff',
+    fontSize: 12,
+    fontWeight: 'bold',
   },
   photoUploadCircle: {
     width: 44, height: 44, borderRadius: 22,
