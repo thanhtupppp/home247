@@ -3,7 +3,7 @@ import { View, Text, StyleSheet, TextInput, Pressable, ScrollView, KeyboardAvoid
 import { useNavigation } from '@react-navigation/native';
 import { MaterialIcons } from '@expo/vector-icons';
 import { theme } from '../theme';
-import { signInWithEmailAndPassword } from 'firebase/auth';
+import { signInWithEmailAndPassword, onAuthStateChanged } from 'firebase/auth';
 import { auth } from '../firebase';
 
 export const LoginScreen: React.FC = () => {
@@ -12,21 +12,22 @@ export const LoginScreen: React.FC = () => {
   const [password, setPassword] = React.useState('');
   const [showPassword, setShowPassword] = React.useState(false);
 
+  React.useEffect(() => {
+    const unsubscribe = onAuthStateChanged(auth, (user) => {
+      if (user) {
+        console.log('[LoginScreen] Active session found for UID:', user.uid);
+        navigation.reset({
+          index: 0,
+          routes: [{ name: 'MainTabs' }],
+        });
+      }
+    });
+    return unsubscribe;
+  }, []);
+
   const handleLogin = async () => {
     if (!identifier || !password) {
       Alert.alert('Thông báo', 'Vui lòng nhập tài khoản và mật khẩu.');
-      return;
-    }
-
-    // Check if configuration uses dummy key
-    const isDummyConfig = auth.app.options.apiKey?.includes('DummyKeyForDevelopment');
-
-    if (isDummyConfig) {
-      // Mock success for development/dummy configuration
-      navigation.reset({
-        index: 0,
-        routes: [{ name: 'MainTabs' }],
-      });
       return;
     }
 
