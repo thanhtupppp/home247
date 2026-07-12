@@ -3,7 +3,6 @@ import { View, Text, StyleSheet, ScrollView, Pressable, ActivityIndicator } from
 import { useNavigation, useIsFocused } from '@react-navigation/native';
 import { MaterialIcons } from '@expo/vector-icons';
 import { theme } from '../theme';
-import { mockRooms } from '../data/mockData';
 import { collection, query, where, getDocs } from 'firebase/firestore';
 import { db, auth } from '../firebase';
 
