@@ -6,7 +6,7 @@ import {
 import { useNavigation, useIsFocused } from '@react-navigation/native';
 import { MaterialIcons } from '@expo/vector-icons';
 import { theme } from '../theme';
-import { collection, getDocs, doc, updateDoc, addDoc, query, orderBy, deleteDoc } from 'firebase/firestore';
+import { collection, getDocs, doc, updateDoc, addDoc, query, orderBy, deleteDoc, where } from 'firebase/firestore';
 import { db, auth } from '../firebase';
 
 interface SupportRequest {
@@ -46,7 +46,9 @@ export const SupportRequests: React.FC = () => {
   const fetchRequests = async () => {
     try {
       setLoading(true);
-      const snap = await getDocs(query(collection(db, 'supportRequests'), orderBy('createdAt', 'desc')));
+      const uid = auth.currentUser?.uid;
+      if (!uid) return;
+      const snap = await getDocs(query(collection(db, 'supportRequests'), where('ownerId', '==', uid)));
       const list: SupportRequest[] = [];
       snap.forEach((doc) => {
         const data = doc.data();
@@ -60,6 +62,12 @@ export const SupportRequests: React.FC = () => {
           status: data.status || 'pending',
           createdAt: data.createdAt,
         });
+      });
+      // Sort requests by createdAt descending in memory
+      list.sort((a, b) => {
+        const t1 = a.createdAt?.seconds || 0;
+        const t2 = b.createdAt?.seconds || 0;
+        return t2 - t1;
       });
       setRequests(list);
     } catch (err) {
@@ -111,6 +119,7 @@ export const SupportRequests: React.FC = () => {
 
     try {
       setCreating(true);
+      const uid = auth.currentUser?.uid || 'system';
       const reqData = {
         title: newTitle.trim(),
         description: newDesc.trim(),
@@ -119,7 +128,8 @@ export const SupportRequests: React.FC = () => {
         level: newLevel,
         status: 'pending',
         createdAt: new Date(),
-        createdBy: auth.currentUser?.uid || 'system',
+        createdBy: uid,
+        ownerId: uid,
       };
       await addDoc(collection(db, 'supportRequests'), reqData);
       

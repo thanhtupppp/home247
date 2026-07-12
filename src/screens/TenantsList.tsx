@@ -6,8 +6,8 @@ import {
 import { useNavigation, useIsFocused } from '@react-navigation/native';
 import { MaterialIcons } from '@expo/vector-icons';
 import { theme } from '../theme';
-import { collection, getDocs, query, orderBy } from 'firebase/firestore';
-import { db } from '../firebase';
+import { collection, getDocs, query, orderBy, where } from 'firebase/firestore';
+import { db, auth } from '../firebase';
 
 interface Tenant {
   id: string;
@@ -84,8 +84,10 @@ export const TenantsList: React.FC = () => {
   const fetchTenants = async (isRefresh = false) => {
     try {
       isRefresh ? setRefreshing(true) : setLoading(true);
+      const uid = auth.currentUser?.uid;
+      if (!uid) return;
       const snap = await getDocs(
-        query(collection(db, 'tenants'), orderBy('fullName'))
+        query(collection(db, 'tenants'), where('ownerId', '==', uid))
       );
       const list: Tenant[] = snap.docs.map((d) => {
         const data = d.data();
@@ -101,6 +103,8 @@ export const TenantsList: React.FC = () => {
           gender: data.gender || '',
         };
       });
+      // Sort tenants by name in memory
+      list.sort((a, b) => a.fullName.localeCompare(b.fullName));
       setTenants(list);
     } catch (err) {
       console.error('Error fetching tenants:', err);

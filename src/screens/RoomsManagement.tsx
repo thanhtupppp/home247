@@ -48,7 +48,8 @@ const seedInitialData = async () => {
       roomsCount: 15,
       floorsCount: 5,
       createdAt: new Date(),
-      createdBy: uid
+      createdBy: uid,
+      ownerId: uid
     });
 
     batch.set(b2Ref, {
@@ -58,7 +59,8 @@ const seedInitialData = async () => {
       roomsCount: 10,
       floorsCount: 4,
       createdAt: new Date(),
-      createdBy: uid
+      createdBy: uid,
+      ownerId: uid
     });
 
     batch.set(b3Ref, {
@@ -68,7 +70,8 @@ const seedInitialData = async () => {
       roomsCount: 8,
       floorsCount: 3,
       createdAt: new Date(),
-      createdBy: uid
+      createdBy: uid,
+      ownerId: uid
     });
 
     // 2. Create mock rooms for building 1
@@ -86,7 +89,8 @@ const seedInitialData = async () => {
       floor: 1,
       status: 'occupied',
       createdAt: new Date(),
-      createdBy: uid
+      createdBy: uid,
+      ownerId: uid
     });
 
     batch.set(r2, {
@@ -99,7 +103,8 @@ const seedInitialData = async () => {
       floor: 1,
       status: 'occupied',
       createdAt: new Date(),
-      createdBy: uid
+      createdBy: uid,
+      ownerId: uid
     });
 
     batch.set(r3, {
@@ -112,7 +117,8 @@ const seedInitialData = async () => {
       floor: 2,
       status: 'empty',
       createdAt: new Date(),
-      createdBy: uid
+      createdBy: uid,
+      ownerId: uid
     });
 
     await batch.commit();
@@ -153,8 +159,11 @@ export const RoomsManagement: React.FC = () => {
   const fetchRoomsForBuilding = React.useCallback(async (buildingId: string) => {
     try {
       setLoadingRooms(true);
+      const uid = auth.currentUser?.uid;
+      if (!uid) return;
       const rQuery = query(
         collection(db, 'rooms'),
+        where('ownerId', '==', uid),
         where('buildingId', '==', buildingId)
       );
       const rSnapshot = await getDocs(rQuery);
@@ -185,7 +194,9 @@ export const RoomsManagement: React.FC = () => {
   const fetchBuildings = React.useCallback(async () => {
     try {
       setLoading(true);
-      const bQuery = query(collection(db, 'buildings'));
+      const uid = auth.currentUser?.uid;
+      if (!uid) return;
+      const bQuery = query(collection(db, 'buildings'), where('ownerId', '==', uid));
       const bSnapshot = await getDocs(bQuery);
       
       let list: any[] = [];
@@ -195,15 +206,12 @@ export const RoomsManagement: React.FC = () => {
 
       // If empty, check if we have already seeded. If not, auto-seed.
       if (list.length === 0) {
-        const uid = auth.currentUser?.uid;
-        if (uid) {
-          const adminDocRef = doc(db, 'admins', uid);
-          const adminSnap = await getDoc(adminDocRef);
-          const hasSeeded = adminSnap.exists() && adminSnap.data()?.hasSeeded;
-          if (!hasSeeded) {
-            list = await seedInitialData();
-            await setDoc(adminDocRef, { hasSeeded: true }, { merge: true });
-          }
+        const adminDocRef = doc(db, 'admins', uid);
+        const adminSnap = await getDoc(adminDocRef);
+        const hasSeeded = adminSnap.exists() && adminSnap.data()?.hasSeeded;
+        if (!hasSeeded) {
+          list = await seedInitialData();
+          await setDoc(adminDocRef, { hasSeeded: true }, { merge: true });
         }
       }
 
@@ -271,7 +279,8 @@ export const RoomsManagement: React.FC = () => {
         floor: Number(roomFloor),
         status: 'empty',
         createdAt: new Date(),
-        createdBy: uid
+        createdBy: uid,
+        ownerId: uid
       });
 
       Alert.alert('Thành công', `Đã thêm phòng ${roomCode.trim()} vào tòa nhà ${selectedBuildingForRoomRef.current.name}!`);

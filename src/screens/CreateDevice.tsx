@@ -6,7 +6,7 @@ import {
 import { useNavigation, useRoute } from '@react-navigation/native';
 import { MaterialIcons } from '@expo/vector-icons';
 import { theme } from '../theme';
-import { collection, addDoc, getDocs, query, orderBy, doc, getDoc, updateDoc } from 'firebase/firestore';
+import { collection, addDoc, getDocs, query, orderBy, doc, getDoc, updateDoc, where } from 'firebase/firestore';
 import { db, auth } from '../firebase';
 
 const CATEGORIES = ['Gia dụng', 'Phòng tắm', 'Nội thất'];
@@ -39,11 +39,14 @@ export const CreateDevice: React.FC = () => {
   const fetchBuildings = React.useCallback(async () => {
     try {
       setLoadingBuildings(true);
-      const qSnap = await getDocs(query(collection(db, 'buildings'), orderBy('name')));
+      const uid = auth.currentUser?.uid;
+      if (!uid) return;
+      const qSnap = await getDocs(query(collection(db, 'buildings'), where('ownerId', '==', uid)));
       const list = qSnap.docs.map((doc) => ({
         id: doc.id,
         name: doc.data().name || '',
       }));
+      list.sort((a, b) => a.name.localeCompare(b.name));
       const fullList = [{ id: 'unassigned', name: 'Chưa gán tòa nhà' }, ...list];
       setBuildings(fullList);
       if (!deviceId) {
@@ -110,12 +113,14 @@ export const CreateDevice: React.FC = () => {
 
     try {
       setSaving(true);
+      const uid = auth.currentUser?.uid || 'system';
       const deviceData = {
         name: deviceName.trim(),
         buildingId: selectedBuilding.id,
         buildingName: selectedBuilding.id === 'unassigned' ? 'Chưa gán tòa nhà' : selectedBuilding.name,
         category: selectedCategory,
         description: description.trim(),
+        ownerId: uid,
       };
 
       if (deviceId) {
@@ -127,7 +132,7 @@ export const CreateDevice: React.FC = () => {
         const newDoc = {
           ...deviceData,
           createdAt: new Date(),
-          createdBy: auth.currentUser?.uid || 'system',
+          createdBy: uid,
         };
         await addDoc(collection(db, 'devices'), newDoc);
         Alert.alert('Thành công', `Đã thêm thiết bị ${deviceName.trim()} thành công!`);

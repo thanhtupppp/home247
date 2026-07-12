@@ -1,49 +1,75 @@
 rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
+    function signedIn() {
+      return request.auth != null;
+    }
+    
+    function ownsExistingDocument() {
+      return signedIn() && resource.data.ownerId == request.auth.uid;
+    }
+    
+    function ownsNewDocument() {
+      return signedIn() && request.resource.data.ownerId == request.auth.uid;
+    }
+
     // Admin profile: only the admin user can read/write their own profile doc
     match /admins/{adminId} {
-      allow read, write: if request.auth != null && request.auth.uid == adminId;
+      allow read, write: if signedIn() && request.auth.uid == adminId;
     }
     
     // Buildings
     match /buildings/{buildingId} {
-      allow read, write: if request.auth != null;
+      allow create: if ownsNewDocument();
+      allow read, update, delete: if ownsExistingDocument();
     }
     
     // Rooms
     match /rooms/{roomId} {
-      allow read, write: if request.auth != null;
+      allow create: if ownsNewDocument();
+      allow read, update, delete: if ownsExistingDocument();
     }
     
     // Services
     match /services/{serviceId} {
-      allow read, write: if request.auth != null;
+      allow create: if ownsNewDocument();
+      allow read, update, delete: if ownsExistingDocument();
+    }
+    
+    // Devices
+    match /devices/{deviceId} {
+      allow create: if ownsNewDocument();
+      allow read, update, delete: if ownsExistingDocument();
     }
     
     // Utility Readings
     match /utilityReadings/{readingId} {
-      allow read, write: if request.auth != null;
+      allow create: if ownsNewDocument();
+      allow read, update, delete: if ownsExistingDocument();
     }
     
     // Invoices
     match /invoices/{invoiceId} {
-      allow read, write: if request.auth != null;
+      allow create: if ownsNewDocument();
+      allow read, update, delete: if ownsExistingDocument();
     }
     
     // Contracts
     match /contracts/{contractId} {
-      allow read, write: if request.auth != null;
+      allow create: if ownsNewDocument();
+      allow read, update, delete: if ownsExistingDocument();
     }
     
     // Tenants
     match /tenants/{tenantId} {
-      allow read, write: if request.auth != null;
+      allow create: if ownsNewDocument();
+      allow read, update, delete: if ownsExistingDocument();
     }
     
     // Support Requests
     match /supportRequests/{requestId} {
-      allow read, write: if request.auth != null;
+      allow create: if ownsNewDocument();
+      allow read, update, delete: if ownsExistingDocument();
     }
   }
 }

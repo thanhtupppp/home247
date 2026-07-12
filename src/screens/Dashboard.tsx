@@ -6,9 +6,8 @@ import BentoStatCard from '../components/BentoStatCard';
 import RevenueChart from '../components/RevenueChart';
 import AlertItem from '../components/AlertItem';
 import TransactionTable from '../components/TransactionTable';
-import { revenueHistory, emergencyAlerts, recentTransactions } from '../data/mockData';
 import { theme } from '../theme';
-import { doc, getDoc, getDocs, collection, query, where, orderBy, limit } from 'firebase/firestore';
+import { doc, getDoc, getDocs, collection, query, where, limit } from 'firebase/firestore';
 import { db, auth } from '../firebase';
 import { Image } from 'expo-image';
 
@@ -82,9 +81,11 @@ export const Dashboard: React.FC<DashboardProps> = () => {
   const loadRealStats = async () => {
     try {
       setLoadingStats(true);
+      const uid = auth.currentUser?.uid;
+      if (!uid) return;
 
       // 1. Calculate Occupancy from rooms collection
-      const roomsSnap = await getDocs(collection(db, 'rooms'));
+      const roomsSnap = await getDocs(query(collection(db, 'rooms'), where('ownerId', '==', uid)));
       const totalRooms = roomsSnap.size;
       let occupiedRooms = 0;
       roomsSnap.forEach((doc) => {
@@ -99,7 +100,7 @@ export const Dashboard: React.FC<DashboardProps> = () => {
 
       // 2. Calculate Revenue this month from invoices
       const invoicesSnap = await getDocs(
-        query(collection(db, 'invoices'), where('month', '==', currentMonthStr), where('status', '==', 'success'))
+        query(collection(db, 'invoices'), where('ownerId', '==', uid), where('month', '==', currentMonthStr), where('status', '==', 'success'))
       );
       let totalRev = 0;
       invoicesSnap.forEach((doc) => {
@@ -112,7 +113,7 @@ export const Dashboard: React.FC<DashboardProps> = () => {
       setRevenueThisMonth(totalRev === 0 ? '0 đ' : formattedRev);
 
       // 3. Calculate new requests & load pending support requests
-      const reqsSnap = await getDocs(collection(db, 'supportRequests'));
+      const reqsSnap = await getDocs(query(collection(db, 'supportRequests'), where('ownerId', '==', uid)));
       const allReqs = reqsSnap.docs.map(d => ({ id: d.id, ...d.data() }));
       const activeReqs = allReqs.filter((r: any) => r.status === 'pending' || r.status === 'processing');
       
@@ -125,7 +126,7 @@ export const Dashboard: React.FC<DashboardProps> = () => {
       setRequestCount(String(activeReqs.length).padStart(2, '0'));
 
       // 4. Calculate real MoM revenue for last 6 months
-      const allInvoicesSnap = await getDocs(collection(db, 'invoices'));
+      const allInvoicesSnap = await getDocs(query(collection(db, 'invoices'), where('ownerId', '==', uid)));
       const last6MonthsList: string[] = [];
       const date = new Date();
       for (let i = 5; i >= 0; i--) {
@@ -169,9 +170,9 @@ export const Dashboard: React.FC<DashboardProps> = () => {
       });
       setChartData(formattedChart);
 
-      // 5. Query recent 5 transactions
+      // 5. Query recent 5 transactions - sorted in memory
       const recentInvoicesSnap = await getDocs(
-        query(collection(db, 'invoices'), orderBy('createdAt', 'desc'), limit(5))
+        query(collection(db, 'invoices'), where('ownerId', '==', uid))
       );
       const mappedTx = recentInvoicesSnap.docs.map((doc) => {
         const data = doc.data();
@@ -184,15 +185,19 @@ export const Dashboard: React.FC<DashboardProps> = () => {
           amount: `+${amt.toLocaleString('vi-VN')} đ`,
           isExpense: false,
           status: data.status === 'success' ? 'success' : 'pending',
+          createdAt: data.createdAt?.toDate() || new Date(0),
         };
       });
-      setRecentTx(mappedTx);
+      mappedTx.sort((a, b) => b.createdAt.getTime() - a.createdAt.getTime());
+      const slicedTx = mappedTx.slice(0, 5);
+      setRecentTx(slicedTx);
+
       // 6. Calculate real-time emergency alerts
       const alertsList: any[] = [];
 
       // 6a. Unpaid Invoices
       const unpaidInvoicesSnap = await getDocs(
-        query(collection(db, 'invoices'), where('status', '==', 'pending'), limit(3))
+        query(collection(db, 'invoices'), where('ownerId', '==', uid), where('status', '==', 'pending'), limit(3))
       );
       unpaidInvoicesSnap.forEach(d => {
         const data = d.data();
@@ -222,14 +227,16 @@ export const Dashboard: React.FC<DashboardProps> = () => {
         });
       });
 
-      // 6c. Approaching Contract End (expiring in next 30 days)
+      // 6c. Approaching Contract End
       try {
-        const contractsSnap = await getDocs(query(collection(db, 'contracts'), where('status', '==', 'active'), limit(3)));
+        const contractsSnap = await getDocs(
+          query(collection(db, 'contracts'), where('ownerId', '==', uid), where('status', '==', 'active'), limit(3))
+        );
         const today = new Date();
         contractsSnap.forEach(d => {
           const data = d.data();
           if (data.endDate) {
-            const endParts = data.endDate.split('/'); // DD/MM/YYYY
+            const endParts = data.endDate.split('/');
             if (endParts.length === 3) {
               const endD = new Date(Number(endParts[2]), Number(endParts[1]) - 1, Number(endParts[0]));
               const diffTime = endD.getTime() - today.getTime();
@@ -238,22 +245,21 @@ export const Dashboard: React.FC<DashboardProps> = () => {
                 alertsList.push({
                   id: `ctr_${d.id}`,
                   type: 'info',
-                  title: `Hợp đồng sắp hết hạn phòng ${data.roomCode}`,
-                  description: `Hết hạn sau ${diffDays} ngày (${data.endDate}). Vui lòng liên hệ gia hạn.`,
-                  icon: 'water_drop',
-                  actionText: 'Xem chi tiết',
-                  targetRoute: 'hop-dong'
+                  title: `Hợp đồng phòng ${data.roomCode} sắp hết hạn`,
+                  description: `Khách thuê: ${data.tenantName}. Còn lại ${diffDays} ngày.`,
+                  icon: 'event_note',
+                  actionText: 'Gia hạn',
+                  targetRoute: 'Contracts'
                 });
               }
             }
           }
         });
       } catch (err) {
-        console.error('Error fetching contracts for alerts:', err);
+        console.error('Error fetching contracts for dashboard alerts:', err);
       }
 
       setDashboardAlerts(alertsList);
-
     } catch (err) {
       console.error('Error loading operational stats on dashboard:', err);
     } finally {

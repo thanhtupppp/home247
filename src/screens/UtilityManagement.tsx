@@ -5,7 +5,7 @@ import { MaterialIcons } from '@expo/vector-icons';
 import { theme } from '../theme';
 import { mockRooms } from '../data/mockData';
 import { collection, query, where, getDocs } from 'firebase/firestore';
-import { db } from '../firebase';
+import { db, auth } from '../firebase';
 
 const generateMonthsList = (): string[] => {
   const list: string[] = [];
@@ -35,9 +35,11 @@ export const UtilityManagement: React.FC = () => {
   const loadRecordedRooms = React.useCallback(async () => {
     try {
       setLoading(true);
+      const uid = auth.currentUser?.uid;
+      if (!uid) return;
       
       // 1. Fetch buildings
-      const bSnapshot = await getDocs(query(collection(db, 'buildings')));
+      const bSnapshot = await getDocs(query(collection(db, 'buildings'), where('ownerId', '==', uid)));
       const bList: any[] = [];
       bSnapshot.forEach((doc) => {
         bList.push({ id: doc.id, ...doc.data() });
@@ -59,6 +61,7 @@ export const UtilityManagement: React.FC = () => {
       if (currentBuilding) {
         const rQuery = query(
           collection(db, 'rooms'),
+          where('ownerId', '==', uid),
           where('buildingName', '==', currentBuilding)
         );
         const rSnapshot = await getDocs(rQuery);
@@ -71,9 +74,13 @@ export const UtilityManagement: React.FC = () => {
 
       // 3. Fetch utilityReadings (recorded status)
       if (currentBuilding) {
+        const buildingObj = bList.find((b) => b.name === currentBuilding);
+        const buildingId = buildingObj ? buildingObj.id : 'unknown';
+
         const q = query(
           collection(db, 'utilityReadings'),
-          where('buildingName', '==', currentBuilding),
+          where('ownerId', '==', uid),
+          where('buildingId', '==', buildingId),
           where('month', '==', selectedMonth)
         );
         const querySnapshot = await getDocs(q);

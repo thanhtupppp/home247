@@ -7,7 +7,7 @@ import { useNavigation, useIsFocused } from '@react-navigation/native';
 import { MaterialIcons } from '@expo/vector-icons';
 import { theme } from '../theme';
 import { collection, getDocs, query, where } from 'firebase/firestore';
-import { db } from '../firebase';
+import { db, auth } from '../firebase';
 import { RevenueChart } from '../components/RevenueChart';
 
 interface BuildingStat {
@@ -60,9 +60,13 @@ export const StatisticsScreen: React.FC = () => {
   const fetchStatistics = async (isRefresh = false) => {
     try {
       isRefresh ? setRefreshing(true) : setLoading(true);
+      const uid = auth.currentUser?.uid;
+      if (!uid) return;
 
       // 1. Fetch Invoices for Revenue
-      const invSnap = await getDocs(collection(db, 'invoices'));
+      const invSnap = await getDocs(
+        query(collection(db, 'invoices'), where('ownerId', '==', uid))
+      );
       let sumCollected = 0;
       let sumUncollected = 0;
 
@@ -98,7 +102,9 @@ export const StatisticsScreen: React.FC = () => {
       setTotalUncollected(sumUncollected);
 
       // 2. Fetch Rooms for Occupancy
-      const roomsSnap = await getDocs(collection(db, 'rooms'));
+      const roomsSnap = await getDocs(
+        query(collection(db, 'rooms'), where('ownerId', '==', uid))
+      );
       const tRooms = roomsSnap.size;
       let oRooms = 0;
       roomsSnap.forEach((doc) => {
@@ -112,12 +118,14 @@ export const StatisticsScreen: React.FC = () => {
 
       // 3. Fetch Active Tenants
       const tenantsSnap = await getDocs(
-        query(collection(db, 'tenants'), where('status', '==', 'active'))
+        query(collection(db, 'tenants'), where('ownerId', '==', uid), where('status', '==', 'active'))
       );
       setTotalTenants(tenantsSnap.size);
 
       // 4. Fetch Support Requests status
-      const supportSnap = await getDocs(collection(db, 'supportRequests'));
+      const supportSnap = await getDocs(
+        query(collection(db, 'supportRequests'), where('ownerId', '==', uid))
+      );
       let resolved = 0;
       let pending = 0;
       supportSnap.forEach((doc) => {
@@ -155,7 +163,9 @@ export const StatisticsScreen: React.FC = () => {
 
       // 6. Build Building Stats
       // Fetch actual buildings list to ensure all buildings are covered
-      const buildingsSnap = await getDocs(collection(db, 'buildings'));
+      const buildingsSnap = await getDocs(
+        query(collection(db, 'buildings'), where('ownerId', '==', uid))
+      );
       const bStatsList: BuildingStat[] = [];
       buildingsSnap.forEach((doc) => {
         const bName = doc.data().name;

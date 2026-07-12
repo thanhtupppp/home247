@@ -56,12 +56,14 @@ export const UtilityRecording: React.FC = () => {
   const [saving, setSaving] = React.useState(false);
 
   const [buildings, setBuildings] = React.useState<any[]>([]);
-  const [rooms, setRooms] = React.useState<string[]>([]);
+  const [rooms, setRooms] = React.useState<any[]>([]);
   const [waterCalcMethod, setWaterCalcMethod] = React.useState('Theo chỉ số đồng hồ');
 
   const fetchWaterServiceType = React.useCallback(async (buildingName: string) => {
     try {
-      const snap = await getDocs(collection(db, 'services'));
+      const uid = auth.currentUser?.uid;
+      if (!uid) return;
+      const snap = await getDocs(query(collection(db, 'services'), where('ownerId', '==', uid)));
       let method = 'Theo chỉ số đồng hồ'; // default fallback
       let foundSpecific = false;
       
@@ -85,7 +87,9 @@ export const UtilityRecording: React.FC = () => {
 
   const fetchBuildingsAndRooms = React.useCallback(async () => {
     try {
-      const bSnapshot = await getDocs(query(collection(db, 'buildings')));
+      const uid = auth.currentUser?.uid;
+      if (!uid) return;
+      const bSnapshot = await getDocs(query(collection(db, 'buildings'), where('ownerId', '==', uid)));
       const bList: any[] = [];
       bSnapshot.forEach((doc: any) => {
         bList.push({ id: doc.id, ...doc.data() });
@@ -93,13 +97,15 @@ export const UtilityRecording: React.FC = () => {
       setBuildings(bList);
 
       const rSnapshot = await getDocs(
-        query(collection(db, 'rooms'), where('buildingName', '==', selectedBuilding))
+        query(collection(db, 'rooms'), where('ownerId', '==', uid), where('buildingName', '==', selectedBuilding))
       );
-      const rList: string[] = [];
+      const rList: any[] = [];
       rSnapshot.forEach((doc: any) => {
-        if (doc.data().code) rList.push(doc.data().code);
+        if (doc.data().code) {
+          rList.push({ id: doc.id, code: doc.data().code });
+        }
       });
-      rList.sort((a, b) => a.localeCompare(b));
+      rList.sort((a, b) => a.code.localeCompare(b.code));
       setRooms(rList);
     } catch (e) {
       console.error('Error loading buildings/rooms in recording screen:', e);
@@ -110,9 +116,20 @@ export const UtilityRecording: React.FC = () => {
     if (!selectedRoom) return;
     try {
       setLoading(true);
+      const uid = auth.currentUser?.uid;
+      if (!uid) return;
+
+      const buildingObj = buildings.find(b => b.name === selectedBuilding);
+      const buildingId = buildingObj ? buildingObj.id : 'unknown';
+      const roomObj = rooms.find(r => r.code === selectedRoom);
+      const roomId = roomObj ? roomObj.id : 'unknown';
+
       const prevMonth = getPreviousMonth(selectedMonth);
-      const currentDocId = `${selectedBuilding}_${selectedRoom}_${selectedMonth.replace('/', '-')}`;
-      const prevDocId = `${selectedBuilding}_${selectedRoom}_${prevMonth.replace('/', '-')}`;
+      const period = selectedMonth.split('/').reverse().join('-');
+      const prevPeriod = prevMonth.split('/').reverse().join('-');
+
+      const currentDocId = `${buildingId}_${roomId}_${period}`;
+      const prevDocId = `${buildingId}_${roomId}_${prevPeriod}`;
       
       const [currentSnap, prevSnap] = await Promise.all([
         getDoc(doc(db, 'utilityReadings', currentDocId)),
@@ -145,14 +162,23 @@ export const UtilityRecording: React.FC = () => {
     } finally {
       setLoading(false);
     }
-  }, [selectedBuilding, selectedRoom, selectedMonth]);
+  }, [selectedBuilding, selectedRoom, selectedMonth, buildings, rooms]);
 
   const loadBulkData = React.useCallback(async () => {
     try {
       setLoading(true);
+      const uid = auth.currentUser?.uid;
+      if (!uid) return;
+
+      const buildingObj = buildings.find(b => b.name === selectedBuilding);
+      const buildingId = buildingObj ? buildingObj.id : 'unknown';
+
       const prevMonth = getPreviousMonth(selectedMonth);
+      const period = selectedMonth.split('/').reverse().join('-');
+      const prevPeriod = prevMonth.split('/').reverse().join('-');
+
       const rSnapshot = await getDocs(
-        query(collection(db, 'rooms'), where('buildingName', '==', selectedBuilding))
+        query(collection(db, 'rooms'), where('ownerId', '==', uid), where('buildingName', '==', selectedBuilding))
       );
       const roomsList: any[] = [];
       rSnapshot.forEach((doc: any) => {
@@ -161,8 +187,8 @@ export const UtilityRecording: React.FC = () => {
       roomsList.sort((a, b) => a.code.localeCompare(b.code));
 
       const promises = roomsList.map(async (room) => {
-        const currentDocId = `${selectedBuilding}_${room.code}_${selectedMonth.replace('/', '-')}`;
-        const prevDocId = `${selectedBuilding}_${room.code}_${prevMonth.replace('/', '-')}`;
+        const currentDocId = `${buildingId}_${room.id}_${period}`;
+        const prevDocId = `${buildingId}_${room.id}_${prevPeriod}`;
         const [curSnap, prvSnap] = await Promise.all([
           getDoc(doc(db, 'utilityReadings', currentDocId)),
           getDoc(doc(db, 'utilityReadings', prevDocId))
@@ -206,7 +232,7 @@ export const UtilityRecording: React.FC = () => {
     } finally {
       setLoading(false);
     }
-  }, [selectedBuilding, selectedMonth]);
+  }, [selectedBuilding, selectedMonth, buildings]);
 
   React.useEffect(() => {
     if (selectedBuilding) {
@@ -246,19 +272,31 @@ export const UtilityRecording: React.FC = () => {
       
       try {
         setSaving(true);
-        const docId = `${selectedBuilding}_${selectedRoom}_${selectedMonth.replace('/', '-')}`;
+        const uid = auth.currentUser?.uid || 'system';
+        const buildingObj = buildings.find(b => b.name === selectedBuilding);
+        const buildingId = buildingObj ? buildingObj.id : 'unknown';
+        const roomObj = rooms.find(r => r.code === selectedRoom);
+        const roomId = roomObj ? roomObj.id : 'unknown';
+
+        const period = selectedMonth.split('/').reverse().join('-');
+        const docId = `${buildingId}_${roomId}_${period}`;
         const docRef = doc(db, 'utilityReadings', docId);
         
         await setDoc(docRef, {
-          building: selectedBuilding,
-          room: selectedRoom,
+          buildingId,
+          buildingName: selectedBuilding,
+          roomId,
+          roomCode: selectedRoom,
+          period,
           month: selectedMonth,
           electricOld: Number(electricOld) || 0,
           electricNew: Number(singleElectricNew) || 0,
           waterOld: waterCalcMethod === 'Theo chỉ số đồng hồ' ? (Number(waterOld) || 0) : 0,
           waterNew: waterCalcMethod === 'Theo chỉ số đồng hồ' ? (Number(singleWaterNew) || 0) : 0,
+          isRecorded: true,
           recordedAt: new Date(),
-          recordedBy: auth.currentUser?.uid || 'system'
+          recordedBy: uid,
+          ownerId: uid,
         });
         
         Alert.alert('Thành công', `Đã ghi điện nước cho phòng ${selectedRoom} thành công!`);
@@ -288,21 +326,31 @@ export const UtilityRecording: React.FC = () => {
       
       try {
         setSaving(true);
+        const uid = auth.currentUser?.uid || 'system';
+        const buildingObj = buildings.find(b => b.name === selectedBuilding);
+        const buildingId = buildingObj ? buildingObj.id : 'unknown';
+        const period = selectedMonth.split('/').reverse().join('-');
+
         const batch = writeBatch(db);
         
         enabledRooms.forEach(room => {
-          const docId = `${selectedBuilding}_${room.code}_${selectedMonth.replace('/', '-')}`;
+          const docId = `${buildingId}_${room.id}_${period}`;
           const docRef = doc(db, 'utilityReadings', docId);
           batch.set(docRef, {
-            building: selectedBuilding,
-            room: room.code,
+            buildingId,
+            buildingName: selectedBuilding,
+            roomId: room.id,
+            roomCode: room.roomCode,
+            period,
             month: selectedMonth,
             electricOld: Number(room.electricOld) || 0,
             electricNew: Number(room.electricNew) || 0,
             waterOld: waterCalcMethod === 'Theo chỉ số đồng hồ' ? (Number(room.waterOld) || 0) : 0,
             waterNew: waterCalcMethod === 'Theo chỉ số đồng hồ' ? (Number(room.waterNew) || 0) : 0,
+            isRecorded: true,
             recordedAt: new Date(),
-            recordedBy: auth.currentUser?.uid || 'system'
+            recordedBy: uid,
+            ownerId: uid,
           });
         });
         
@@ -411,8 +459,8 @@ export const UtilityRecording: React.FC = () => {
               {showRoomDropdown && (
                 <View style={styles.dropdown}>
                   {rooms.map((r) => (
-                    <Pressable key={r} style={styles.dropdownItem} onPress={() => { setSelectedRoom(r); setShowRoomDropdown(false); }}>
-                      <Text style={styles.dropdownItemText}>{r}</Text>
+                    <Pressable key={r.id} style={styles.dropdownItem} onPress={() => { setSelectedRoom(r.code); setShowRoomDropdown(false); }}>
+                      <Text style={styles.dropdownItemText}>{r.code}</Text>
                     </Pressable>
                   ))}
                 </View>

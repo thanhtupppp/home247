@@ -7,7 +7,7 @@ import { useNavigation, useIsFocused } from '@react-navigation/native';
 import { MaterialIcons } from '@expo/vector-icons';
 import { theme } from '../theme';
 import { collection, getDocs, query, orderBy, where } from 'firebase/firestore';
-import { db } from '../firebase';
+import { db, auth } from '../firebase';
 
 interface Invoice {
   id: string;
@@ -20,6 +20,7 @@ interface Invoice {
   amount: string; // e.g. "5.500.000"
   status: 'success' | 'pending' | 'overdue';
   month: string; // e.g. "10/2026"
+  createdAt?: any;
 }
 
 interface Building {
@@ -27,7 +28,7 @@ interface Building {
   name: string;
 }
 
-const MONTHS = ['05/2026', '06/2026', '07/2026', '08/2026', '09/2026', '10/2026', '11/2026', '12/2026'];
+const MONTHS = ['02/2026', '03/2026', '04/2026', '05/2026', '06/2026', '07/2026'];
 const FILTERS = [
   { key: 'all', label: 'Tất cả' },
   { key: 'paid', label: 'Đã thu tiền' },
@@ -46,14 +47,7 @@ export const InvoicesList: React.FC = () => {
   const [loading, setLoading] = React.useState(true);
   const [refreshing, setRefreshing] = React.useState(false);
 
-  // Default month: Current Month
-  const currentMonthStr = React.useMemo(() => {
-    const now = new Date();
-    const mm = String(now.getMonth() + 1).padStart(2, '0');
-    return `${mm}/${now.getFullYear()}`;
-  }, []);
-
-  const [selectedMonth, setSelectedMonth] = React.useState(currentMonthStr);
+  const [selectedMonth, setSelectedMonth] = React.useState(MONTHS[MONTHS.length - 1]);
   const [activeFilter, setActiveFilter] = React.useState<'all' | 'paid' | 'unpaid'>('all');
 
   // Ensure default month is in the MONTHS array
@@ -72,10 +66,13 @@ export const InvoicesList: React.FC = () => {
   const fetchBuildingsAndInvoices = React.useCallback(async (isRefresh = false) => {
     try {
       isRefresh ? setRefreshing(true) : setLoading(true);
+      const uid = auth.currentUser?.uid;
+      if (!uid) return;
       
       // 1. Get buildings
-      const bSnap = await getDocs(query(collection(db, 'buildings'), orderBy('name')));
+      const bSnap = await getDocs(query(collection(db, 'buildings'), where('ownerId', '==', uid)));
       const bList = bSnap.docs.map(doc => ({ id: doc.id, name: doc.data().name }));
+      bList.sort((a, b) => a.name.localeCompare(b.name));
       setBuildings(bList);
 
       let currentB = selectedBuilding;
@@ -85,7 +82,7 @@ export const InvoicesList: React.FC = () => {
       }
 
       // 2. Fetch invoices
-      const invSnap = await getDocs(query(collection(db, 'invoices'), orderBy('createdAt', 'desc')));
+      const invSnap = await getDocs(query(collection(db, 'invoices'), where('ownerId', '==', uid)));
       const invList: Invoice[] = invSnap.docs.map(doc => {
         const data = doc.data();
         // format amount
@@ -104,7 +101,14 @@ export const InvoicesList: React.FC = () => {
           amount: amt,
           status: data.status || 'pending',
           month: data.month || '',
+          createdAt: data.createdAt,
         };
+      });
+      // Sort invoices in memory by createdAt descending
+      invList.sort((a, b) => {
+        const t1 = a.createdAt?.seconds || 0;
+        const t2 = b.createdAt?.seconds || 0;
+        return t2 - t1;
       });
       setInvoices(invList);
     } catch (err) {

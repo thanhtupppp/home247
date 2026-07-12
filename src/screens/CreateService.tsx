@@ -6,7 +6,7 @@ import {
 import { useNavigation, useRoute } from '@react-navigation/native';
 import { MaterialIcons } from '@expo/vector-icons';
 import { theme } from '../theme';
-import { collection, addDoc, getDocs, query, orderBy, doc, getDoc, updateDoc } from 'firebase/firestore';
+import { collection, addDoc, getDocs, query, orderBy, doc, getDoc, updateDoc, where } from 'firebase/firestore';
 import { db, auth } from '../firebase';
 
 const CALC_METHODS = ['Cố định', 'Theo người', 'Theo chỉ số đồng hồ'];
@@ -41,11 +41,14 @@ export const CreateService: React.FC = () => {
   const fetchBuildings = React.useCallback(async () => {
     try {
       setLoadingBuildings(true);
-      const qSnap = await getDocs(query(collection(db, 'buildings'), orderBy('name')));
+      const uid = auth.currentUser?.uid;
+      if (!uid) return;
+      const qSnap = await getDocs(query(collection(db, 'buildings'), where('ownerId', '==', uid)));
       const list = qSnap.docs.map((doc) => ({
         id: doc.id,
         name: doc.data().name || '',
       }));
+      list.sort((a, b) => a.name.localeCompare(b.name));
       const fullList = [{ id: 'all', name: 'Tất cả tòa nhà (Dịch vụ chung)' }, ...list];
       setBuildings(fullList);
       if (!serviceId) {
@@ -117,6 +120,7 @@ export const CreateService: React.FC = () => {
 
     try {
       setSaving(true);
+      const uid = auth.currentUser?.uid || 'system';
       const serviceData = {
         name: serviceName.trim(),
         buildingId: selectedBuilding.id,
@@ -124,6 +128,7 @@ export const CreateService: React.FC = () => {
         calcMethod,
         unit: unit.trim() || (calcMethod === 'Theo người' ? 'người' : calcMethod === 'Theo chỉ số đồng hồ' ? 'chỉ số' : 'tháng'),
         unitPrice: Number(unitPrice),
+        ownerId: uid,
       };
 
       if (serviceId) {
@@ -135,7 +140,7 @@ export const CreateService: React.FC = () => {
         const newDoc = {
           ...serviceData,
           createdAt: new Date(),
-          createdBy: auth.currentUser?.uid || 'system',
+          createdBy: uid,
         };
         await addDoc(collection(db, 'services'), newDoc);
         Alert.alert('Thành công', `Đã thêm cấu hình dịch vụ ${serviceName.trim()} thành công!`);

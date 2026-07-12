@@ -87,7 +87,8 @@ export const CreateBuilding: React.FC = () => {
         ward: selectedWard,
         detailAddress: detailAddress.trim(),
         createdAt: new Date(),
-        createdBy: auth.currentUser?.uid || 'system'
+        createdBy: auth.currentUser?.uid || 'system',
+        ownerId: auth.currentUser?.uid || 'system',
       });
       Alert.alert('Thành công', 'Đã thêm nhà thành công!');
       navigation.goBack();
