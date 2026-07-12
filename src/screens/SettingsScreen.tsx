@@ -23,11 +23,14 @@ export const SettingsScreen: React.FC = () => {
     try {
       setLoading(true);
       const uid = auth.currentUser?.uid || 'mock-admin-uid';
+      console.log('[Firestore Settings] Loading profile for UID:', uid);
       const docRef = doc(db, 'admins', uid);
       const docSnap = await getDoc(docRef);
       if (docSnap.exists()) {
+        console.log('[Firestore Settings] Profile data loaded:', docSnap.data());
         setProfile(docSnap.data());
       } else {
+        console.log('[Firestore Settings] Document does not exist. Creating default profile...');
         const defaultProfile = {
           name: auth.currentUser?.displayName || auth.currentUser?.email?.split('@')[0] || 'Admin',
           phone: auth.currentUser?.phoneNumber || 'Chưa cập nhật',
@@ -39,7 +42,7 @@ export const SettingsScreen: React.FC = () => {
         setProfile(defaultProfile);
       }
     } catch (error) {
-      console.error('Error loading profile:', error);
+      console.error('[Firestore Settings] Error loading profile:', error);
     } finally {
       setLoading(false);
     }

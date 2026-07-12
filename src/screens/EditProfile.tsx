@@ -50,12 +50,16 @@ export const EditProfile: React.FC = () => {
     try {
       setSaving(true);
       const uid = auth.currentUser?.uid || 'mock-admin-uid';
+      console.log('[Firestore EditProfile] Saving profile for UID:', uid);
       const docRef = doc(db, 'admins', uid);
-      await setDoc(docRef, { name, phone, dob, city, cccd }, { merge: true });
+      const profileData = { name, phone, dob, city, cccd };
+      console.log('[Firestore EditProfile] Saving data:', profileData);
+      await setDoc(docRef, profileData, { merge: true });
+      console.log('[Firestore EditProfile] Saved successfully!');
       Alert.alert('Thành công', 'Lưu thông tin thành công!');
       navigation.goBack();
     } catch (error) {
-      console.error('Error saving profile:', error);
+      console.error('[Firestore EditProfile] Error saving profile:', error);
       Alert.alert('Lỗi', 'Không thể lưu thông tin cá nhân.');
     } finally {
       setSaving(false);
