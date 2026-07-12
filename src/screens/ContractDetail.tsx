@@ -56,21 +56,16 @@ export const ContractDetail: React.FC = () => {
 
   const [contract, setContract] = React.useState<ContractData | null>(null);
   const [tenant, setTenant] = React.useState<TenantData | null>(null);
-  const [room, setRoom] = React.useState<RoomData | null>(null);
-  const [admin, setAdmin] = React.useState<any>(null);
-  const [devices, setDevices] = React.useState<any[]>([]);
+  
+  const roomRef = React.useRef<RoomData | null>(null);
+  const adminRef = React.useRef<any>(null);
+  const devicesRef = React.useRef<any[]>([]);
 
   const [loading, setLoading] = React.useState(true);
   const [generatingPdf, setGeneratingPdf] = React.useState(false);
   const [updatingStatus, setUpdatingStatus] = React.useState(false);
 
-  React.useEffect(() => {
-    if (isFocused && contractId) {
-      fetchContractDetail();
-    }
-  }, [isFocused, contractId]);
-
-  const fetchContractDetail = async () => {
+  const fetchContractDetail = React.useCallback(async () => {
     try {
       setLoading(true);
 
@@ -104,7 +99,7 @@ export const ContractDetail: React.FC = () => {
       if (cData.roomId) {
         const rSnap = await getDoc(doc(db, 'rooms', cData.roomId));
         if (rSnap.exists()) {
-          setRoom(rSnap.data() as RoomData);
+          roomRef.current = rSnap.data() as RoomData;
         }
       }
 
@@ -114,7 +109,7 @@ export const ContractDetail: React.FC = () => {
           query(collection(db, 'devices'), where('buildingId', '==', cData.buildingId))
         );
         const dList = dSnap.docs.map(doc => doc.data());
-        setDevices(dList);
+        devicesRef.current = dList;
       }
 
       // 5. Fetch Admin Profile (Bên A)
@@ -122,7 +117,7 @@ export const ContractDetail: React.FC = () => {
       if (uid) {
         const aSnap = await getDoc(doc(db, 'admins', uid));
         if (aSnap.exists()) {
-          setAdmin(aSnap.data());
+          adminRef.current = aSnap.data();
         }
       }
 
@@ -132,7 +127,13 @@ export const ContractDetail: React.FC = () => {
     } finally {
       setLoading(false);
     }
-  };
+  }, [contractId, navigation]);
+
+  React.useEffect(() => {
+    if (isFocused && contractId) {
+      fetchContractDetail();
+    }
+  }, [isFocused, contractId, fetchContractDetail]);
 
   const handleUpdateStatus = async (newStatus: 'active' | 'expired' | 'pending') => {
     if (!contract) return;
@@ -156,13 +157,13 @@ export const ContractDetail: React.FC = () => {
       setGeneratingPdf(true);
 
       const ngayKy = contract.startDate ? contract.startDate.split('/') : ['', '', ''];
-      const benAName = admin?.name || 'Nguyễn Văn Admin';
-      const benAPhone = admin?.phone || '0901234567';
-      const benADob = admin?.dob || '........................';
-      const benACccd = admin?.cccd || '079090001234';
-      const benAAddress = admin?.city || '123 Đường Số 1, Phường 2, Quận 3, TP. Hồ Chí Minh';
-      const benABankAccount = admin?.bankAccount?.accountNumber || '1903456789999';
-      const benABankName = admin?.bankAccount?.bankName || 'Techcombank';
+      const benAName = adminRef.current?.name || 'Nguyễn Văn Admin';
+      const benAPhone = adminRef.current?.phone || '0901234567';
+      const benADob = adminRef.current?.dob || '........................';
+      const benACccd = adminRef.current?.cccd || '079090001234';
+      const benAAddress = adminRef.current?.city || '123 Đường Số 1, Phường 2, Quận 3, TP. Hồ Chí Minh';
+      const benABankAccount = adminRef.current?.bankAccount?.accountNumber || '1903456789999';
+      const benABankName = adminRef.current?.bankAccount?.bankName || 'Techcombank';
 
       const benBName = tenant?.fullName || contract.tenantName;
       const benBPhone = tenant?.phoneNumber || contract.phoneNumber;
@@ -170,8 +171,8 @@ export const ContractDetail: React.FC = () => {
       const benBDob = tenant?.dob || '........................';
       const benBAddress = [tenant?.detailAddress, tenant?.ward, tenant?.province].filter(Boolean).join(', ') || contract.addressNote || '........................';
 
-      const roomsSpecTableRows = devices.length > 0
-        ? devices.map((d, index) => `
+      const roomsSpecTableRows = devicesRef.current.length > 0
+        ? devicesRef.current.map((d, index) => `
             <tr>
               <td style="text-align: center; border: 1px solid black; padding: 6px;">${index + 1}</td>
               <td style="border: 1px solid black; padding: 6px;">${d.name}</td>
@@ -251,7 +252,7 @@ export const ContractDetail: React.FC = () => {
 
           <p><span class="bold">Điều 1. Đối tượng thuê</span></p>
           <p>Bên A đồng ý cho Bên B thuê phòng trọ tại địa chỉ: <span class="bold">${contract.buildingName || '……………………………………………'}</span></p>
-          <p>Thông tin phòng thuê: Số phòng: <span class="bold">${contract.roomCode || '……'}</span> • Diện tích sàn chính: <span class="bold">${room?.area || '……m²'}</span></p>
+          <p>Thông tin phòng thuê: Số phòng: <span class="bold">${contract.roomCode || '……'}</span> • Diện tích sàn chính: <span class="bold">${roomRef.current?.area || '……m²'}</span></p>
           <p>Mục đích thuê: để ở, không sử dụng làm kho chứa hàng, kinh doanh trái phép, sản xuất gây cháy nổ hoặc mục đích khác trái pháp luật.</p>
 
           <p><span class="bold">Điều 2. Trang thiết bị và nội thất bàn giao</span></p>
