@@ -7,7 +7,8 @@ import { useNavigation, useIsFocused } from '@react-navigation/native';
 import { MaterialIcons } from '@expo/vector-icons';
 import { theme } from '../theme';
 import { collection, getDocs, doc, updateDoc, addDoc, query, orderBy, deleteDoc, where } from 'firebase/firestore';
-import { db, auth } from '../firebase';
+import { db, auth, functions } from '../firebase';
+import { httpsCallable } from 'firebase/functions';
 
 interface SupportRequest {
   id: string;
@@ -36,6 +37,25 @@ export const SupportRequests: React.FC = () => {
   const [newBuilding, setNewBuilding] = React.useState('');
   const [newLevel, setNewLevel] = React.useState<'emergency' | 'normal'>('normal');
   const [creating, setCreating] = React.useState(false);
+
+  // AI ticket analysis states
+  const [aiAnalysis, setAiAnalysis] = React.useState<Record<string, any>>({});
+  const [analyzingIds, setAnalyzingIds] = React.useState<Record<string, boolean>>({});
+
+  const handleAnalyzeTicket = async (id: string) => {
+    try {
+      setAnalyzingIds(prev => ({ ...prev, [id]: true }));
+      const processTicket = httpsCallable(functions, 'processSupportRequest');
+      const res = await processTicket({ ticketId: id });
+      const resData = res.data as any;
+      setAiAnalysis(prev => ({ ...prev, [id]: resData }));
+    } catch (err) {
+      console.error('Error analyzing ticket:', err);
+      Alert.alert('Lỗi', 'Không thể kết nối dịch vụ AI phân tích phản ánh.');
+    } finally {
+      setAnalyzingIds(prev => ({ ...prev, [id]: false }));
+    }
+  };
 
   React.useEffect(() => {
     if (isFocused) {
@@ -227,6 +247,46 @@ export const SupportRequests: React.FC = () => {
                 <Text style={styles.requestTitle}>{req.title}</Text>
                 <Text style={styles.requestDesc}>{req.description}</Text>
                 
+                {req.status === 'pending' && (
+                  <View style={{ marginTop: 8, marginBottom: 12 }}>
+                    {!aiAnalysis[req.id] ? (
+                      <Pressable 
+                        style={styles.aiAssistBtn}
+                        onPress={() => handleAnalyzeTicket(req.id)}
+                        disabled={analyzingIds[req.id]}
+                      >
+                        {analyzingIds[req.id] ? (
+                          <ActivityIndicator size="small" color={theme.colors.primary} />
+                        ) : (
+                          <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
+                            <MaterialIcons name="auto-awesome" size={16} color={theme.colors.primary} />
+                            <Text style={styles.aiAssistText}>Phân tích & Đề xuất AI</Text>
+                          </View>
+                        )}
+                      </Pressable>
+                    ) : (
+                      <View style={styles.aiAnalysisPanel}>
+                        <View style={styles.aiAnalysisHeader}>
+                          <MaterialIcons name="auto-awesome" size={16} color={theme.colors.primary} />
+                          <Text style={styles.aiAnalysisTitle}>Đề xuất từ AI</Text>
+                        </View>
+                        <View style={{ gap: 6, marginTop: 8 }}>
+                          <Text style={styles.aiAnalysisLabel}>
+                            Phân loại: <Text style={{ fontWeight: 'normal', color: '#1e293b' }}>{aiAnalysis[req.id].category || 'Khác'}</Text>
+                          </Text>
+                          <Text style={styles.aiAnalysisLabel}>
+                            Hành động đề xuất: <Text style={{ fontWeight: 'normal', color: '#1e293b' }}>{aiAnalysis[req.id].suggestedAction}</Text>
+                          </Text>
+                          <View style={styles.aiDraftBox}>
+                            <Text style={styles.aiDraftTitle}>Tin nhắn gợi ý phản hồi:</Text>
+                            <Text style={styles.aiDraftText}>{aiAnalysis[req.id].suggestedReply}</Text>
+                          </View>
+                        </View>
+                      </View>
+                    )}
+                  </View>
+                )}
+
                 {req.status === 'pending' && (
                   <View style={styles.cardActions}>
                     <Pressable 
@@ -573,6 +633,66 @@ const styles = StyleSheet.create({
     color: '#fff',
     fontSize: 15,
     fontWeight: 'bold',
+  },
+  aiAssistBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 6,
+    borderWidth: 1,
+    borderColor: '#bfdbfe',
+    borderRadius: theme.borderRadius.xl,
+    paddingVertical: 8,
+    backgroundColor: '#eff6ff',
+  },
+  aiAssistText: {
+    fontSize: 12,
+    fontWeight: 'bold',
+    color: theme.colors.primary,
+  },
+  aiAnalysisPanel: {
+    backgroundColor: '#f8fafc',
+    borderRadius: theme.borderRadius.xl,
+    borderWidth: 1,
+    borderColor: '#e2e8f0',
+    padding: 12,
+  },
+  aiAnalysisHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    borderBottomWidth: 1,
+    borderBottomColor: '#f1f5f9',
+    paddingBottom: 6,
+  },
+  aiAnalysisTitle: {
+    fontSize: 13,
+    fontWeight: 'bold',
+    color: '#0f172a',
+  },
+  aiAnalysisLabel: {
+    fontSize: 12,
+    fontWeight: 'bold',
+    color: '#475569',
+  },
+  aiDraftBox: {
+    backgroundColor: '#ffffff',
+    borderWidth: 1,
+    borderColor: '#e2e8f0',
+    borderRadius: theme.borderRadius.lg,
+    padding: 8,
+    marginTop: 4,
+  },
+  aiDraftTitle: {
+    fontSize: 11,
+    fontWeight: 'bold',
+    color: '#64748b',
+    marginBottom: 4,
+  },
+  aiDraftText: {
+    fontSize: 12,
+    color: '#334155',
+    lineHeight: 16,
   },
 });
 
