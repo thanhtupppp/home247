@@ -93,22 +93,9 @@ export const LoginScreen: React.FC = () => {
             </Pressable>
           </View>
 
-          {/* Forgot Password */}
-          <Pressable style={styles.forgotBtn} onPress={() => {}}>
-            <Text style={styles.forgotText}>Quên mật khẩu?</Text>
-          </Pressable>
-
           {/* Login Button */}
-          <Pressable style={styles.loginBtn} onPress={handleLogin}>
+          <Pressable style={[styles.loginBtn, { marginTop: 24 }]} onPress={handleLogin}>
             <Text style={styles.loginBtnText}>Đăng nhập</Text>
-          </Pressable>
-        </View>
-
-        {/* Footer */}
-        <View style={styles.footer}>
-          <Text style={styles.footerText}>Chưa có tài khoản? </Text>
-          <Pressable onPress={() => {}}>
-            <Text style={styles.signUpText}>Đăng ký ngay</Text>
           </Pressable>
         </View>
       </ScrollView>
@@ -177,16 +164,6 @@ const styles = StyleSheet.create({
     fontSize: 15,
     color: theme.colors.onSurface,
   },
-  forgotBtn: {
-    alignSelf: 'flex-end',
-    marginTop: 8,
-    marginBottom: 24,
-  },
-  forgotText: {
-    fontSize: 13,
-    color: theme.colors.primaryContainer,
-    fontWeight: 'bold',
-  },
   loginBtn: {
     alignItems: 'center',
     justifyContent: 'center',
@@ -197,22 +174,6 @@ const styles = StyleSheet.create({
   loginBtnText: {
     ...theme.typography.bodyLg,
     color: theme.colors.onPrimary,
-    fontWeight: 'bold',
-  },
-  footer: {
-    flexDirection: 'row',
-    justifyContent: 'center',
-    alignItems: 'center',
-    marginTop: 32,
-    marginBottom: 40,
-  },
-  footerText: {
-    fontSize: 14,
-    color: theme.colors.onSurfaceVariant,
-  },
-  signUpText: {
-    fontSize: 14,
-    color: theme.colors.primaryContainer,
     fontWeight: 'bold',
   },
 });
