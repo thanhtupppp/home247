@@ -1,5 +1,5 @@
 import React from 'react';
-import { View, Text, StyleSheet, ScrollView, Pressable, Modal, ActivityIndicator, Image, Alert } from 'react-native';
+import { View, Text, StyleSheet, ScrollView, Pressable, Modal, ActivityIndicator, Alert } from 'react-native';
 import { useNavigation, useIsFocused } from '@react-navigation/native';
 import { MaterialIcons } from '@expo/vector-icons';
 import { theme } from '../theme';
@@ -7,6 +7,7 @@ import { doc, getDoc, setDoc, updateDoc } from 'firebase/firestore';
 import { ref, deleteObject } from 'firebase/storage';
 import { db, auth, storage } from '../firebase';
 import * as ImagePicker from 'expo-image-picker';
+import { Image } from 'expo-image';
 
 export const SettingsScreen: React.FC = () => {
   const navigation = useNavigation<any>();
