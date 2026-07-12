@@ -1,10 +1,12 @@
 import React from 'react';
-import { View, Text, StyleSheet, ScrollView, Pressable, Modal, ActivityIndicator } from 'react-native';
+import { View, Text, StyleSheet, ScrollView, Pressable, Modal, ActivityIndicator, Image, Alert } from 'react-native';
 import { useNavigation, useIsFocused } from '@react-navigation/native';
 import { MaterialIcons } from '@expo/vector-icons';
 import { theme } from '../theme';
-import { doc, getDoc, setDoc } from 'firebase/firestore';
-import { db, auth } from '../firebase';
+import { doc, getDoc, setDoc, updateDoc } from 'firebase/firestore';
+import { ref, uploadBytes, getDownloadURL, deleteObject } from 'firebase/storage';
+import { db, auth, storage } from '../firebase';
+import * as ImagePicker from 'expo-image-picker';
 
 export const SettingsScreen: React.FC = () => {
   const navigation = useNavigation<any>();
@@ -12,6 +14,128 @@ export const SettingsScreen: React.FC = () => {
   const [showBottomSheet, setShowBottomSheet] = React.useState(false);
   const [profile, setProfile] = React.useState<any>(null);
   const [loading, setLoading] = React.useState(true);
+  const [uploading, setUploading] = React.useState(false);
+
+  const pickImage = async () => {
+    setShowBottomSheet(false);
+    try {
+      const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
+      if (status !== 'granted') {
+        Alert.alert('Quyền truy cập', 'Ứng dụng cần quyền truy cập thư viện ảnh để cập nhật avatar!');
+        return;
+      }
+      let result = await ImagePicker.launchImageLibraryAsync({
+        mediaTypes: ImagePicker.MediaTypeOptions.Images,
+        allowsEditing: true,
+        aspect: [1, 1],
+        quality: 0.5,
+      });
+      if (!result.canceled && result.assets && result.assets.length > 0) {
+        await uploadAvatar(result.assets[0].uri);
+      }
+    } catch (error) {
+      console.error('[ImagePicker Gallery] Error:', error);
+      Alert.alert('Lỗi', 'Không thể chọn ảnh từ thư viện.');
+    }
+  };
+
+  const takePhoto = async () => {
+    setShowBottomSheet(false);
+    try {
+      const { status } = await ImagePicker.requestCameraPermissionsAsync();
+      if (status !== 'granted') {
+        Alert.alert('Quyền truy cập', 'Ứng dụng cần quyền truy cập camera để chụp ảnh đại diện!');
+        return;
+      }
+      let result = await ImagePicker.launchCameraAsync({
+        allowsEditing: true,
+        aspect: [1, 1],
+        quality: 0.5,
+      });
+      if (!result.canceled && result.assets && result.assets.length > 0) {
+        await uploadAvatar(result.assets[0].uri);
+      }
+    } catch (error) {
+      console.error('[ImagePicker Camera] Error:', error);
+      Alert.alert('Lỗi', 'Không thể chụp ảnh.');
+    }
+  };
+
+  const uploadAvatar = async (uri: string) => {
+    try {
+      setUploading(true);
+      const uid = auth.currentUser?.uid || 'mock-admin-uid';
+      console.log('[Storage Avatar] Uploading image for UID:', uid, 'URI:', uri);
+      
+      // Fetch local file and convert to blob
+      const response = await fetch(uri);
+      const blob = await response.blob();
+      
+      // Upload to Firebase Storage
+      const fileRef = ref(storage, `avatars/${uid}.jpg`);
+      await uploadBytes(fileRef, blob);
+      
+      // Get download URL
+      const downloadUrl = await getDownloadURL(fileRef);
+      console.log('[Storage Avatar] Upload success. URL:', downloadUrl);
+      
+      // Update Firestore
+      const docRef = doc(db, 'admins', uid);
+      await updateDoc(docRef, { avatarUrl: downloadUrl });
+      
+      // Update local state
+      setProfile((prev: any) => ({ ...prev, avatarUrl: downloadUrl }));
+      Alert.alert('Thành công', 'Cập nhật ảnh đại diện thành công!');
+    } catch (error) {
+      console.error('[Storage Avatar] Error uploading:', error);
+      Alert.alert('Lỗi', 'Không thể tải ảnh lên máy chủ.');
+    } finally {
+      setUploading(false);
+    }
+  };
+
+  const deleteAvatar = async () => {
+    setShowBottomSheet(false);
+    if (!profile?.avatarUrl) return;
+    
+    Alert.alert(
+      'Gỡ ảnh đại diện',
+      'Bạn có chắc chắn muốn gỡ ảnh đại diện hiện tại?',
+      [
+        { text: 'Hủy', style: 'cancel' },
+        {
+          text: 'Gỡ',
+          style: 'destructive',
+          onPress: async () => {
+            try {
+              setUploading(true);
+              const uid = auth.currentUser?.uid || 'mock-admin-uid';
+              console.log('[Storage Avatar] Deleting avatar for UID:', uid);
+              
+              // Delete from Storage
+              const fileRef = ref(storage, `avatars/${uid}.jpg`);
+              await deleteObject(fileRef).catch(err => {
+                console.log('[Storage Avatar] File did not exist or delete failed, proceeding to update DB:', err.message);
+              });
+              
+              // Update Firestore
+              const docRef = doc(db, 'admins', uid);
+              await updateDoc(docRef, { avatarUrl: null });
+              
+              // Update local state
+              setProfile((prev: any) => ({ ...prev, avatarUrl: null }));
+              Alert.alert('Thành công', 'Đã gỡ ảnh đại diện.');
+            } catch (error) {
+              console.error('[Storage Avatar] Error deleting:', error);
+              Alert.alert('Lỗi', 'Không thể gỡ ảnh đại diện.');
+            } finally {
+              setUploading(false);
+            }
+          }
+        }
+      ]
+    );
+  };
 
   React.useEffect(() => {
     if (isFocused) {
@@ -94,9 +218,15 @@ export const SettingsScreen: React.FC = () => {
         <View style={styles.profileCard}>
           <View style={styles.avatarContainer}>
             <View style={styles.avatarCircle}>
-              <MaterialIcons name="person" size={54} color="#cbd5e1" />
+              {uploading ? (
+                <ActivityIndicator size="small" color={theme.colors.primary} />
+              ) : profile?.avatarUrl ? (
+                <Image source={{ uri: profile.avatarUrl }} style={styles.avatarImage} />
+              ) : (
+                <MaterialIcons name="person" size={54} color="#cbd5e1" />
+              )}
             </View>
-            <Pressable style={styles.cameraOverlay} onPress={() => setShowBottomSheet(true)}>
+            <Pressable style={styles.cameraOverlay} onPress={() => setShowBottomSheet(true)} disabled={uploading}>
               <MaterialIcons name="photo-camera" size={16} color="#ffffff" />
             </Pressable>
           </View>
@@ -177,7 +307,7 @@ export const SettingsScreen: React.FC = () => {
           <View style={styles.modalContent}>
             <View style={styles.sheetHandle} />
             
-            <Pressable style={styles.sheetItem} onPress={() => setShowBottomSheet(false)}>
+            <Pressable style={styles.sheetItem} onPress={takePhoto}>
               <View style={styles.sheetItemLeft}>
                 <View style={styles.sheetIconCircle}>
                   <MaterialIcons name="photo-camera" size={20} color="#3b82f6" />
@@ -190,7 +320,7 @@ export const SettingsScreen: React.FC = () => {
               <MaterialIcons name="keyboard-arrow-right" size={24} color="#94a3b8" />
             </Pressable>
 
-            <Pressable style={styles.sheetItem} onPress={() => setShowBottomSheet(false)}>
+            <Pressable style={styles.sheetItem} onPress={pickImage}>
               <View style={styles.sheetItemLeft}>
                 <View style={styles.sheetIconCircle}>
                   <MaterialIcons name="image" size={20} color="#3b82f6" />
@@ -203,7 +333,11 @@ export const SettingsScreen: React.FC = () => {
               <MaterialIcons name="keyboard-arrow-right" size={24} color="#94a3b8" />
             </Pressable>
 
-            <Pressable style={styles.sheetItem} onPress={() => setShowBottomSheet(false)}>
+            <Pressable 
+              style={[styles.sheetItem, !profile?.avatarUrl && { opacity: 0.5 }]} 
+              onPress={deleteAvatar}
+              disabled={!profile?.avatarUrl}
+            >
               <View style={styles.sheetItemLeft}>
                 <View style={[styles.sheetIconCircle, { backgroundColor: '#fef2f2' }]}>
                   <MaterialIcons name="delete-outline" size={20} color="#ef4444" />
@@ -275,6 +409,11 @@ const styles = StyleSheet.create({
     backgroundColor: '#eff6ff',
     alignItems: 'center',
     justifyContent: 'center',
+  },
+  avatarImage: {
+    width: 90,
+    height: 90,
+    borderRadius: 45,
   },
   cameraOverlay: {
     position: 'absolute',
