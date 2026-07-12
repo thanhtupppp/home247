@@ -1,18 +1,53 @@
 import React from 'react';
-import { View, Text, StyleSheet, ScrollView, Pressable } from 'react-native';
-import { useNavigation } from '@react-navigation/native';
+import { View, Text, StyleSheet, ScrollView, Pressable, ActivityIndicator } from 'react-native';
+import { useNavigation, useIsFocused } from '@react-navigation/native';
 import { MaterialIcons } from '@expo/vector-icons';
 import { theme } from '../theme';
 import { mockRooms } from '../data/mockData';
+import { collection, query, where, getDocs } from 'firebase/firestore';
+import { db } from '../firebase';
+
+const MONTHS = ['2026', '09/2026', '10/2026', '11/2026', '12/2026'];
+const BUILDINGS = ['nơ trang long', 'Home247 Landmark', 'Home247 Riverside'];
 
 export const UtilityManagement: React.FC = () => {
   const navigation = useNavigation<any>();
+  const isFocused = useIsFocused();
   const [selectedMonth, setSelectedMonth] = React.useState('10/2026');
   const [selectedBuilding, setSelectedBuilding] = React.useState('nơ trang long');
   const [showBuildingDropdown, setShowBuildingDropdown] = React.useState(false);
+  const [recordedRooms, setRecordedRooms] = React.useState<string[]>([]);
+  const [loading, setLoading] = React.useState(false);
 
-  const months = ['2026', '09/2026', '10/2026', '11/2026', '12/2026'];
-  const buildings = ['nơ trang long', 'Home247 Landmark', 'Home247 Riverside'];
+  React.useEffect(() => {
+    if (isFocused) {
+      loadRecordedRooms();
+    }
+  }, [isFocused, selectedBuilding, selectedMonth]);
+
+  const loadRecordedRooms = async () => {
+    try {
+      setLoading(true);
+      const q = query(
+        collection(db, 'utilityReadings'),
+        where('building', '==', selectedBuilding),
+        where('month', '==', selectedMonth)
+      );
+      const querySnapshot = await getDocs(q);
+      const rooms: string[] = [];
+      querySnapshot.forEach((doc) => {
+        const data = doc.data();
+        if (data.room) {
+          rooms.push(data.room);
+        }
+      });
+      setRecordedRooms(rooms);
+    } catch (error) {
+      console.error('Error loading recorded utility rooms:', error);
+    } finally {
+      setLoading(false);
+    }
+  };
 
   return (
     <View style={styles.container}>
@@ -28,7 +63,7 @@ export const UtilityManagement: React.FC = () => {
       {/* Months Selector */}
       <View style={styles.monthsContainer}>
         <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.monthsScroll}>
-          {months.map((month) => {
+          {MONTHS.map((month) => {
             const isActive = selectedMonth === month;
             return (
               <Pressable key={month} onPress={() => setSelectedMonth(month)} style={styles.monthItem}>
@@ -58,7 +93,7 @@ export const UtilityManagement: React.FC = () => {
 
         {showBuildingDropdown && (
           <View style={styles.dropdown}>
-            {buildings.map((building) => (
+            {BUILDINGS.map((building) => (
               <Pressable
                 key={building}
                 style={styles.dropdownItem}
@@ -75,35 +110,41 @@ export const UtilityManagement: React.FC = () => {
 
         {/* Progress List */}
         <Text style={styles.sectionTitle}>Tiến độ tháng này</Text>
-        <ScrollView style={styles.roomsList} showsVerticalScrollIndicator={false}>
-          {mockRooms.map((room) => {
-            const isRecorded = room.code === 'P.101' || room.code === 'P.201';
-            return (
-              <Pressable 
-                key={room.id} 
-                style={styles.roomItem}
-                onPress={() => navigation.navigate('dien-nuoc/ghi', { building: selectedBuilding, room: room.code })}
-              >
-                <View style={styles.roomLeft}>
-                  <View style={[styles.statusDot, { backgroundColor: isRecorded ? '#10b981' : '#a1a1aa' }]} />
-                  <Text style={styles.roomCode}>{room.code}</Text>
-                </View>
-                <View style={[styles.statusBadge, { backgroundColor: isRecorded ? '#e6f4ea' : '#f1f5f9' }]}>
-                  <Text style={[styles.statusBadgeText, { color: isRecorded ? '#137333' : '#475569' }]}>
-                    {isRecorded ? 'Đã ghi' : 'Chưa ghi'}
-                  </Text>
-                </View>
-              </Pressable>
-            );
-          })}
-        </ScrollView>
+        {loading ? (
+          <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center' }}>
+            <ActivityIndicator size="large" color={theme.colors.primary} />
+          </View>
+        ) : (
+          <ScrollView style={styles.roomsList} showsVerticalScrollIndicator={false}>
+            {mockRooms.map((room) => {
+              const isRecorded = recordedRooms.includes(room.code);
+              return (
+                <Pressable 
+                  key={room.id} 
+                  style={styles.roomItem}
+                  onPress={() => navigation.navigate('dien-nuoc/ghi', { building: selectedBuilding, room: room.code, month: selectedMonth })}
+                >
+                  <View style={styles.roomLeft}>
+                    <View style={[styles.statusDot, { backgroundColor: isRecorded ? '#10b981' : '#a1a1aa' }]} />
+                    <Text style={styles.roomCode}>{room.code}</Text>
+                  </View>
+                  <View style={[styles.statusBadge, { backgroundColor: isRecorded ? '#e6f4ea' : '#f1f5f9' }]}>
+                    <Text style={[styles.statusBadgeText, { color: isRecorded ? '#137333' : '#475569' }]}>
+                      {isRecorded ? 'Đã ghi' : 'Chưa ghi'}
+                    </Text>
+                  </View>
+                </Pressable>
+              );
+            })}
+          </ScrollView>
+        )}
       </View>
 
       {/* Bottom Button */}
       <View style={styles.bottomBar}>
         <Pressable 
           style={styles.actionBtn}
-          onPress={() => navigation.navigate('dien-nuoc/ghi', { building: selectedBuilding })}
+          onPress={() => navigation.navigate('dien-nuoc/ghi', { building: selectedBuilding, month: selectedMonth })}
         >
           <MaterialIcons name="add" size={24} color={theme.colors.onPrimary} />
           <Text style={styles.actionBtnText}>Ghi điện nước</Text>
