@@ -7,7 +7,7 @@ import { useNavigation, useIsFocused } from '@react-navigation/native';
 import { MaterialIcons } from '@expo/vector-icons';
 import { theme } from '../theme';
 import { collection, getDocs, query, where, orderBy, limit } from 'firebase/firestore';
-import { db } from '../firebase';
+import { db, auth } from '../firebase';
 
 interface SystemNotification {
   id: string;
@@ -36,29 +36,47 @@ export const NotificationsScreen: React.FC = () => {
   const loadNotifications = async (isRefresh = false) => {
     try {
       isRefresh ? setRefreshing(true) : setLoading(true);
+      const uid = auth.currentUser?.uid;
+      if (!uid) return;
+      
       const list: SystemNotification[] = [];
 
-      // 1. Unpaid Invoices
+      // 1. Unpaid & Overdue Invoices
       const unpaidSnap = await getDocs(
-        query(collection(db, 'invoices'), where('status', '==', 'pending'))
+        query(collection(db, 'invoices'), where('ownerId', '==', uid), where('status', '==', 'pending'))
       );
+      const today = new Date();
       unpaidSnap.forEach(d => {
         const data = d.data();
         const amt = Number(data.amount) || 0;
-        list.push({
-          id: `inv_${d.id}`,
-          type: 'error',
-          title: `Hóa đơn trễ hạn - Phòng ${data.roomCode}`,
-          description: `Khách thuê ${data.tenantName} chưa thanh toán hóa đơn tháng ${data.month}. Số tiền: ${amt.toLocaleString('vi-VN')} đ`,
-          timestamp: 'Cần thu tiền',
-          targetRoute: 'Invoices',
-          icon: 'report-problem'
-        });
+        const isOverdue = data.dueDate ? data.dueDate.toDate() < today : false;
+        
+        if (isOverdue) {
+          list.push({
+            id: `inv_${d.id}`,
+            type: 'error',
+            title: `Hóa đơn trễ hạn - Phòng ${data.roomCode}`,
+            description: `Khách thuê ${data.tenantName} chưa thanh toán hóa đơn tháng ${data.month}. Số tiền: ${amt.toLocaleString('vi-VN')} đ`,
+            timestamp: 'Quá hạn thanh toán',
+            targetRoute: 'Invoices',
+            icon: 'report-problem'
+          });
+        } else {
+          list.push({
+            id: `inv_${d.id}`,
+            type: 'info',
+            title: `Hóa đơn chờ thanh toán - Phòng ${data.roomCode}`,
+            description: `Hóa đơn dịch vụ tháng ${data.month} của cư dân ${data.tenantName}. Số tiền: ${amt.toLocaleString('vi-VN')} đ`,
+            timestamp: 'Chờ thanh toán',
+            targetRoute: 'Invoices',
+            icon: 'payment'
+          });
+        }
       });
 
       // 2. Pending Support Tickets (Emergency & Normal)
       const supportSnap = await getDocs(
-        query(collection(db, 'supportRequests'), where('status', '==', 'pending'))
+        query(collection(db, 'supportRequests'), where('ownerId', '==', uid), where('status', '==', 'pending'))
       );
       supportSnap.forEach(d => {
         const data = d.data();
@@ -75,9 +93,8 @@ export const NotificationsScreen: React.FC = () => {
 
       // 3. Expiring Contracts
       const contractsSnap = await getDocs(
-        query(collection(db, 'contracts'), where('status', '==', 'active'))
+        query(collection(db, 'contracts'), where('ownerId', '==', uid), where('status', '==', 'active'))
       );
-      const today = new Date();
       contractsSnap.forEach(d => {
         const data = d.data();
         if (data.endDate) {
@@ -93,7 +110,7 @@ export const NotificationsScreen: React.FC = () => {
                 title: `Hợp đồng sắp hết hạn - Phòng ${data.roomCode}`,
                 description: `Cư dân ${data.tenantName} hết hạn sau ${diffDays} ngày nữa (${data.endDate}).`,
                 timestamp: 'Cần gia hạn',
-                targetRoute: 'hop-dong',
+                targetRoute: 'Contracts',
                 icon: 'lock-clock'
               });
             }
