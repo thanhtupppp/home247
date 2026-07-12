@@ -4,7 +4,7 @@ import { useNavigation, useIsFocused } from '@react-navigation/native';
 import { MaterialIcons } from '@expo/vector-icons';
 import { theme } from '../theme';
 import { collection, getDocs, query, where } from 'firebase/firestore';
-import { db } from '../firebase';
+import { db, auth } from '../firebase';
 
 export const TenantsManagement: React.FC = () => {
   const navigation = useNavigation<any>();
@@ -23,16 +23,18 @@ export const TenantsManagement: React.FC = () => {
   const fetchApprovalCounts = async () => {
     try {
       setLoading(true);
+      const uid = auth.currentUser?.uid;
+      if (!uid) return;
       
       // 1. Fetch pending tenants
       const tenantsSnap = await getDocs(
-        query(collection(db, 'tenants'), where('status', '==', 'pending'))
+        query(collection(db, 'tenants'), where('ownerId', '==', uid), where('status', '==', 'pending'))
       );
       setPendingTenants(tenantsSnap.size);
 
       // 2. Fetch pending support requests / feedback
       const supportSnap = await getDocs(
-        query(collection(db, 'supportRequests'), where('status', '==', 'pending'))
+        query(collection(db, 'supportRequests'), where('ownerId', '==', uid), where('status', '==', 'pending'))
       );
       setPendingFeedback(supportSnap.size);
 
