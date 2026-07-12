@@ -1,5 +1,5 @@
 import React from 'react';
-import { ScrollView, View, Text, StyleSheet, Pressable, Image, ActivityIndicator } from 'react-native';
+import { ScrollView, View, Text, StyleSheet, Pressable, ActivityIndicator } from 'react-native';
 import { useNavigation, useIsFocused } from '@react-navigation/native';
 import { MaterialIcons } from '@expo/vector-icons';
 import BentoStatCard from '../components/BentoStatCard';
@@ -10,6 +10,7 @@ import { revenueHistory, emergencyAlerts, recentTransactions } from '../data/moc
 import { theme } from '../theme';
 import { doc, getDoc, getDocs, collection, query, where, orderBy, limit } from 'firebase/firestore';
 import { db, auth } from '../firebase';
+import { Image } from 'expo-image';
 
 export interface DashboardProps {
   readonly className?: string;
@@ -479,7 +480,7 @@ export const Dashboard: React.FC<DashboardProps> = () => {
                             {task.level === 'emergency' ? 'KHẨN CẤP' : 'THÔNG THƯỜNG'}
                           </Text>
                         </View>
-                        <Text style={{ fontSize: 11, color: '#94a3b8' }}>
+                        <Text style={{ fontSize: 12, color: '#94a3b8' }}>
                           Phòng {task.roomCode}
                         </Text>
                       </View>
