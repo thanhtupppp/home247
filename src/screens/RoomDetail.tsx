@@ -49,13 +49,7 @@ export const RoomDetail: React.FC = () => {
   const [updatingStatus, setUpdatingStatus] = React.useState(false);
   const [showStatusDropdown, setShowStatusDropdown] = React.useState(false);
 
-  React.useEffect(() => {
-    if (isFocused && roomId) {
-      fetchRoomDetails();
-    }
-  }, [isFocused, roomId]);
-
-  const fetchRoomDetails = async () => {
+  const fetchRoomDetails = React.useCallback(async () => {
     try {
       setLoading(true);
       
@@ -102,7 +96,13 @@ export const RoomDetail: React.FC = () => {
     } finally {
       setLoading(false);
     }
-  };
+  }, [roomId, navigation]);
+
+  React.useEffect(() => {
+    if (isFocused && roomId) {
+      fetchRoomDetails();
+    }
+  }, [isFocused, roomId, fetchRoomDetails]);
 
   const handleUpdateStatus = async (newStatus: 'empty' | 'occupied' | 'maintenance') => {
     if (!room) return;
