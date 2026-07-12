@@ -285,7 +285,11 @@ export const SettingsScreen: React.FC = () => {
           {profile?.bankAccount ? (
             <View style={styles.bankCard}>
               <View style={styles.bankCardHeader}>
-                <MaterialIcons name="account-balance" size={24} color={theme.colors.primary} />
+                {profile.bankAccount.logo ? (
+                  <Image source={{ uri: profile.bankAccount.logo }} style={styles.bankLogoImage} />
+                ) : (
+                  <MaterialIcons name="account-balance" size={24} color={theme.colors.primary} />
+                )}
                 <View style={styles.bankDetails}>
                   <Text style={styles.bankNameText}>{profile.bankAccount.bankName}</Text>
                   <Text style={styles.bankNumberText}>{profile.bankAccount.accountNumber}</Text>
@@ -573,6 +577,11 @@ const styles = StyleSheet.create({
   bankBranchText: {
     fontSize: 12,
     color: theme.colors.onSurfaceVariant,
+  },
+  bankLogoImage: {
+    width: 44,
+    height: 28,
+    resizeMode: 'contain',
   },
   modalOverlay: {
     flex: 1,
