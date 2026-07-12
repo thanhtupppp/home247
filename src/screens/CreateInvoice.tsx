@@ -6,7 +6,7 @@ import {
 import { useNavigation, useRoute } from '@react-navigation/native';
 import { MaterialIcons } from '@expo/vector-icons';
 import { theme } from '../theme';
-import { collection, addDoc, getDocs, query, where, orderBy } from 'firebase/firestore';
+import { collection, addDoc, getDocs, query, where, orderBy, doc, getDoc, Timestamp } from 'firebase/firestore';
 import { db, auth } from '../firebase';
 
 interface Building {
@@ -73,6 +73,17 @@ export const CreateInvoice: React.FC = () => {
       });
     }
     return MONTHS;
+  }, [selectedMonth]);
+
+  const parsedDates = React.useMemo(() => {
+    const parts = selectedMonth.split('/');
+    if (parts.length !== 2) return { start: '01/07/2026', end: '31/07/2026' };
+    const [mm, yyyy] = parts.map(Number);
+    const daysInMonth = new Date(yyyy, mm, 0).getDate();
+    return {
+      start: `01/${String(mm).padStart(2, '0')}/${yyyy}`,
+      end: `${String(daysInMonth).padStart(2, '0')}/${String(mm).padStart(2, '0')}/${yyyy}`,
+    };
   }, [selectedMonth]);
 
   // ── Fetch Methods ──────────────────────────────────────────────────────────
@@ -193,7 +204,175 @@ export const CreateInvoice: React.FC = () => {
 
     try {
       setSaving(true);
-      
+      const uid = auth.currentUser?.uid;
+      if (!uid) {
+        Alert.alert('Lỗi', 'Phiên đăng nhập đã hết hạn.');
+        setSaving(false);
+        return;
+      }
+
+      // 1. Check for duplicate invoices
+      const dupQuery = query(
+        collection(db, 'invoices'),
+        where('ownerId', '==', uid),
+        where('roomId', '==', selectedRoom.id),
+        where('month', '==', selectedMonth)
+      );
+      const dupSnap = await getDocs(dupQuery);
+      if (!dupSnap.empty) {
+        Alert.alert('Thông báo', `Phòng ${selectedRoom.code} đã có hóa đơn cho tháng ${selectedMonth} rồi.`);
+        setSaving(false);
+        return;
+      }
+
+      // 2. Fetch tenant count in room
+      const tenantQuery = query(
+        collection(db, 'tenants'),
+        where('ownerId', '==', uid),
+        where('roomId', '==', selectedRoom.id),
+        where('status', '==', 'active')
+      );
+      const tenantSnap = await getDocs(tenantQuery);
+      const tenantCount = Math.max(1, tenantSnap.size);
+
+      // 3. Fetch active services for building
+      const serviceQuery = query(
+        collection(db, 'services'),
+        where('ownerId', '==', uid)
+      );
+      const serviceSnap = await getDocs(serviceQuery);
+      const allServices = serviceSnap.docs.map(d => ({ id: d.id, ...d.data() }));
+      const buildingServices = allServices.filter((s: any) => s.buildingId === selectedBuilding.id || s.buildingId === 'all');
+
+      // 4. Fetch utility readings for selectedMonth
+      const period = selectedMonth.split('/').reverse().join('-');
+      const readingId = `${selectedBuilding.id}_${selectedRoom.id}_${period}`;
+      const readingSnap = await getDoc(doc(db, 'utilityReadings', readingId));
+
+      if (includeMeter && !readingSnap.exists()) {
+        Alert.alert(
+          'Lỗi',
+          `Chưa ghi chỉ số điện nước tháng ${selectedMonth} cho phòng ${selectedRoom.code}. Vui lòng ghi chỉ số trước khi lập hóa đơn!`
+        );
+        setSaving(false);
+        return;
+      }
+
+      let rentCost = 0;
+      let serviceCost = 0;
+      let electricityCost = 0;
+      let waterCost = 0;
+      const lineItems: any[] = [];
+
+      // Add rent if checked
+      if (includeRent) {
+        rentCost = parsedRent;
+        lineItems.push({
+          type: 'rent',
+          name: 'Tiền phòng',
+          quantity: 1,
+          unitPrice: rentCost,
+          amount: rentCost,
+        });
+      }
+
+      // Add other services if checked
+      if (includeService) {
+        buildingServices.forEach((service: any) => {
+          const sName = (service.name || '').toLowerCase();
+          // Skip electricity/water metered services to avoid double charging
+          if (includeMeter && (sName.includes('điện') || sName.includes('nước') || sName.includes('nuoc'))) {
+            return;
+          }
+          if (service.calcMethod === 'Cố định') {
+            const cost = Number(service.unitPrice) || 0;
+            serviceCost += cost;
+            lineItems.push({
+              type: 'service',
+              name: service.name,
+              quantity: 1,
+              unitPrice: cost,
+              amount: cost,
+            });
+          } else if (service.calcMethod === 'Theo người') {
+            const unitPrice = Number(service.unitPrice) || 0;
+            const cost = unitPrice * tenantCount;
+            serviceCost += cost;
+            lineItems.push({
+              type: 'service',
+              name: `${service.name} (${tenantCount} người)`,
+              quantity: tenantCount,
+              unitPrice,
+              amount: cost,
+            });
+          }
+        });
+      }
+
+      // Add meter values if checked
+      if (includeMeter && readingSnap.exists()) {
+        const rData = readingSnap.data();
+        
+        // Electricity
+        const electricUsage = Math.max(0, Number(rData.electricNew || 0) - Number(rData.electricOld || 0));
+        const electricService = buildingServices.find((s: any) => (s.name || '').toLowerCase().includes('điện')) as any;
+        const electricPrice = electricService ? Number(electricService.unitPrice) : 3500;
+        electricityCost = electricUsage * electricPrice;
+        lineItems.push({
+          type: 'electricity',
+          name: `Tiền điện (${rData.electricOld} -> ${rData.electricNew} kWh)`,
+          quantity: electricUsage,
+          unitPrice: electricPrice,
+          amount: electricityCost,
+        });
+
+        // Water
+        const waterService = buildingServices.find((s: any) => (s.name || '').toLowerCase().includes('nước') || (s.name || '').toLowerCase().includes('nuoc')) as any;
+        if (waterService) {
+          if (waterService.calcMethod === 'Theo chỉ số đồng hồ') {
+            const waterUsage = Math.max(0, Number(rData.waterNew || 0) - Number(rData.waterOld || 0));
+            const waterPrice = Number(waterService.unitPrice) || 15000;
+            waterCost = waterUsage * waterPrice;
+            lineItems.push({
+              type: 'water',
+              name: `Tiền nước (${rData.waterOld} -> ${rData.waterNew} m³)`,
+              quantity: waterUsage,
+              unitPrice: waterPrice,
+              amount: waterCost,
+            });
+          } else if (waterService.calcMethod === 'Theo người') {
+            const waterPrice = Number(waterService.unitPrice) || 50000;
+            waterCost = tenantCount * waterPrice;
+            lineItems.push({
+              type: 'water',
+              name: `Tiền nước (${tenantCount} người)`,
+              quantity: tenantCount,
+              unitPrice: waterPrice,
+              amount: waterCost,
+            });
+          }
+        } else {
+          // Fallback if no water service configured
+          const waterUsage = Math.max(0, Number(rData.waterNew || 0) - Number(rData.waterOld || 0));
+          const waterPrice = 15000;
+          waterCost = waterUsage * waterPrice;
+          lineItems.push({
+            type: 'water',
+            name: `Tiền nước (${rData.waterOld} -> ${rData.waterNew} m³)`,
+            quantity: waterUsage,
+            unitPrice: waterPrice,
+            amount: waterCost,
+          });
+        }
+      }
+
+      const totalAmount = rentCost + serviceCost + electricityCost + waterCost;
+
+      // Calculate dueDate as 10th of chosen month
+      const [mm, yyyy] = selectedMonth.split('/').map(Number);
+      const dueDateObj = new Date(yyyy, mm - 1, 10);
+      const dueDateTimestamp = Timestamp.fromDate(dueDateObj);
+
       const invoiceData = {
         buildingId: selectedBuilding.id,
         buildingName: selectedBuilding.name,
@@ -201,15 +380,23 @@ export const CreateInvoice: React.FC = () => {
         roomCode: selectedRoom.code,
         tenantName: activeTenant?.fullName || '',
         tenantId: activeTenant?.id || '',
+        period,
         month: selectedMonth,
         type: includeRent ? 'Tiền phòng & Dịch vụ' : 'Dịch vụ & Điện nước',
-        amount: parsedRent, // Stored as raw number
+        amount: totalAmount, // Stored as raw number
+        rentAmount: rentCost,
+        serviceAmount: serviceCost,
+        electricityAmount: electricityCost,
+        waterAmount: waterCost,
         includeRent,
         includeService,
         includeMeter,
         status: 'pending',
+        lineItems,
+        dueDate: dueDateTimestamp,
         createdAt: new Date(),
-        createdBy: auth.currentUser?.uid || 'system',
+        createdBy: uid,
+        ownerId: uid,
       };
 
       await addDoc(collection(db, 'invoices'), invoiceData);
@@ -335,13 +522,13 @@ export const CreateInvoice: React.FC = () => {
               <Text style={[styles.inputLabel, { marginTop: 14 }]}>Thu tiền phòng từ ngày:</Text>
               <View style={styles.dateSelector}>
                 <MaterialIcons name="calendar-today" size={18} color="#64748b" />
-                <Text style={styles.dateSelectorText}>01/07/2026</Text>
+                <Text style={styles.dateSelectorText}>{parsedDates.start}</Text>
               </View>
 
               <Text style={[styles.inputLabel, { marginTop: 14 }]}>Đến ngày:</Text>
               <View style={styles.dateSelector}>
                 <MaterialIcons name="calendar-today" size={18} color="#64748b" />
-                <Text style={styles.dateSelectorText}>31/07/2026</Text>
+                <Text style={styles.dateSelectorText}>{parsedDates.end}</Text>
               </View>
             </View>
           )}
