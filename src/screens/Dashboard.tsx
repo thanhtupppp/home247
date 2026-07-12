@@ -1,14 +1,14 @@
 import React from 'react';
-import { ScrollView, View, Text, StyleSheet, Pressable, Image } from 'react-native';
+import { ScrollView, View, Text, StyleSheet, Pressable, Image, ActivityIndicator } from 'react-native';
 import { useNavigation, useIsFocused } from '@react-navigation/native';
 import { MaterialIcons } from '@expo/vector-icons';
 import BentoStatCard from '../components/BentoStatCard';
 import RevenueChart from '../components/RevenueChart';
 import AlertItem from '../components/AlertItem';
 import TransactionTable from '../components/TransactionTable';
-import { dashboardStats, revenueHistory, emergencyAlerts, recentTransactions } from '../data/mockData';
+import { revenueHistory, emergencyAlerts, recentTransactions } from '../data/mockData';
 import { theme } from '../theme';
-import { doc, getDoc } from 'firebase/firestore';
+import { doc, getDoc, getDocs, collection, query, where } from 'firebase/firestore';
 import { db, auth } from '../firebase';
 
 export interface DashboardProps {
@@ -19,12 +19,28 @@ export const Dashboard: React.FC<DashboardProps> = () => {
   const navigation = useNavigation<any>();
   const isFocused = useIsFocused();
   const [activeTab, setActiveTab] = React.useState<'tasks' | 'stats'>('tasks');
-  const [adminName, setAdminName] = React.useState(auth.currentUser?.displayName || auth.currentUser?.email?.split('@')[0] || 'Admin');
+  const [adminName, setAdminName] = React.useState('Admin');
   const [avatarUrl, setAvatarUrl] = React.useState<string | null>(null);
+
+  // OPERATIONAL STATS STATES
+  const [loadingStats, setLoadingStats] = React.useState(true);
+  const [revenueThisMonth, setRevenueThisMonth] = React.useState('0M');
+  const [roomOccupancyText, setRoomOccupancyText] = React.useState('0% công suất');
+  const [roomOccupancyValue, setRoomOccupancyValue] = React.useState('0 / 0');
+  const [roomOccupancyProgress, setRoomOccupancyProgress] = React.useState(0);
+  const [requestCount, setRequestCount] = React.useState('0');
+
+  // CURRENT MONTH
+  const currentMonthStr = React.useMemo(() => {
+    const now = new Date();
+    const mm = String(now.getMonth() + 1).padStart(2, '0');
+    return `${mm}/${now.getFullYear()}`;
+  }, []);
 
   React.useEffect(() => {
     if (isFocused) {
       loadAdminName();
+      loadRealStats();
     }
   }, [isFocused]);
 
@@ -55,6 +71,49 @@ export const Dashboard: React.FC<DashboardProps> = () => {
       }
     } catch (error) {
       console.error('Error loading admin name on dashboard:', error);
+    }
+  };
+
+  const loadRealStats = async () => {
+    try {
+      setLoadingStats(true);
+
+      // 1. Calculate Occupancy from rooms collection
+      const roomsSnap = await getDocs(collection(db, 'rooms'));
+      const totalRooms = roomsSnap.size;
+      let occupiedRooms = 0;
+      roomsSnap.forEach((doc) => {
+        if (doc.data().status === 'occupied') {
+          occupiedRooms++;
+        }
+      });
+      const occupancyPercentage = totalRooms > 0 ? Math.round((occupiedRooms / totalRooms) * 100) : 0;
+      setRoomOccupancyValue(`${occupiedRooms} / ${totalRooms}`);
+      setRoomOccupancyText(`${occupancyPercentage}% công suất lấp đầy`);
+      setRoomOccupancyProgress(occupancyPercentage);
+
+      // 2. Calculate Revenue this month from invoices
+      const invoicesSnap = await getDocs(
+        query(collection(db, 'invoices'), where('month', '==', currentMonthStr), where('status', '==', 'success'))
+      );
+      let totalRev = 0;
+      invoicesSnap.forEach((doc) => {
+        totalRev += Number(doc.data().amount) || 0;
+      });
+      // Convert to millions (M)
+      const formattedRev = totalRev >= 1000000 
+        ? `${(totalRev / 1000000).toFixed(1)}M`
+        : `${(totalRev / 1000).toFixed(0)}K`;
+      setRevenueThisMonth(totalRev === 0 ? '0 đ' : formattedRev);
+
+      // 3. Calculate new requests
+      const reqsSnap = await getDocs(collection(db, 'supportRequests'));
+      setRequestCount(String(reqsSnap.size).padStart(2, '0'));
+
+    } catch (err) {
+      console.error('Error loading operational stats on dashboard:', err);
+    } finally {
+      setLoadingStats(false);
     }
   };
 
@@ -135,7 +194,7 @@ export const Dashboard: React.FC<DashboardProps> = () => {
               accessibilityLabel="Hợp đồng"
             >
               <View style={[styles.iconContainer, { backgroundColor: '#f3e8fd' }]}>
-                <MaterialIcons name="group" size={24} color="#7c3aed" />
+                <MaterialIcons name="description" size={24} color="#7c3aed" />
               </View>
               <Text style={styles.gridItemText}>Hợp đồng</Text>
             </Pressable>
@@ -231,20 +290,35 @@ export const Dashboard: React.FC<DashboardProps> = () => {
             {/* Bento Stats */}
             <View style={styles.section}>
               <Text style={styles.sectionTitle}>Chỉ số vận hành</Text>
-              <View style={styles.statGrid}>
-                {dashboardStats.map((stat) => (
+              {loadingStats ? (
+                <View style={styles.loadingContainer}>
+                  <ActivityIndicator size="small" color={theme.colors.primary} />
+                  <Text style={styles.loadingText}>Đang tính toán chỉ số...</Text>
+                </View>
+              ) : (
+                <View style={styles.statGrid}>
                   <BentoStatCard
-                    key={stat.id}
-                    label={stat.label}
-                    value={stat.value}
-                    change={stat.change}
-                    icon={stat.icon}
-                    isWarning={stat.isWarning}
-                    progress={stat.progress}
-                    progressText={stat.progressText}
+                    label="Tổng doanh thu tháng này"
+                    value={revenueThisMonth}
+                    change="Đã thu từ hóa đơn thực tế"
+                    icon="payments"
                   />
-                ))}
-              </View>
+                  <BentoStatCard
+                    label="Tình trạng phòng"
+                    value={roomOccupancyValue}
+                    icon="bed"
+                    progress={roomOccupancyProgress}
+                    progressText={roomOccupancyText}
+                  />
+                  <BentoStatCard
+                    label="Yêu cầu mới"
+                    value={requestCount}
+                    change="Yêu cầu hỗ trợ chưa xử lý"
+                    icon="message"
+                    isWarning={Number(requestCount) > 0}
+                  />
+                </View>
+              )}
             </View>
 
             {/* Chart */}
@@ -521,6 +595,16 @@ const styles = StyleSheet.create({
     width: '100%',
     height: '100%',
     borderRadius: 24,
+  },
+  loadingContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 8,
+    paddingVertical: 20,
+  },
+  loadingText: {
+    color: theme.colors.onSurfaceVariant,
   },
 });
 
