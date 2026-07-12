@@ -65,6 +65,15 @@ export const Dashboard: React.FC<DashboardProps> = () => {
   const [chatMessages, setChatMessages] = React.useState<any[]>([]);
   const [userInput, setUserInput] = React.useState('');
   const [sendingChat, setSendingChat] = React.useState(false);
+  const [aiBriefExpanded, setAiBriefExpanded] = React.useState(false);
+
+  const toggleAiBrief = () => {
+    const nextState = !aiBriefExpanded;
+    setAiBriefExpanded(nextState);
+    if (nextState) {
+      fetchAISummary(false);
+    }
+  };
 
   const fetchAISummary = React.useCallback(async (forceRefresh = false) => {
     const uid = auth.currentUser?.uid;
@@ -133,9 +142,11 @@ export const Dashboard: React.FC<DashboardProps> = () => {
     if (isFocused) {
       loadAdminName();
       loadRealStats();
-      fetchAISummary(false);
+      if (aiBriefExpanded) {
+        fetchAISummary(false);
+      }
     }
-  }, [isFocused, fetchAISummary]);
+  }, [isFocused, aiBriefExpanded, fetchAISummary]);
 
   React.useEffect(() => {
     const unsubscribe = auth.onAuthStateChanged((user) => {
@@ -401,42 +412,54 @@ export const Dashboard: React.FC<DashboardProps> = () => {
       <ScrollView contentContainerStyle={styles.scrollContent}>
         {/* AI Daily Brief Card */}
         <View style={styles.aiBriefCard}>
-          <View style={[styles.aiBriefHeader, { justifyContent: 'space-between', width: '100%', gap: 0 }]}>
+          <Pressable 
+            style={[styles.aiBriefHeader, { justifyContent: 'space-between', width: '100%', gap: 0, marginBottom: aiBriefExpanded ? 8 : 0 }]}
+            onPress={toggleAiBrief}
+          >
             <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
               <MaterialIcons name="auto-awesome" size={20} color={theme.colors.primary} />
               <Text style={styles.aiBriefTitle}>Trợ lý AI hôm nay</Text>
             </View>
-            {!loadingSummary && (
-              <Pressable onPress={() => fetchAISummary(true)} style={{ padding: 4 }} hitSlop={12}>
-                <MaterialIcons name="refresh" size={18} color={theme.colors.primary} />
-              </Pressable>
-            )}
-          </View>
-          {loadingSummary ? (
-            <View style={styles.aiBriefLoading}>
-              <ActivityIndicator size="small" color={theme.colors.primary} />
-              <Text style={styles.aiBriefLoadingText}>Đang tổng hợp thông tin...</Text>
+            <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
+              {aiBriefExpanded && !loadingSummary && (
+                <Pressable onPress={() => fetchAISummary(true)} style={{ padding: 4 }} hitSlop={12}>
+                  <MaterialIcons name="refresh" size={18} color={theme.colors.primary} />
+                </Pressable>
+              )}
+              <MaterialIcons 
+                name={aiBriefExpanded ? "keyboard-arrow-up" : "keyboard-arrow-down"} 
+                size={22} 
+                color={theme.colors.primary} 
+              />
             </View>
-          ) : (
-            <View>
-              <Text style={styles.aiBriefText}>
-                {aiSummary || 'Hệ thống chưa tạo tóm tắt vận hành nào.'}
-              </Text>
-              <Pressable 
-                style={styles.aiBriefActionBtn}
-                onPress={() => {
-                  setShowChatModal(true);
-                  if (chatMessages.length === 0) {
-                    setChatMessages([
-                      { role: 'assistant', content: 'Xin chào! Tôi là Trợ lý Vận hành Home247. Tôi có thể giúp gì cho bạn hôm nay?' }
-                    ]);
-                  }
-                }}
-              >
-                <MaterialIcons name="chat" size={16} color="#ffffff" />
-                <Text style={styles.aiBriefActionText}>Trò chuyện với Trợ lý AI</Text>
-              </Pressable>
-            </View>
+          </Pressable>
+          {aiBriefExpanded && (
+            loadingSummary ? (
+              <View style={styles.aiBriefLoading}>
+                <ActivityIndicator size="small" color={theme.colors.primary} />
+                <Text style={styles.aiBriefLoadingText}>Đang tổng hợp thông tin...</Text>
+              </View>
+            ) : (
+              <View>
+                <Text style={styles.aiBriefText}>
+                  {aiSummary || 'Hệ thống chưa tạo tóm tắt vận hành nào.'}
+                </Text>
+                <Pressable 
+                  style={styles.aiBriefActionBtn}
+                  onPress={() => {
+                    setShowChatModal(true);
+                    if (chatMessages.length === 0) {
+                      setChatMessages([
+                        { role: 'assistant', content: 'Xin chào! Tôi là Trợ lý Vận hành Home247. Tôi có thể giúp gì cho bạn hôm nay?' }
+                      ]);
+                    }
+                  }}
+                >
+                  <MaterialIcons name="chat" size={16} color="#ffffff" />
+                  <Text style={styles.aiBriefActionText}>Trò chuyện với Trợ lý AI</Text>
+                </Pressable>
+              </View>
+            )
           )}
         </View>
 
