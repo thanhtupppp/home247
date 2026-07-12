@@ -45,6 +45,21 @@ export const SettingsScreen: React.FC = () => {
     }
   };
 
+  const handleLogout = async () => {
+    try {
+      setLoading(true);
+      await auth.signOut();
+      navigation.reset({
+        index: 0,
+        routes: [{ name: 'Login' }],
+      });
+    } catch (error) {
+      console.error('Error signing out:', error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
   if (loading) {
     return (
       <View style={[styles.container, { justifyContent: 'center', alignItems: 'center' }]}>
@@ -137,6 +152,15 @@ export const SettingsScreen: React.FC = () => {
             <Text style={styles.bankEmptyText}>Chưa có tài khoản ngân hàng.</Text>
           )}
         </View>
+
+        {/* Logout Button */}
+        <Pressable 
+          style={styles.logoutBtn} 
+          onPress={handleLogout}
+        >
+          <MaterialIcons name="logout" size={20} color="#ef4444" style={{ marginRight: 6 }} />
+          <Text style={styles.logoutBtnText}>Đăng xuất</Text>
+        </Pressable>
       </ScrollView>
 
       {/* Bottom Sheet Modal */}
@@ -443,6 +467,22 @@ const styles = StyleSheet.create({
     fontSize: 11,
     color: theme.colors.onSurfaceVariant,
     marginTop: 2,
+  },
+  logoutBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderWidth: 1,
+    borderColor: '#fca5a5',
+    borderRadius: theme.borderRadius.xl,
+    paddingVertical: 14,
+    backgroundColor: '#fef2f2',
+    marginTop: 8,
+  },
+  logoutBtnText: {
+    ...theme.typography.bodyLg,
+    color: '#ef4444',
+    fontWeight: 'bold',
   },
 });
 
