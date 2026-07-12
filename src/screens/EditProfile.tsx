@@ -24,19 +24,25 @@ export const EditProfile: React.FC = () => {
   const loadProfileData = async () => {
     try {
       setLoading(true);
-      const uid = auth.currentUser?.uid || 'mock-admin-uid';
+      const currentUser = auth.currentUser;
+      if (!currentUser) {
+        setName('Admin');
+        setPhone('Chưa cập nhật');
+        return;
+      }
+      const uid = currentUser.uid;
       const docRef = doc(db, 'admins', uid);
       const docSnap = await getDoc(docRef);
       if (docSnap.exists()) {
         const data = docSnap.data();
-        setName(data.name || auth.currentUser?.displayName || auth.currentUser?.email?.split('@')[0] || '');
-        setPhone(data.phone || auth.currentUser?.phoneNumber || '');
+        setName(data.name || currentUser.displayName || currentUser.email?.split('@')[0] || '');
+        setPhone(data.phone || currentUser.phoneNumber || '');
         setDob(data.dob || '');
         setCity(data.city || '');
         setCccd(data.cccd || '');
       } else {
-        setName(auth.currentUser?.displayName || auth.currentUser?.email?.split('@')[0] || '');
-        setPhone(auth.currentUser?.phoneNumber || '');
+        setName(currentUser.displayName || currentUser.email?.split('@')[0] || '');
+        setPhone(currentUser.phoneNumber || '');
       }
     } catch (error) {
       console.error('Error loading profile:', error);
@@ -49,7 +55,12 @@ export const EditProfile: React.FC = () => {
   const handleSave = async () => {
     try {
       setSaving(true);
-      const uid = auth.currentUser?.uid || 'mock-admin-uid';
+      const currentUser = auth.currentUser;
+      if (!currentUser) {
+        Alert.alert('Lỗi', 'Bạn cần đăng nhập bằng tài khoản thật để thực hiện thay đổi.');
+        return;
+      }
+      const uid = currentUser.uid;
       console.log('[Firestore EditProfile] Saving profile for UID:', uid);
       const docRef = doc(db, 'admins', uid);
       const profileData = { name, phone, dob, city, cccd };

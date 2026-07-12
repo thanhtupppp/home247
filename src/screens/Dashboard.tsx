@@ -29,7 +29,12 @@ export const Dashboard: React.FC<DashboardProps> = () => {
 
   const loadAdminName = async () => {
     try {
-      const uid = auth.currentUser?.uid || 'mock-admin-uid';
+      const currentUser = auth.currentUser;
+      if (!currentUser) {
+        setAdminName('Admin');
+        return;
+      }
+      const uid = currentUser.uid;
       const docRef = doc(db, 'admins', uid);
       const docSnap = await getDoc(docRef);
       if (docSnap.exists()) {
@@ -38,7 +43,7 @@ export const Dashboard: React.FC<DashboardProps> = () => {
           setAdminName(data.name);
         }
       } else {
-        setAdminName(auth.currentUser?.displayName || auth.currentUser?.email?.split('@')[0] || 'Admin');
+        setAdminName(currentUser.displayName || currentUser.email?.split('@')[0] || 'Admin');
       }
     } catch (error) {
       console.error('Error loading admin name on dashboard:', error);

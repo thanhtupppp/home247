@@ -146,7 +146,19 @@ export const SettingsScreen: React.FC = () => {
   const loadProfileData = async () => {
     try {
       setLoading(true);
-      const uid = auth.currentUser?.uid || 'mock-admin-uid';
+      const currentUser = auth.currentUser;
+      if (!currentUser) {
+        console.log('[Firestore Settings] No authenticated user. Bypassing Firestore read.');
+        setProfile({
+          name: 'Admin',
+          phone: 'Chưa cập nhật',
+          cccd: 'Chưa cập nhật',
+          dob: 'Chưa cập nhật',
+          city: 'Chưa cập nhật',
+        });
+        return;
+      }
+      const uid = currentUser.uid;
       console.log('[Firestore Settings] Loading profile for UID:', uid);
       const docRef = doc(db, 'admins', uid);
       const docSnap = await getDoc(docRef);
@@ -156,8 +168,8 @@ export const SettingsScreen: React.FC = () => {
       } else {
         console.log('[Firestore Settings] Document does not exist. Creating default profile...');
         const defaultProfile = {
-          name: auth.currentUser?.displayName || auth.currentUser?.email?.split('@')[0] || 'Admin',
-          phone: auth.currentUser?.phoneNumber || 'Chưa cập nhật',
+          name: currentUser.displayName || currentUser.email?.split('@')[0] || 'Admin',
+          phone: currentUser.phoneNumber || 'Chưa cập nhật',
           cccd: 'Chưa cập nhật',
           dob: 'Chưa cập nhật',
           city: 'Chưa cập nhật',
