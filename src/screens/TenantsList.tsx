@@ -53,6 +53,23 @@ const deriveStatus = (tenant: any): 'active' | 'expiring' | 'expired' => {
   return 'active';
 };
 
+const tabs = [
+  { key: 'active', label: 'Đang ở' },
+  { key: 'expiring', label: 'Sắp hết hợp đồng' },
+  { key: 'expired', label: 'Đã hết hợp đồng' },
+] as const;
+
+// ── Render helpers ────────────────────────────────────────────────────────────
+const getInitials = (name: string) =>
+  name
+    .split(' ')
+    .slice(-2)
+    .map((w) => w[0]?.toUpperCase() || '')
+    .join('');
+
+const avatarColors = ['#3b82f6', '#10b981', '#f59e0b', '#ef4444', '#8b5cf6', '#ec4899'];
+const getColor = (name: string) => avatarColors[name.charCodeAt(0) % avatarColors.length];
+
 export const TenantsList: React.FC = () => {
   const navigation = useNavigation<any>();
   const isFocused = useIsFocused();
@@ -62,12 +79,6 @@ export const TenantsList: React.FC = () => {
   const [refreshing, setRefreshing] = React.useState(false);
   const [searchText, setSearchText] = React.useState('');
   const [activeTab, setActiveTab] = React.useState<'active' | 'expiring' | 'expired'>('active');
-
-  const tabs = [
-    { key: 'active', label: 'Đang ở' },
-    { key: 'expiring', label: 'Sắp hết hợp đồng' },
-    { key: 'expired', label: 'Đã hết hợp đồng' },
-  ] as const;
 
   // ── Fetch ────────────────────────────────────────────────────────────────────
   const fetchTenants = async (isRefresh = false) => {
@@ -105,18 +116,17 @@ export const TenantsList: React.FC = () => {
 
   // ── Computed ─────────────────────────────────────────────────────────────────
   const filtered = React.useMemo(() => {
-    return tenants
-      .filter((t) => t.status === activeTab)
-      .filter((t) => {
-        if (!searchText.trim()) return true;
-        const q = searchText.toLowerCase();
-        return (
-          t.fullName.toLowerCase().includes(q) ||
-          t.phoneNumber.includes(q) ||
-          t.roomCode.toLowerCase().includes(q) ||
-          t.buildingName.toLowerCase().includes(q)
-        );
-      });
+    return tenants.filter((t) => {
+      if (t.status !== activeTab) return false;
+      if (!searchText.trim()) return true;
+      const q = searchText.toLowerCase();
+      return (
+        t.fullName.toLowerCase().includes(q) ||
+        t.phoneNumber.includes(q) ||
+        t.roomCode.toLowerCase().includes(q) ||
+        t.buildingName.toLowerCase().includes(q)
+      );
+    });
   }, [tenants, activeTab, searchText]);
 
   const expiringCount = React.useMemo(
@@ -124,16 +134,7 @@ export const TenantsList: React.FC = () => {
     [tenants]
   );
 
-  // ── Render helpers ────────────────────────────────────────────────────────────
-  const getInitials = (name: string) =>
-    name
-      .split(' ')
-      .slice(-2)
-      .map((w) => w[0]?.toUpperCase() || '')
-      .join('');
 
-  const avatarColors = ['#3b82f6', '#10b981', '#f59e0b', '#ef4444', '#8b5cf6', '#ec4899'];
-  const getColor = (name: string) => avatarColors[name.charCodeAt(0) % avatarColors.length];
 
   return (
     <View style={styles.container}>
@@ -185,7 +186,7 @@ export const TenantsList: React.FC = () => {
         )}
 
         {/* Filter Tabs */}
-        <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.pillsScroll}>
+        <View style={{ flexDirection: 'row', gap: 10, marginBottom: 20 }}>
           {tabs.map((tab) => {
             const isActive = activeTab === tab.key;
             const count = tenants.filter((t) => t.status === tab.key).length;
@@ -201,7 +202,7 @@ export const TenantsList: React.FC = () => {
               </Pressable>
             );
           })}
-        </ScrollView>
+        </View>
 
         {/* Content */}
         {loading ? (
