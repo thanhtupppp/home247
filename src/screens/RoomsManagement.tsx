@@ -55,6 +55,9 @@ export const RoomsManagement: React.FC = () => {
   React.useEffect(() => {
     if (isFocused) {
       fetchBuildings();
+      if (expandedBuildingId) {
+        fetchRoomsForBuilding(expandedBuildingId);
+      }
     }
   }, [isFocused]);
 
