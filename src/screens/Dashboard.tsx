@@ -8,7 +8,7 @@ import AlertItem from '../components/AlertItem';
 import TransactionTable from '../components/TransactionTable';
 import { revenueHistory, emergencyAlerts, recentTransactions } from '../data/mockData';
 import { theme } from '../theme';
-import { doc, getDoc, getDocs, collection, query, where } from 'firebase/firestore';
+import { doc, getDoc, getDocs, collection, query, where, orderBy, limit } from 'firebase/firestore';
 import { db, auth } from '../firebase';
 
 export interface DashboardProps {
@@ -29,6 +29,8 @@ export const Dashboard: React.FC<DashboardProps> = () => {
   const [roomOccupancyValue, setRoomOccupancyValue] = React.useState('0 / 0');
   const [roomOccupancyProgress, setRoomOccupancyProgress] = React.useState(0);
   const [requestCount, setRequestCount] = React.useState('0');
+  const [chartData, setChartData] = React.useState<any[]>([]);
+  const [recentTx, setRecentTx] = React.useState<any[]>([]);
 
   // CURRENT MONTH
   const currentMonthStr = React.useMemo(() => {
@@ -109,6 +111,70 @@ export const Dashboard: React.FC<DashboardProps> = () => {
       // 3. Calculate new requests
       const reqsSnap = await getDocs(collection(db, 'supportRequests'));
       setRequestCount(String(reqsSnap.size).padStart(2, '0'));
+
+      // 4. Calculate real MoM revenue for last 6 months
+      const allInvoicesSnap = await getDocs(collection(db, 'invoices'));
+      const last6MonthsList: string[] = [];
+      const date = new Date();
+      for (let i = 5; i >= 0; i--) {
+        const d = new Date(date.getFullYear(), date.getMonth() - i, 1);
+        const mm = String(d.getMonth() + 1).padStart(2, '0');
+        const yyyy = d.getFullYear();
+        last6MonthsList.push(`${mm}/${yyyy}`);
+      }
+
+      const monthlyCollectedMap: Record<string, number> = {};
+      last6MonthsList.forEach(m => {
+        monthlyCollectedMap[m] = 0;
+      });
+
+      allInvoicesSnap.forEach((doc) => {
+        const data = doc.data();
+        const amt = Number(data.amount) || 0;
+        const mStr = data.month || '';
+        if (data.status === 'success' && monthlyCollectedMap[mStr] !== undefined) {
+          monthlyCollectedMap[mStr] += amt;
+        }
+      });
+
+      let maxMonthAmt = 0;
+      last6MonthsList.forEach(m => {
+        if (monthlyCollectedMap[m] > maxMonthAmt) {
+          maxMonthAmt = monthlyCollectedMap[m];
+        }
+      });
+
+      const formattedChart = last6MonthsList.map(m => {
+        const amt = monthlyCollectedMap[m];
+        const height = maxMonthAmt > 0 ? Math.round((amt / maxMonthAmt) * 100) : 0;
+        return {
+          month: m,
+          amount: amt >= 1000000 
+            ? `${(amt / 1000000).toFixed(1)}M` 
+            : `${(amt / 1000).toFixed(0)}K`,
+          height: Math.max(height, 8),
+        };
+      });
+      setChartData(formattedChart);
+
+      // 5. Query recent 5 transactions
+      const recentInvoicesSnap = await getDocs(
+        query(collection(db, 'invoices'), orderBy('createdAt', 'desc'), limit(5))
+      );
+      const mappedTx = recentInvoicesSnap.docs.map((doc) => {
+        const data = doc.data();
+        const amt = Number(data.amount) || 0;
+        return {
+          id: doc.id,
+          roomCode: data.roomCode || '??',
+          tenantName: data.tenantName || 'Cư dân',
+          type: `Hóa đơn tháng ${data.month}`,
+          amount: `+${amt.toLocaleString('vi-VN')} đ`,
+          isExpense: false,
+          status: data.status === 'success' ? 'success' : 'pending',
+        };
+      });
+      setRecentTx(mappedTx);
 
     } catch (err) {
       console.error('Error loading operational stats on dashboard:', err);
@@ -324,13 +390,25 @@ export const Dashboard: React.FC<DashboardProps> = () => {
             {/* Chart */}
             <View style={styles.section}>
               <Text style={styles.sectionTitle}>Biểu đồ doanh thu</Text>
-              <RevenueChart history={revenueHistory} />
+              {chartData.length > 0 ? (
+                <RevenueChart history={chartData} />
+              ) : (
+                <View style={styles.emptyCard}>
+                  <Text style={styles.emptyText}>Chưa có dữ liệu biểu đồ</Text>
+                </View>
+              )}
             </View>
 
             {/* Recent Transactions */}
             <View style={styles.section}>
               <Text style={styles.sectionTitle}>Giao dịch gần đây</Text>
-              <TransactionTable transactions={recentTransactions} />
+              {recentTx.length > 0 ? (
+                <TransactionTable transactions={recentTx} />
+              ) : (
+                <View style={styles.emptyCard}>
+                  <Text style={styles.emptyText}>Chưa có giao dịch nào</Text>
+                </View>
+              )}
             </View>
           </>
         )}
@@ -595,6 +673,19 @@ const styles = StyleSheet.create({
     width: '100%',
     height: '100%',
     borderRadius: 24,
+  },
+  emptyCard: {
+    backgroundColor: theme.colors.surfaceContainerLowest,
+    padding: 24,
+    borderRadius: theme.borderRadius.xl,
+    borderWidth: 1,
+    borderColor: theme.colors.outlineVariant,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  emptyText: {
+    color: '#94a3b8',
+    fontSize: 13,
   },
   loadingContainer: {
     flexDirection: 'row',
