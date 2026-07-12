@@ -122,201 +122,154 @@ export const UtilityRecording: React.FC = () => {
   const [rooms, setRooms] = React.useState<any[]>([]);
   const [waterCalcMethod, setWaterCalcMethod] = React.useState('Theo chỉ số đồng hồ');
 
-  const fetchWaterServiceType = React.useCallback(async (buildingName: string) => {
-    try {
-      const uid = auth.currentUser?.uid;
-      if (!uid) return;
-      const snap = await getDocs(query(collection(db, 'services'), where('ownerId', '==', uid)));
-      let method = 'Theo chỉ số đồng hồ'; // default fallback
-      let foundSpecific = false;
-      
-      snap.forEach((doc) => {
-        const data = doc.data();
-        const sName = (data.name || '').toLowerCase();
-        if (sName.includes('nước') || sName.includes('nuoc')) {
-          if (data.buildingName === buildingName) {
-            method = data.calcMethod || 'Theo chỉ số đồng hồ';
-            foundSpecific = true;
-          } else if (!foundSpecific && (data.buildingName === 'Khác' || data.buildingId === 'all')) {
-            method = data.calcMethod || 'Theo chỉ số đồng hồ';
+  // Effect 1: Fetch buildings list, rooms list and water service type
+  // Only re-runs when selectedBuilding changes
+  React.useEffect(() => {
+    const run = async () => {
+      if (!selectedBuilding) return;
+      try {
+        const uid = auth.currentUser?.uid;
+        if (!uid) return;
+
+        // Fetch buildings
+        const bSnapshot = await getDocs(query(collection(db, 'buildings'), where('ownerId', '==', uid)));
+        const bList: any[] = [];
+        bSnapshot.forEach((d: any) => bList.push({ id: d.id, ...d.data() }));
+        setBuildings(bList);
+
+        // Fetch rooms for current building
+        const rSnapshot = await getDocs(
+          query(collection(db, 'rooms'), where('ownerId', '==', uid), where('buildingName', '==', selectedBuilding))
+        );
+        const rList: any[] = [];
+        rSnapshot.forEach((d: any) => { if (d.data().code) rList.push({ id: d.id, code: d.data().code }); });
+        rList.sort((a, b) => a.code.localeCompare(b.code));
+        setRooms(rList);
+
+        // Fetch water service calc method
+        const svcSnap = await getDocs(query(collection(db, 'services'), where('ownerId', '==', uid)));
+        let method = 'Theo chỉ số đồng hồ';
+        let foundSpecific = false;
+        svcSnap.forEach((d) => {
+          const data = d.data();
+          const sName = (data.name || '').toLowerCase();
+          if (sName.includes('nước') || sName.includes('nuoc')) {
+            if (data.buildingName === selectedBuilding) {
+              method = data.calcMethod || 'Theo chỉ số đồng hồ';
+              foundSpecific = true;
+            } else if (!foundSpecific && (data.buildingName === 'Khác' || data.buildingId === 'all')) {
+              method = data.calcMethod || 'Theo chỉ số đồng hồ';
+            }
           }
-        }
-      });
-      setWaterCalcMethod(method);
-    } catch (err) {
-      console.error('Error fetching water service type:', err);
-    }
-  }, []);
-
-  const fetchBuildingsAndRooms = React.useCallback(async () => {
-    try {
-      const uid = auth.currentUser?.uid;
-      if (!uid) return;
-      const bSnapshot = await getDocs(query(collection(db, 'buildings'), where('ownerId', '==', uid)));
-      const bList: any[] = [];
-      bSnapshot.forEach((doc: any) => {
-        bList.push({ id: doc.id, ...doc.data() });
-      });
-      setBuildings(bList);
-
-      const rSnapshot = await getDocs(
-        query(collection(db, 'rooms'), where('ownerId', '==', uid), where('buildingName', '==', selectedBuilding))
-      );
-      const rList: any[] = [];
-      rSnapshot.forEach((doc: any) => {
-        if (doc.data().code) {
-          rList.push({ id: doc.id, code: doc.data().code });
-        }
-      });
-      rList.sort((a, b) => a.code.localeCompare(b.code));
-      setRooms(rList);
-    } catch (e) {
-      console.error('Error loading buildings/rooms in recording screen:', e);
-    }
+        });
+        setWaterCalcMethod(method);
+      } catch (e) {
+        console.error('Error loading buildings/rooms:', e);
+      }
+    };
+    run();
   }, [selectedBuilding]);
 
-  const loadSingleRoomData = React.useCallback(async () => {
-    if (!selectedRoom) return;
-    try {
-      setLoading(true);
-      const uid = auth.currentUser?.uid;
-      if (!uid) return;
-
-      const buildingObj = buildings.find(b => b.name === selectedBuilding);
-      const buildingId = buildingObj ? buildingObj.id : 'unknown';
-      const roomObj = rooms.find(r => r.code === selectedRoom);
-      const roomId = roomObj ? roomObj.id : 'unknown';
-
-      const prevMonth = getPreviousMonth(selectedMonth);
-      const period = selectedMonth.split('/').reverse().join('-');
-      const prevPeriod = prevMonth.split('/').reverse().join('-');
-
-      const currentDocId = `${buildingId}_${roomId}_${period}`;
-      const prevDocId = `${buildingId}_${roomId}_${prevPeriod}`;
-      
-      const [currentSnap, prevSnap] = await Promise.all([
-        getDoc(doc(db, 'utilityReadings', currentDocId)),
-        getDoc(doc(db, 'utilityReadings', prevDocId))
-      ]);
-      
-      let oldElectric = 0;
-      let oldWater = 0;
-      
-      if (prevSnap.exists()) {
-        oldElectric = prevSnap.data().electricNew || 0;
-        oldWater = prevSnap.data().waterNew || 0;
-      }
-      
-      setElectricOld(String(oldElectric));
-      setWaterOld(String(oldWater));
-      
-      if (currentSnap.exists()) {
-        const curData = currentSnap.data();
-        setSingleElectricNew(String(curData.electricNew || ''));
-        setSingleWaterNew(String(curData.waterNew || ''));
-        if (curData.electricOld !== undefined) setElectricOld(String(curData.electricOld));
-        if (curData.waterOld !== undefined) setWaterOld(String(curData.waterOld));
-      } else {
-        setSingleElectricNew('');
-        setSingleWaterNew('');
-      }
-    } catch (error) {
-      console.error('Error loading single room utility data:', error);
-    } finally {
-      setLoading(false);
-    }
-  }, [selectedBuilding, selectedRoom, selectedMonth, buildings, rooms]);
-
-  const loadBulkData = React.useCallback(async () => {
-    try {
-      setLoading(true);
-      const uid = auth.currentUser?.uid;
-      if (!uid) return;
-
-      const buildingObj = buildings.find(b => b.name === selectedBuilding);
-      const buildingId = buildingObj ? buildingObj.id : 'unknown';
-
-      const prevMonth = getPreviousMonth(selectedMonth);
-      const period = selectedMonth.split('/').reverse().join('-');
-      const prevPeriod = prevMonth.split('/').reverse().join('-');
-
-      const rSnapshot = await getDocs(
-        query(collection(db, 'rooms'), where('ownerId', '==', uid), where('buildingName', '==', selectedBuilding))
-      );
-      const roomsList: any[] = [];
-      rSnapshot.forEach((doc: any) => {
-        roomsList.push({ id: doc.id, ...doc.data() });
-      });
-      roomsList.sort((a, b) => a.code.localeCompare(b.code));
-
-      const promises = roomsList.map(async (room) => {
-        const currentDocId = `${buildingId}_${room.id}_${period}`;
-        const prevDocId = `${buildingId}_${room.id}_${prevPeriod}`;
-        const [curSnap, prvSnap] = await Promise.all([
-          getDoc(doc(db, 'utilityReadings', currentDocId)),
-          getDoc(doc(db, 'utilityReadings', prevDocId))
-        ]);
-
-        let oldElectric = 0;
-        let oldWater = 0;
-        if (prvSnap.exists()) {
-          oldElectric = prvSnap.data().electricNew || 0;
-          oldWater = prvSnap.data().waterNew || 0;
-        }
-
-        let newElectric = '';
-        let newWater = '';
-        let electricOldVal = String(oldElectric);
-        let waterOldVal = String(oldWater);
-
-        if (curSnap.exists()) {
-          const d = curSnap.data();
-          newElectric = d.electricNew !== undefined ? String(d.electricNew) : '';
-          newWater = d.waterNew !== undefined ? String(d.waterNew) : '';
-          if (d.electricOld !== undefined) electricOldVal = String(d.electricOld);
-          if (d.waterOld !== undefined) waterOldVal = String(d.waterOld);
-        }
-
-        return {
-          id: room.id,
-          roomCode: room.code,
-          electricOld: electricOldVal,
-          waterOld: waterOldVal,
-          electricNew: newElectric,
-          waterNew: newWater,
-          enabled: true
-        };
-      });
-
-      const list = await Promise.all(promises);
-      setBulkRooms(list);
-    } catch (error) {
-      console.error('Error loading bulk utility data:', error);
-    } finally {
-      setLoading(false);
-    }
-  }, [selectedBuilding, selectedMonth, buildings]);
-
+  // Effect 2: Load meter reading data when room/month/tab changes
+  // Depends only on primitive values (strings), not on functions or arrays
   React.useEffect(() => {
-    if (selectedBuilding) {
-      fetchWaterServiceType(selectedBuilding);
-      fetchBuildingsAndRooms();
-      if (activeTab === 'room') {
-        loadSingleRoomData();
-      } else {
-        loadBulkData();
+    const run = async () => {
+      if (!selectedBuilding) return;
+      try {
+        setLoading(true);
+        const uid = auth.currentUser?.uid;
+        if (!uid) return;
+
+        // We read buildings/rooms from DB fresh here to avoid depending on state arrays
+        const bSnapshot = await getDocs(query(collection(db, 'buildings'), where('ownerId', '==', uid), where('name', '==', selectedBuilding)));
+        let buildingId = 'unknown';
+        bSnapshot.forEach((d: any) => { buildingId = d.id; });
+
+        if (activeTab === 'room') {
+          if (!selectedRoom) { setLoading(false); return; }
+
+          const rSnapshot = await getDocs(
+            query(collection(db, 'rooms'), where('ownerId', '==', uid), where('buildingName', '==', selectedBuilding), where('code', '==', selectedRoom))
+          );
+          let roomId = 'unknown';
+          rSnapshot.forEach((d: any) => { roomId = d.id; });
+
+          const prevMonth = getPreviousMonth(selectedMonth);
+          const period = selectedMonth.split('/').reverse().join('-');
+          const prevPeriod = prevMonth.split('/').reverse().join('-');
+          const currentDocId = `${buildingId}_${roomId}_${period}`;
+          const prevDocId = `${buildingId}_${roomId}_${prevPeriod}`;
+
+          const [currentSnap, prevSnap] = await Promise.all([
+            getDoc(doc(db, 'utilityReadings', currentDocId)),
+            getDoc(doc(db, 'utilityReadings', prevDocId))
+          ]);
+
+          let oldElectric = 0;
+          let oldWater = 0;
+          if (prevSnap.exists()) {
+            oldElectric = prevSnap.data().electricNew || 0;
+            oldWater = prevSnap.data().waterNew || 0;
+          }
+          setElectricOld(String(oldElectric));
+          setWaterOld(String(oldWater));
+
+          if (currentSnap.exists()) {
+            const curData = currentSnap.data();
+            setSingleElectricNew(String(curData.electricNew || ''));
+            setSingleWaterNew(String(curData.waterNew || ''));
+            if (curData.electricOld !== undefined) setElectricOld(String(curData.electricOld));
+            if (curData.waterOld !== undefined) setWaterOld(String(curData.waterOld));
+          } else {
+            setSingleElectricNew('');
+            setSingleWaterNew('');
+          }
+        } else {
+          // Bulk tab
+          const prevMonth = getPreviousMonth(selectedMonth);
+          const period = selectedMonth.split('/').reverse().join('-');
+          const prevPeriod = prevMonth.split('/').reverse().join('-');
+
+          const rSnapshot = await getDocs(
+            query(collection(db, 'rooms'), where('ownerId', '==', uid), where('buildingName', '==', selectedBuilding))
+          );
+          const roomsList: any[] = [];
+          rSnapshot.forEach((d: any) => roomsList.push({ id: d.id, ...d.data() }));
+          roomsList.sort((a, b) => a.code.localeCompare(b.code));
+
+          const promises = roomsList.map(async (room) => {
+            const currentDocId = `${buildingId}_${room.id}_${period}`;
+            const prevDocId = `${buildingId}_${room.id}_${prevPeriod}`;
+            const [curSnap, prvSnap] = await Promise.all([
+              getDoc(doc(db, 'utilityReadings', currentDocId)),
+              getDoc(doc(db, 'utilityReadings', prevDocId))
+            ]);
+            let oldElectric = prvSnap.exists() ? (prvSnap.data().electricNew || 0) : 0;
+            let oldWater = prvSnap.exists() ? (prvSnap.data().waterNew || 0) : 0;
+            let newElectric = '';
+            let newWater = '';
+            let electricOldVal = String(oldElectric);
+            let waterOldVal = String(oldWater);
+            if (curSnap.exists()) {
+              const d = curSnap.data();
+              newElectric = d.electricNew !== undefined ? String(d.electricNew) : '';
+              newWater = d.waterNew !== undefined ? String(d.waterNew) : '';
+              if (d.electricOld !== undefined) electricOldVal = String(d.electricOld);
+              if (d.waterOld !== undefined) waterOldVal = String(d.waterOld);
+            }
+            return { id: room.id, roomCode: room.code, electricOld: electricOldVal, waterOld: waterOldVal, electricNew: newElectric, waterNew: newWater, enabled: true };
+          });
+          const list = await Promise.all(promises);
+          setBulkRooms(list);
+        }
+      } catch (error) {
+        console.error('Error loading utility data:', error);
+      } finally {
+        setLoading(false);
       }
-    }
-  }, [
-    selectedBuilding,
-    activeTab,
-    selectedRoom,
-    selectedMonth,
-    fetchWaterServiceType,
-    fetchBuildingsAndRooms,
-    loadSingleRoomData,
-    loadBulkData
-  ]);
+    };
+    run();
+  }, [selectedBuilding, selectedRoom, selectedMonth, activeTab]);
 
   const handleSave = async () => {
     if (activeTab === 'room') {

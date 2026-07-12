@@ -37,6 +37,7 @@ import ContractDetail from './src/screens/ContractDetail';
 import StatisticsScreen from './src/screens/StatisticsScreen';
 import { SupportRequests } from './src/screens/SupportRequests';
 import NotificationsScreen from './src/screens/NotificationsScreen';
+import InvoiceDetail from './src/screens/InvoiceDetail';
 
 
 const Stack = createNativeStackNavigator();
@@ -148,15 +149,7 @@ export function App() {
 
           <Stack.Screen name="hop-dong/moi" component={CreateContract} />
 
-          <Stack.Screen name="hoa-don/id">
-            {() => (
-              <GenericScreen 
-                title="Chi tiết Hóa đơn" 
-                type="utility" 
-                description="Chi tiết các khoản phí dịch vụ, chỉ số điện nước tiêu thụ trong kỳ." 
-              />
-            )}
-          </Stack.Screen>
+          <Stack.Screen name="hoa-don/id" component={InvoiceDetail} />
 
           <Stack.Screen name="thong-ke" component={StatisticsScreen} />
 

@@ -238,7 +238,11 @@ export const InvoicesList: React.FC = () => {
           ) : (
             <View style={styles.listContainer}>
               {filteredInvoices.map((tx) => (
-                <View key={tx.id} style={styles.invoiceCard}>
+                <Pressable 
+                  key={tx.id} 
+                  style={styles.invoiceCard}
+                  onPress={() => navigation.navigate('hoa-don/id', { id: tx.id })}
+                >
                   <View style={styles.cardTop}>
                     <View style={styles.roomBadge}>
                       <Text style={styles.roomText}>{tx.roomCode}</Text>
@@ -274,7 +278,7 @@ export const InvoicesList: React.FC = () => {
                       <Text style={styles.amountValue}>{tx.amount} đ</Text>
                     </View>
                   </View>
-                </View>
+                </Pressable>
               ))}
             </View>
           )}
