@@ -7,7 +7,7 @@ import * as ImagePicker from 'expo-image-picker';
 import { useNavigation } from '@react-navigation/native';
 import { MaterialIcons } from '@expo/vector-icons';
 import { theme } from '../theme';
-import { collection, addDoc, getDocs, query, where, orderBy } from 'firebase/firestore';
+import { collection, addDoc, getDocs, query, where, orderBy, doc, updateDoc } from 'firebase/firestore';
 import { db, auth } from '../firebase';
 import { getProvinceNames, getWardNamesByProvinceName } from '../data/vietnameseAddress';
 
@@ -247,6 +247,11 @@ export const CreateTenant: React.FC = () => {
       };
 
       await addDoc(collection(db, 'tenants'), tenantData);
+
+      // Update room status to occupied
+      const roomRef = doc(db, 'rooms', selectedRoom.id);
+      await updateDoc(roomRef, { status: 'occupied' });
+
       Alert.alert('Thành công', `Đã thêm cư dân ${fullName.trim()} thành công!`);
       navigation.goBack();
     } catch (err) {
