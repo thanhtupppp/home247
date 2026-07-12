@@ -56,6 +56,37 @@ export const UtilityRecording: React.FC = () => {
 
   const [buildings, setBuildings] = React.useState<any[]>([]);
   const [rooms, setRooms] = React.useState<string[]>([]);
+  const [waterCalcMethod, setWaterCalcMethod] = React.useState('Theo chỉ số đồng hồ');
+
+  const fetchWaterServiceType = async (buildingName: string) => {
+    try {
+      const snap = await getDocs(collection(db, 'services'));
+      let method = 'Theo chỉ số đồng hồ'; // default fallback
+      let foundSpecific = false;
+      
+      snap.forEach((doc) => {
+        const data = doc.data();
+        const sName = (data.name || '').toLowerCase();
+        if (sName.includes('nước') || sName.includes('nuoc')) {
+          if (data.buildingName === buildingName) {
+            method = data.calcMethod || 'Theo chỉ số đồng hồ';
+            foundSpecific = true;
+          } else if (!foundSpecific && (data.buildingName === 'Khác' || data.buildingId === 'all')) {
+            method = data.calcMethod || 'Theo chỉ số đồng hồ';
+          }
+        }
+      });
+      setWaterCalcMethod(method);
+    } catch (err) {
+      console.error('Error fetching water service type:', err);
+    }
+  };
+
+  React.useEffect(() => {
+    if (selectedBuilding) {
+      fetchWaterServiceType(selectedBuilding);
+    }
+  }, [selectedBuilding]);
 
   React.useEffect(() => {
     if (route.params?.room) {
@@ -215,8 +246,12 @@ export const UtilityRecording: React.FC = () => {
         Alert.alert('Thông báo', 'Vui lòng chọn phòng.');
         return;
       }
-      if (!singleElectricNew || !singleWaterNew) {
-        Alert.alert('Thông báo', 'Vui lòng nhập đầy đủ chỉ số mới.');
+      if (!singleElectricNew) {
+        Alert.alert('Thông báo', 'Vui lòng nhập chỉ số điện mới.');
+        return;
+      }
+      if (waterCalcMethod === 'Theo chỉ số đồng hồ' && !singleWaterNew) {
+        Alert.alert('Thông báo', 'Vui lòng nhập chỉ số nước mới.');
         return;
       }
       
@@ -231,8 +266,8 @@ export const UtilityRecording: React.FC = () => {
           month: selectedMonth,
           electricOld: Number(electricOld) || 0,
           electricNew: Number(singleElectricNew) || 0,
-          waterOld: Number(waterOld) || 0,
-          waterNew: Number(singleWaterNew) || 0,
+          waterOld: waterCalcMethod === 'Theo chỉ số đồng hồ' ? (Number(waterOld) || 0) : 0,
+          waterNew: waterCalcMethod === 'Theo chỉ số đồng hồ' ? (Number(singleWaterNew) || 0) : 0,
           recordedAt: new Date(),
           recordedBy: auth.currentUser?.uid || 'system'
         });
@@ -252,9 +287,13 @@ export const UtilityRecording: React.FC = () => {
         return;
       }
       
-      const incomplete = enabledRooms.some(r => !r.electricNew || !r.waterNew);
+      const incomplete = enabledRooms.some(r => {
+        const isElectricMissing = !r.electricNew;
+        const isWaterMissing = waterCalcMethod === 'Theo chỉ số đồng hồ' && !r.waterNew;
+        return isElectricMissing || isWaterMissing;
+      });
       if (incomplete) {
-        Alert.alert('Thông báo', 'Vui lòng nhập đầy đủ chỉ số mới cho tất cả các phòng được bật.');
+        Alert.alert('Thông báo', 'Vui lòng nhập đầy đủ chỉ số mới cho các phòng được bật.');
         return;
       }
       
@@ -269,10 +308,10 @@ export const UtilityRecording: React.FC = () => {
             building: selectedBuilding,
             room: room.code,
             month: selectedMonth,
-            electricOld: Number(room.electricOld),
-            electricNew: Number(room.electricNew),
-            waterOld: Number(room.waterOld),
-            waterNew: Number(room.waterNew),
+            electricOld: Number(room.electricOld) || 0,
+            electricNew: Number(room.electricNew) || 0,
+            waterOld: waterCalcMethod === 'Theo chỉ số đồng hồ' ? (Number(room.waterOld) || 0) : 0,
+            waterNew: waterCalcMethod === 'Theo chỉ số đồng hồ' ? (Number(room.waterNew) || 0) : 0,
             recordedAt: new Date(),
             recordedBy: auth.currentUser?.uid || 'system'
           });
@@ -423,34 +462,43 @@ export const UtilityRecording: React.FC = () => {
                   </View>
 
                   {/* Water Card */}
-                  <View style={styles.card}>
-                    <View style={styles.cardHeader}>
-                      <MaterialIcons name="water-drop" size={20} color={theme.colors.primary} />
-                      <Text style={styles.cardTitle}>Nước</Text>
-                    </View>
-                    <View style={styles.cardRow}>
-                      <View style={styles.inputCol}>
-                        <Text style={styles.inputLabel}>Chỉ số cũ</Text>
-                        <TextInput 
-                          style={styles.textInput} 
-                          placeholder="Chỉ số cũ" 
-                          keyboardType="numeric" 
-                          value={waterOld}
-                          onChangeText={setWaterOld}
-                        />
+                  {waterCalcMethod === 'Theo chỉ số đồng hồ' ? (
+                    <View style={styles.card}>
+                      <View style={styles.cardHeader}>
+                        <MaterialIcons name="water-drop" size={20} color={theme.colors.primary} />
+                        <Text style={styles.cardTitle}>Nước</Text>
                       </View>
-                      <View style={styles.inputCol}>
-                        <Text style={styles.inputLabel}>Chỉ số mới</Text>
-                        <TextInput 
-                          style={styles.textInput} 
-                          placeholder="Nhập số..." 
-                          keyboardType="numeric" 
-                          value={singleWaterNew}
-                          onChangeText={setSingleWaterNew}
-                        />
+                      <View style={styles.cardRow}>
+                        <View style={styles.inputCol}>
+                          <Text style={styles.inputLabel}>Chỉ số cũ</Text>
+                          <TextInput 
+                            style={styles.textInput} 
+                            placeholder="Chỉ số cũ" 
+                            keyboardType="numeric" 
+                            value={waterOld}
+                            onChangeText={setWaterOld}
+                          />
+                        </View>
+                        <View style={styles.inputCol}>
+                          <Text style={styles.inputLabel}>Chỉ số mới</Text>
+                          <TextInput 
+                            style={styles.textInput} 
+                            placeholder="Nhập số..." 
+                            keyboardType="numeric" 
+                            value={singleWaterNew}
+                            onChangeText={setSingleWaterNew}
+                          />
+                        </View>
                       </View>
                     </View>
-                  </View>
+                  ) : (
+                    <View style={[styles.card, { backgroundColor: '#f0fdf4', borderColor: '#bbf7d0', padding: 14, flexDirection: 'row', alignItems: 'center', gap: 10 }]}>
+                      <MaterialIcons name="info-outline" size={20} color="#16a34a" />
+                      <Text style={{ fontSize: 13, color: '#15803d', fontWeight: '500', flex: 1 }}>
+                        Dịch vụ nước tòa nhà được cấu hình: <Text style={{ fontWeight: 'bold' }}>{waterCalcMethod}</Text>. Không cần ghi chỉ số nước cho tòa nhà này.
+                      </Text>
+                    </View>
+                  )}
                 </View>
               )}
             </View>
@@ -516,29 +564,33 @@ export const UtilityRecording: React.FC = () => {
                         </View>
 
                         {/* Nước */}
-                        <Text style={[styles.bulkSubTitle, { color: theme.colors.primary, marginTop: 12 }]}>nước</Text>
-                        <View style={styles.cardRow}>
-                          <View style={styles.inputCol}>
-                            <Text style={styles.inputLabel}>Chỉ số cũ</Text>
-                            <TextInput 
-                              style={styles.textInput} 
-                              placeholder="Nhập chỉ số" 
-                              keyboardType="numeric"
-                              value={String(room.waterOld)} 
-                              onChangeText={(val) => handleBulkOldWaterChange(room.id, val)}
-                            />
-                          </View>
-                          <View style={styles.inputCol}>
-                            <Text style={styles.inputLabel}>Chỉ số mới</Text>
-                            <TextInput 
-                              style={styles.textInput} 
-                              placeholder="Nhập chỉ số" 
-                              keyboardType="numeric"
-                              value={room.waterNew}
-                              onChangeText={(val) => handleBulkWaterChange(room.id, val)}
-                            />
-                          </View>
-                        </View>
+                        {waterCalcMethod === 'Theo chỉ số đồng hồ' && (
+                          <>
+                            <Text style={[styles.bulkSubTitle, { color: theme.colors.primary, marginTop: 12 }]}>nước</Text>
+                            <View style={styles.cardRow}>
+                              <View style={styles.inputCol}>
+                                <Text style={styles.inputLabel}>Chỉ số cũ</Text>
+                                <TextInput 
+                                  style={styles.textInput} 
+                                  placeholder="Nhập chỉ số" 
+                                  keyboardType="numeric"
+                                  value={String(room.waterOld)} 
+                                  onChangeText={(val) => handleBulkOldWaterChange(room.id, val)}
+                                />
+                              </View>
+                              <View style={styles.inputCol}>
+                                <Text style={styles.inputLabel}>Chỉ số mới</Text>
+                                <TextInput 
+                                  style={styles.textInput} 
+                                  placeholder="Nhập chỉ số" 
+                                  keyboardType="numeric"
+                                  value={room.waterNew}
+                                  onChangeText={(val) => handleBulkWaterChange(room.id, val)}
+                                />
+                              </View>
+                            </View>
+                          </>
+                        )}
                       </View>
                     )}
                   </View>
