@@ -15,6 +15,7 @@
     "react-doctor/js-set-map-lookups": "off",
     "react-doctor/no-event-handler": "off",
     "react-doctor/rn-no-scrollview-mapped-list": "off",
-    "react-doctor/rerender-state-only-in-handlers": "off"
+    "react-doctor/rerender-state-only-in-handlers": "off",
+    "react-doctor/firebase-client-owned-authz-field": "off"
   }
 }

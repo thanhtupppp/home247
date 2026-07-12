@@ -109,7 +109,7 @@ const dashboardStats: readonly StatItem[] = [
   }
 ];
 
-export const revenueHistory: readonly RevenueMonth[] = [
+const revenueHistory: readonly RevenueMonth[] = [
   { month: 'Th5', amount: '95M', height: 120 },
   { month: 'Th6', amount: '105M', height: 140 },
   { month: 'Th7', amount: '112M', height: 160 },
@@ -118,7 +118,7 @@ export const revenueHistory: readonly RevenueMonth[] = [
   { month: 'Th10', amount: '128.5M', height: 200 }
 ];
 
-export const emergencyAlerts: readonly AlertItemType[] = [
+const emergencyAlerts: readonly AlertItemType[] = [
   {
     id: '1',
     type: 'error',
@@ -144,7 +144,7 @@ export const emergencyAlerts: readonly AlertItemType[] = [
   }
 ];
 
-export const recentTransactions: readonly Transaction[] = [
+const recentTransactions: readonly Transaction[] = [
   {
     id: '1',
     roomCode: 'P.201',
