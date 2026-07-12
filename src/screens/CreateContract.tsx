@@ -8,7 +8,7 @@ import { MaterialIcons } from '@expo/vector-icons';
 import DateTimePicker from '@react-native-community/datetimepicker';
 import { theme } from '../theme';
 import * as ImagePicker from 'expo-image-picker';
-import { collection, addDoc, getDocs, query, where, orderBy, doc, updateDoc } from 'firebase/firestore';
+import { collection, addDoc, getDocs, query, where, orderBy, doc, updateDoc, runTransaction } from 'firebase/firestore';
 import { db, auth } from '../firebase';
 import { Image } from 'expo-image';
 
@@ -138,7 +138,9 @@ export const CreateContract: React.FC = () => {
 
   const fetchTenants = async () => {
     try {
-      const snap = await getDocs(query(collection(db, 'tenants'), orderBy('fullName')));
+      const uid = auth.currentUser?.uid;
+      if (!uid) return;
+      const snap = await getDocs(query(collection(db, 'tenants'), where('ownerId', '==', uid)));
       const list = snap.docs.map((doc) => ({
         id: doc.id,
         fullName: doc.data().fullName || '',
@@ -148,6 +150,8 @@ export const CreateContract: React.FC = () => {
         cccdFront: doc.data().cccdFront,
         cccdBack: doc.data().cccdBack,
       }));
+      // Sort tenants by name in memory
+      list.sort((a, b) => a.fullName.localeCompare(b.fullName));
       setTenants(list);
     } catch (err) {
       console.error('Error fetching tenants list:', err);
@@ -157,8 +161,11 @@ export const CreateContract: React.FC = () => {
   const fetchBuildings = async () => {
     try {
       setLoadingBuildings(true);
-      const snap = await getDocs(query(collection(db, 'buildings'), orderBy('name')));
+      const uid = auth.currentUser?.uid;
+      if (!uid) return;
+      const snap = await getDocs(query(collection(db, 'buildings'), where('ownerId', '==', uid)));
       const list = snap.docs.map((d) => ({ id: d.id, name: d.data().name }));
+      list.sort((a, b) => a.name.localeCompare(b.name));
       setBuildings(list);
     } catch (err) {
       console.error('Error fetching buildings:', err);
@@ -170,15 +177,19 @@ export const CreateContract: React.FC = () => {
   const fetchRooms = async (buildingId: string) => {
     try {
       setLoadingRooms(true);
+      const uid = auth.currentUser?.uid;
+      if (!uid) return [];
       const snap = await getDocs(
-        query(collection(db, 'rooms'), where('buildingId', '==', buildingId), orderBy('code'))
+        query(collection(db, 'rooms'), where('ownerId', '==', uid), where('buildingId', '==', buildingId))
       );
-      const list = snap.docs.map((d) => ({
-        id: d.id,
-        code: d.data().code,
-        price: d.data().price ? Number(d.data().price) : undefined,
-        status: d.data().status,
-      }));
+      const list = snap.docs
+        .map((d) => ({
+          id: d.id,
+          code: d.data().code,
+          price: d.data().price ? Number(d.data().price) : undefined,
+          status: d.data().status,
+        }))
+        .filter((r) => r.status === 'empty'); // Only vacant rooms can be selected for new contracts
       setRooms(list);
       return list;
     } catch (err) {
@@ -305,6 +316,13 @@ export const CreateContract: React.FC = () => {
 
     try {
       setSaving(true);
+      const uid = auth.currentUser?.uid;
+      if (!uid) {
+        Alert.alert('Lỗi', 'Phiên đăng nhập đã hết hạn.');
+        setSaving(false);
+        return;
+      }
+      
       const parsedRent = Number(rentPrice.replace(/[^0-9]/g, '')) || 0;
       const parsedDeposit = Number(depositPrice.replace(/[^0-9]/g, '')) || 0;
 
@@ -326,55 +344,77 @@ export const CreateContract: React.FC = () => {
         paidUntilDate,
         status: 'active',
         createdAt: new Date(),
-        createdBy: auth.currentUser?.uid || 'system',
+        createdBy: uid,
+        ownerId: uid,
       };
-      
-      const contractRef = await addDoc(collection(db, 'contracts'), contractData);
 
-      if (selectedTenant) {
-        const tenantRef = doc(db, 'tenants', selectedTenant.id);
-        await updateDoc(tenantRef, {
-          buildingId: selectedBuilding.id,
-          buildingName: selectedBuilding.name,
-          roomId: selectedRoom.id,
-          roomCode: selectedRoom.code,
-          moveInDate: startDate,
-          contractEndDate: endDate,
-          contractId: contractRef.id,
-          cccdFront: cccdFront ?? selectedTenant.cccdFront ?? '',
-          cccdBack: cccdBack ?? selectedTenant.cccdBack ?? '',
+      await runTransaction(db, async (transaction) => {
+        // Double check room status is empty
+        const roomRef = doc(db, 'rooms', selectedRoom.id);
+        const roomSnap = await transaction.get(roomRef);
+        if (!roomSnap.exists()) {
+          throw new Error('ROOM_NOT_FOUND');
+        }
+        if (roomSnap.data().status !== 'empty') {
+          throw new Error('ROOM_NOT_AVAILABLE');
+        }
+
+        // 1. Add contract document
+        const contractRef = doc(collection(db, 'contracts'));
+        transaction.set(contractRef, contractData);
+
+        // 2. Create or update tenant doc
+        if (selectedTenant) {
+          const tenantRef = doc(db, 'tenants', selectedTenant.id);
+          transaction.update(tenantRef, {
+            buildingId: selectedBuilding.id,
+            buildingName: selectedBuilding.name,
+            roomId: selectedRoom.id,
+            roomCode: selectedRoom.code,
+            moveInDate: startDate,
+            contractEndDate: endDate,
+            contractId: contractRef.id,
+            cccdFront: cccdFront ?? selectedTenant.cccdFront ?? '',
+            cccdBack: cccdBack ?? selectedTenant.cccdBack ?? '',
+          });
+        } else {
+          const tenantData = {
+            fullName: fullName.trim(),
+            phoneNumber: phoneNumber.trim(),
+            cccdFront: cccdFront ?? '',
+            cccdBack: cccdBack ?? '',
+            buildingId: selectedBuilding.id,
+            buildingName: selectedBuilding.name,
+            roomId: selectedRoom.id,
+            roomCode: selectedRoom.code,
+            moveInDate: startDate,
+            contractEndDate: endDate,
+            contractId: contractRef.id,
+            status: 'active',
+            createdAt: new Date(),
+            createdBy: uid,
+            ownerId: uid,
+          };
+          const tenantRef = doc(collection(db, 'tenants'));
+          transaction.set(tenantRef, tenantData);
+        }
+
+        // 3. Update room status to occupied
+        transaction.update(roomRef, {
+          status: 'occupied',
+          price: parsedRent,
         });
-      } else {
-        const tenantData = {
-          fullName: fullName.trim(),
-          phoneNumber: phoneNumber.trim(),
-          cccdFront: cccdFront ?? '',
-          cccdBack: cccdBack ?? '',
-          buildingId: selectedBuilding.id,
-          buildingName: selectedBuilding.name,
-          roomId: selectedRoom.id,
-          roomCode: selectedRoom.code,
-          moveInDate: startDate,
-          contractEndDate: endDate,
-          contractId: contractRef.id,
-          status: 'active',
-          createdAt: new Date(),
-          createdBy: auth.currentUser?.uid || 'system',
-        };
-        await addDoc(collection(db, 'tenants'), tenantData);
-      }
-
-      const roomRef = doc(db, 'rooms', selectedRoom.id);
-      await updateDoc(roomRef, {
-        status: 'occupied',
-        price: parsedRent,
       });
 
       Alert.alert('Thành công', 'Đã tạo hợp đồng và lưu thông tin cư dân thành công!');
       navigation.goBack();
-    } catch (err) {
+    } catch (err: any) {
       console.error('Error creating contract:', err);
-      Alert.alert('Lỗi', 'Không thể tạo hợp đồng mới.');
+      if (err.message === 'ROOM_NOT_AVAILABLE') {
+        Alert.alert('Lỗi', 'Phòng này đã có cư dân khác đang ở. Vui lòng chọn phòng trống khác.');
+      } else {
+        Alert.alert('Lỗi', 'Không thể tạo hợp đồng mới.');
+      }
     } finally {
       setSaving(false);
     }

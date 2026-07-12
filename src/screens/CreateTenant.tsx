@@ -8,7 +8,7 @@ import { useNavigation } from '@react-navigation/native';
 import { MaterialIcons } from '@expo/vector-icons';
 import DateTimePicker from '@react-native-community/datetimepicker';
 import { theme } from '../theme';
-import { collection, addDoc, getDocs, query, where, orderBy, doc, updateDoc } from 'firebase/firestore';
+import { collection, addDoc, getDocs, query, where, orderBy, doc, updateDoc, runTransaction } from 'firebase/firestore';
 import { db, auth } from '../firebase';
 import { getProvinceNames, getWardNamesByProvinceName } from '../data/vietnameseAddress';
 import { Image } from 'expo-image';
@@ -163,8 +163,11 @@ export const CreateTenant: React.FC = () => {
   const fetchBuildings = async () => {
     try {
       setLoadingBuildings(true);
-      const snap = await getDocs(query(collection(db, 'buildings'), orderBy('name')));
+      const uid = auth.currentUser?.uid;
+      if (!uid) return;
+      const snap = await getDocs(query(collection(db, 'buildings'), where('ownerId', '==', uid)));
       const list: Building[] = snap.docs.map((d) => ({ id: d.id, name: d.data().name }));
+      list.sort((a, b) => a.name.localeCompare(b.name));
       setBuildings(list);
     } catch (err) {
       console.error('Error fetching buildings:', err);
@@ -180,15 +183,19 @@ export const CreateTenant: React.FC = () => {
       setLoadingRooms(true);
       setRooms([]);
       setSelectedRoom(null);
+      const uid = auth.currentUser?.uid;
+      if (!uid) return;
       const snap = await getDocs(
-        query(collection(db, 'rooms'), where('buildingId', '==', buildingId), orderBy('code'))
+        query(collection(db, 'rooms'), where('ownerId', '==', uid), where('buildingId', '==', buildingId))
       );
-      const list: Room[] = snap.docs.map((d) => ({
-        id: d.id,
-        code: d.data().code,
-        buildingId: d.data().buildingId,
-        status: d.data().status,
-      }));
+      const list: Room[] = snap.docs
+        .map((d) => ({
+          id: d.id,
+          code: d.data().code,
+          buildingId: d.data().buildingId,
+          status: d.data().status,
+        }))
+        .filter((r) => r.status === 'empty'); // Only show vacant rooms
       setRooms(list);
     } catch (err) {
       console.error('Error fetching rooms:', err);
@@ -240,6 +247,7 @@ export const CreateTenant: React.FC = () => {
 
     try {
       setSaving(true);
+      const uid = auth.currentUser?.uid || 'system';
       const tenantData = {
         // Basic
         fullName: fullName.trim(),
@@ -268,20 +276,38 @@ export const CreateTenant: React.FC = () => {
         // Meta
         status: 'active',
         createdAt: new Date(),
-        createdBy: auth.currentUser?.uid || 'system',
+        createdBy: uid,
+        ownerId: uid,
       };
 
-      await addDoc(collection(db, 'tenants'), tenantData);
+      await runTransaction(db, async (transaction) => {
+        // Double check room status is still empty
+        const roomRef = doc(db, 'rooms', selectedRoom.id);
+        const roomSnap = await transaction.get(roomRef);
+        if (!roomSnap.exists()) {
+          throw new Error('ROOM_NOT_FOUND');
+        }
+        if (roomSnap.data().status !== 'empty') {
+          throw new Error('ROOM_NOT_AVAILABLE');
+        }
 
-      // Update room status to occupied
-      const roomRef = doc(db, 'rooms', selectedRoom.id);
-      await updateDoc(roomRef, { status: 'occupied' });
+        // 1. Create tenant doc
+        const tenantRef = doc(collection(db, 'tenants'));
+        transaction.set(tenantRef, tenantData);
+
+        // 2. Update room status to occupied
+        transaction.update(roomRef, { status: 'occupied' });
+      });
 
       Alert.alert('Thành công', `Đã thêm cư dân ${fullName.trim()} thành công!`);
       navigation.goBack();
-    } catch (err) {
+    } catch (err: any) {
       console.error('Error saving tenant:', err);
-      Alert.alert('Lỗi', 'Không thể lưu thông tin cư dân.');
+      if (err.message === 'ROOM_NOT_AVAILABLE') {
+        Alert.alert('Lỗi', 'Phòng này đã có cư dân khác đang ở. Vui lòng chọn phòng trống khác.');
+      } else {
+        Alert.alert('Lỗi', 'Không thể lưu thông tin cư dân.');
+      }
     } finally {
       setSaving(false);
     }

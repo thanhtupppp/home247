@@ -6,8 +6,8 @@ import {
 import { useNavigation, useRoute, useIsFocused } from '@react-navigation/native';
 import { MaterialIcons } from '@expo/vector-icons';
 import { theme } from '../theme';
-import { doc, getDoc, deleteDoc, updateDoc, collection, getDocs, query, where, orderBy } from 'firebase/firestore';
-import { db } from '../firebase';
+import { doc, getDoc, deleteDoc, updateDoc, collection, getDocs, query, where, orderBy, runTransaction } from 'firebase/firestore';
+import { db, auth } from '../firebase';
 import { Image } from 'expo-image';
 
 interface TenantData {
@@ -100,14 +100,18 @@ export const TenantDetail: React.FC = () => {
   const fetchRoomsForTransfer = async (buildingId: string) => {
     try {
       setSelectedRoom(null);
+      const uid = auth.currentUser?.uid;
+      if (!uid) return;
       const rSnap = await getDocs(
-        query(collection(db, 'rooms'), where('buildingId', '==', buildingId), orderBy('code'))
+        query(collection(db, 'rooms'), where('ownerId', '==', uid), where('buildingId', '==', buildingId))
       );
-      const rList = rSnap.docs.map(doc => ({
-        id: doc.id,
-        code: doc.data().code,
-        status: doc.data().status
-      }));
+      const rList = rSnap.docs
+        .map(doc => ({
+          id: doc.id,
+          code: doc.data().code,
+          status: doc.data().status
+        }))
+        .filter(r => r.status === 'empty'); // Only vacant rooms can be transferred into
       setRooms(rList);
       if (rList.length > 0) {
         setSelectedRoom(rList[0]);
@@ -137,31 +141,46 @@ export const TenantDetail: React.FC = () => {
     try {
       setTransferring(true);
       
-      // 1. Update tenant document
-      const tenantRef = doc(db, 'tenants', tenantId);
-      await updateDoc(tenantRef, {
-        buildingId: selectedBuilding.id,
-        buildingName: selectedBuilding.name,
-        roomId: selectedRoom.id,
-        roomCode: selectedRoom.code
+      await runTransaction(db, async (transaction) => {
+        // Double check room status is still empty
+        const newRoomRef = doc(db, 'rooms', selectedRoom.id);
+        const newRoomSnap = await transaction.get(newRoomRef);
+        if (!newRoomSnap.exists()) {
+          throw new Error('ROOM_NOT_FOUND');
+        }
+        if (newRoomSnap.data().status !== 'empty') {
+          throw new Error('ROOM_NOT_AVAILABLE');
+        }
+
+        // 1. Update tenant document
+        const tenantRef = doc(db, 'tenants', tenantId);
+        transaction.update(tenantRef, {
+          buildingId: selectedBuilding.id,
+          buildingName: selectedBuilding.name,
+          roomId: selectedRoom.id,
+          roomCode: selectedRoom.code
+        });
+
+        // 2. Mark old room as empty
+        if (tenant?.roomId) {
+          const oldRoomRef = doc(db, 'rooms', tenant.roomId);
+          transaction.update(oldRoomRef, { status: 'empty' });
+        }
+
+        // 3. Mark new room as occupied
+        transaction.update(newRoomRef, { status: 'occupied' });
       });
-
-      // 2. Mark old room as empty
-      if (tenant?.roomId) {
-        const oldRoomRef = doc(db, 'rooms', tenant.roomId);
-        await updateDoc(oldRoomRef, { status: 'empty' });
-      }
-
-      // 3. Mark new room as occupied
-      const newRoomRef = doc(db, 'rooms', selectedRoom.id);
-      await updateDoc(newRoomRef, { status: 'occupied' });
 
       Alert.alert('Thành công', `Đã chuyển cư dân sang phòng ${selectedRoom.code} thành công!`);
       setShowTransferModal(false);
       fetchTenantDetail(); // Refresh UI
-    } catch (err) {
+    } catch (err: any) {
       console.error('Error transferring room:', err);
-      Alert.alert('Lỗi', 'Không thể thực hiện chuyển phòng.');
+      if (err.message === 'ROOM_NOT_AVAILABLE') {
+        Alert.alert('Lỗi', 'Phòng này đã có cư dân khác đang ở. Vui lòng chọn phòng trống khác.');
+      } else {
+        Alert.alert('Lỗi', 'Không thể thực hiện chuyển phòng.');
+      }
     } finally {
       setTransferring(false);
     }
