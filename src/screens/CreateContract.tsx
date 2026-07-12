@@ -36,6 +36,24 @@ interface Tenant {
 
 const CYCLES = ['1 tháng', '2 tháng', '3 tháng', '6 tháng', '12 tháng'];
 
+const formatDate = (date: Date) => {
+  const dd = String(date.getDate()).padStart(2, '0');
+  const mm = String(date.getMonth() + 1).padStart(2, '0');
+  const yyyy = date.getFullYear();
+  return `${dd}/${mm}/${yyyy}`;
+};
+
+const parseDate = (dateStr: string) => {
+  if (!dateStr) return new Date();
+  const parts = dateStr.split('/');
+  if (parts.length === 3) {
+    const [dd, mm, yyyy] = parts.map(Number);
+    const parsed = new Date(yyyy, mm - 1, dd);
+    if (!isNaN(parsed.getTime())) return parsed;
+  }
+  return new Date();
+};
+
 export const CreateContract: React.FC = () => {
   const navigation = useNavigation<any>();
 
@@ -69,9 +87,9 @@ export const CreateContract: React.FC = () => {
   const [selectedRoom, setSelectedRoom] = React.useState<Room | null>(null);
   const [showRoomDropdown, setShowRoomDropdown] = React.useState(false);
 
-  const [startDate, setStartDate] = React.useState('12/07/2026');
-  const [signDate] = React.useState('12/07/2026');
-  const [endDate, setEndDate] = React.useState('12/07/2027');
+  const [startDate, setStartDate] = React.useState(formatDate(new Date()));
+  const [signDate] = React.useState(formatDate(new Date()));
+  const [endDate, setEndDate] = React.useState('');
   const [rentPrice, setRentPrice] = React.useState('');
   const [depositPrice, setDepositPrice] = React.useState('');
 
@@ -85,23 +103,33 @@ export const CreateContract: React.FC = () => {
   const [showEndDatePicker, setShowEndDatePicker] = React.useState(false);
   const [showPaidDatePicker, setShowPaidDatePicker] = React.useState(false);
 
-  const formatDate = (date: Date) => {
-    const dd = String(date.getDate()).padStart(2, '0');
-    const mm = String(date.getMonth() + 1).padStart(2, '0');
-    const yyyy = date.getFullYear();
-    return `${dd}/${mm}/${yyyy}`;
-  };
+  // Term Selection
+  const [contractTerm, setContractTerm] = React.useState<number>(12); // Default to 12 months (1 year)
+  const [showTermDropdown, setShowTermDropdown] = React.useState(false);
 
-  const parseDate = (dateStr: string) => {
-    if (!dateStr) return new Date();
-    const parts = dateStr.split('/');
+  const calculateEndDate = (startDateStr: string, monthsToAdd: number) => {
+    const parts = startDateStr.split('/');
     if (parts.length === 3) {
       const [dd, mm, yyyy] = parts.map(Number);
-      const parsed = new Date(yyyy, mm - 1, dd);
-      if (!isNaN(parsed.getTime())) return parsed;
+      const start = new Date(yyyy, mm - 1, dd);
+      if (!isNaN(start.getTime())) {
+        const end = new Date(start);
+        end.setMonth(end.getMonth() + monthsToAdd);
+        const ddOut = String(end.getDate()).padStart(2, '0');
+        const mmOut = String(end.getMonth() + 1).padStart(2, '0');
+        const yyyyOut = end.getFullYear();
+        return `${ddOut}/${mmOut}/${yyyyOut}`;
+      }
     }
-    return new Date();
+    return startDateStr;
   };
+
+  React.useEffect(() => {
+    if (contractTerm !== 0) {
+      const calculated = calculateEndDate(startDate, contractTerm);
+      setEndDate(calculated);
+    }
+  }, [startDate, contractTerm]);
 
   React.useEffect(() => {
     fetchBuildings();
@@ -623,12 +651,43 @@ export const CreateContract: React.FC = () => {
             />
           )}
 
+          <Text style={[styles.label, { marginTop: 14 }]}>Thời hạn hợp đồng</Text>
+          <View style={{ zIndex: 10 }}>
+            <Pressable onPress={() => setShowTermDropdown(!showTermDropdown)} style={styles.dropdownButton}>
+              <Text style={styles.dropdownButtonText}>
+                {contractTerm === 6 ? '6 tháng' : contractTerm === 12 ? '12 tháng (1 năm)' : contractTerm === 24 ? '24 tháng (2 năm)' : 'Tùy chọn (Tự chọn ngày)'}
+              </Text>
+              <MaterialIcons name="keyboard-arrow-down" size={24} color="#a1a1aa" />
+            </Pressable>
+            {showTermDropdown && (
+              <View style={styles.dropdown}>
+                <Pressable style={styles.dropdownItem} onPress={() => { setContractTerm(6); setShowTermDropdown(false); }}>
+                  <Text style={styles.dropdownItemText}>6 tháng</Text>
+                </Pressable>
+                <Pressable style={styles.dropdownItem} onPress={() => { setContractTerm(12); setShowTermDropdown(false); }}>
+                  <Text style={styles.dropdownItemText}>12 tháng (1 năm)</Text>
+                </Pressable>
+                <Pressable style={styles.dropdownItem} onPress={() => { setContractTerm(24); setShowTermDropdown(false); }}>
+                  <Text style={styles.dropdownItemText}>24 tháng (2 năm)</Text>
+                </Pressable>
+                <Pressable style={styles.dropdownItem} onPress={() => { setContractTerm(0); setShowTermDropdown(false); }}>
+                  <Text style={styles.dropdownItemText}>Tùy chọn (Tự chọn ngày)</Text>
+                </Pressable>
+              </View>
+            )}
+          </View>
+
           <Text style={[styles.label, { marginTop: 14 }]}>Hạn hợp đồng</Text>
-          <Pressable onPress={() => setShowEndDatePicker(true)} style={styles.dropdownButton}>
-            <Text style={styles.dropdownButtonText}>{endDate || 'Chọn ngày hết hạn'}</Text>
-            <MaterialIcons name="calendar-today" size={20} color="#a1a1aa" />
+          <Pressable 
+            onPress={() => contractTerm === 0 && setShowEndDatePicker(true)} 
+            style={[styles.dropdownButton, contractTerm !== 0 && { backgroundColor: '#f1f5f9', borderColor: '#e2e8f0' }]}
+          >
+            <Text style={[styles.dropdownButtonText, contractTerm !== 0 && { color: '#64748b' }]}>
+              {endDate || 'Chọn ngày hết hạn'}
+            </Text>
+            <MaterialIcons name={contractTerm !== 0 ? "lock-outline" : "calendar-today"} size={20} color="#a1a1aa" />
           </Pressable>
-          {showEndDatePicker && (
+          {contractTerm === 0 && showEndDatePicker && (
             <DateTimePicker
               value={parseDate(endDate)}
               mode="date"
