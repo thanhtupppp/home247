@@ -28,6 +28,106 @@ import {
 import { db, auth } from '../firebase';
 import { mockRooms } from '../data/mockData';
 
+const ROOM_TYPES = ['Phòng Đơn', 'Phòng Đôi', 'Phòng Vip'];
+
+const seedInitialData = async () => {
+  try {
+    const batch = writeBatch(db);
+    
+    // 1. Create mock buildings
+    const b1Ref = doc(collection(db, 'buildings'));
+    const b2Ref = doc(collection(db, 'buildings'));
+    const b3Ref = doc(collection(db, 'buildings'));
+
+    const uid = auth.currentUser?.uid || 'system';
+
+    batch.set(b1Ref, {
+      name: 'nơ trang long',
+      type: 'Chung cư mini',
+      address: '12 Nơ Trang Long, P.14, Q.Bình Thạnh, TP.HCM',
+      roomsCount: 15,
+      floorsCount: 5,
+      createdAt: new Date(),
+      createdBy: uid
+    });
+
+    batch.set(b2Ref, {
+      name: 'lê văn sỹ',
+      type: 'Chung cư mini',
+      address: '350 Lê Văn Sỹ, P.1, Q.Tân Bình, TP.HCM',
+      roomsCount: 10,
+      floorsCount: 4,
+      createdAt: new Date(),
+      createdBy: uid
+    });
+
+    batch.set(b3Ref, {
+      name: 'nguyễn kiệm',
+      type: 'Nhà nguyên căn',
+      address: '789 Nguyễn Kiệm, P.3, Q.Gò Vấp, TP.HCM',
+      roomsCount: 8,
+      floorsCount: 3,
+      createdAt: new Date(),
+      createdBy: uid
+    });
+
+    // 2. Create mock rooms for building 1
+    const r1 = doc(collection(db, 'rooms'));
+    const r2 = doc(collection(db, 'rooms'));
+    const r3 = doc(collection(db, 'rooms'));
+
+    batch.set(r1, {
+      buildingId: b1Ref.id,
+      buildingName: 'nơ trang long',
+      code: '101',
+      type: 'Phòng Đơn',
+      price: 3500000,
+      area: '20m²',
+      floor: 1,
+      status: 'occupied',
+      createdAt: new Date(),
+      createdBy: uid
+    });
+
+    batch.set(r2, {
+      buildingId: b1Ref.id,
+      buildingName: 'nơ trang long',
+      code: '102',
+      type: 'Phòng Đơn',
+      price: 3500000,
+      area: '20m²',
+      floor: 1,
+      status: 'occupied',
+      createdAt: new Date(),
+      createdBy: uid
+    });
+
+    batch.set(r3, {
+      buildingId: b1Ref.id,
+      buildingName: 'nơ trang long',
+      code: '201',
+      type: 'Phòng Đôi',
+      price: 4500000,
+      area: '30m²',
+      floor: 2,
+      status: 'empty',
+      createdAt: new Date(),
+      createdBy: uid
+    });
+
+    await batch.commit();
+
+    return [
+      { id: b1Ref.id, name: 'nơ trang long', type: 'Chung cư mini', address: '12 Nơ Trang Long, P.14, Q.Bình Thạnh, TP.HCM', roomsCount: 15, floorsCount: 5 },
+      { id: b2Ref.id, name: 'lê văn sỹ', type: 'Chung cư mini', address: '350 Lê Văn Sỹ, P.1, Q.Tân Bình, TP.HCM', roomsCount: 10, floorsCount: 4 },
+      { id: b3Ref.id, name: 'nguyễn kiệm', type: 'Nhà nguyên căn', address: '789 Nguyễn Kiệm, P.3, Q.Gò Vấp, TP.HCM', roomsCount: 8, floorsCount: 3 }
+    ];
+  } catch (error) {
+    console.error('Error seeding initial data:', error);
+    return [];
+  }
+};
+
 export const RoomsManagement: React.FC = () => {
   const navigation = useNavigation<any>();
   const isFocused = useIsFocused();
@@ -41,7 +141,7 @@ export const RoomsManagement: React.FC = () => {
 
   // Add Room Modal States
   const [showAddRoomModal, setShowAddRoomModal] = React.useState(false);
-  const [selectedBuildingForRoom, setSelectedBuildingForRoom] = React.useState<any>(null);
+  const selectedBuildingForRoomRef = React.useRef<any>(null);
   const [roomCode, setRoomCode] = React.useState('');
   const [roomFloor, setRoomFloor] = React.useState('1');
   const [roomType, setRoomType] = React.useState('Phòng Đơn');
@@ -50,18 +150,39 @@ export const RoomsManagement: React.FC = () => {
   const [showTypeDropdown, setShowTypeDropdown] = React.useState(false);
   const [savingRoom, setSavingRoom] = React.useState(false);
 
-  const ROOM_TYPES = ['Phòng Đơn', 'Phòng Đôi', 'Phòng Vip'];
+  const fetchRoomsForBuilding = React.useCallback(async (buildingId: string) => {
+    try {
+      setLoadingRooms(true);
+      const rQuery = query(
+        collection(db, 'rooms'),
+        where('buildingId', '==', buildingId)
+      );
+      const rSnapshot = await getDocs(rQuery);
+      const roomsList: any[] = [];
+      rSnapshot.forEach((doc) => {
+        roomsList.push({ id: doc.id, ...doc.data() });
+      });
+      
+      // Sort rooms by floor then code
+      roomsList.sort((a, b) => {
+        if (a.floor !== b.floor) {
+          return a.floor - b.floor;
+        }
+        return a.code.localeCompare(b.code);
+      });
 
-  React.useEffect(() => {
-    if (isFocused) {
-      fetchBuildings();
-      if (expandedBuildingId) {
-        fetchRoomsForBuilding(expandedBuildingId);
-      }
+      setRoomsData((prev) => ({
+        ...prev,
+        [buildingId]: roomsList
+      }));
+    } catch (error) {
+      console.error('Error fetching rooms:', error);
+    } finally {
+      setLoadingRooms(false);
     }
-  }, [isFocused]);
+  }, []);
 
-  const fetchBuildings = async () => {
+  const fetchBuildings = React.useCallback(async () => {
     try {
       setLoading(true);
       const bQuery = query(collection(db, 'buildings'));
@@ -92,78 +213,16 @@ export const RoomsManagement: React.FC = () => {
     } finally {
       setLoading(false);
     }
-  };
+  }, []);
 
-  const seedInitialData = async () => {
-    try {
-      const batch = writeBatch(db);
-      
-      // 1. Create mock buildings
-      const b1Ref = doc(collection(db, 'buildings'));
-      const b2Ref = doc(collection(db, 'buildings'));
-      const b3Ref = doc(collection(db, 'buildings'));
-
-      const uid = auth.currentUser?.uid || 'system';
-
-      batch.set(b1Ref, {
-        name: 'nơ trang long',
-        type: 'Chung cư mini',
-        province: 'Hồ Chí Minh',
-        ward: 'Phường 1',
-        detailAddress: '123 Nơ Trang Long',
-        createdAt: new Date(),
-        createdBy: uid
-      });
-
-      batch.set(b2Ref, {
-        name: 'Home247 Landmark',
-        type: 'Chung cư mini',
-        province: 'Hồ Chí Minh',
-        ward: 'Phường 22',
-        detailAddress: '208 Nguyễn Hữu Cảnh',
-        createdAt: new Date(),
-        createdBy: uid
-      });
-
-      batch.set(b3Ref, {
-        name: 'Home247 Riverside',
-        type: 'Chung cư mini',
-        province: 'Hồ Chí Minh',
-        ward: 'Thảo Điền',
-        detailAddress: '30 Xa lộ Hà Nội',
-        createdAt: new Date(),
-        createdBy: uid
-      });
-
-      // 2. Create mock rooms under 'nơ trang long'
-      mockRooms.forEach((room) => {
-        const roomRef = doc(collection(db, 'rooms'));
-        batch.set(roomRef, {
-          buildingId: b1Ref.id,
-          buildingName: 'nơ trang long',
-          code: room.code,
-          type: room.type,
-          price: Number(room.price.replace(/[^0-9]/g, '')),
-          area: room.area,
-          floor: room.floor,
-          status: room.status,
-          createdAt: new Date(),
-          createdBy: uid
-        });
-      });
-
-      await batch.commit();
-
-      return [
-        { id: b1Ref.id, name: 'nơ trang long', type: 'Chung cư mini', province: 'Hồ Chí Minh', ward: 'Phường 1', detailAddress: '123 Nơ Trang Long' },
-        { id: b2Ref.id, name: 'Home247 Landmark', type: 'Chung cư mini', province: 'Hồ Chí Minh', ward: 'Phường 22', detailAddress: '208 Nguyễn Hữu Cảnh' },
-        { id: b3Ref.id, name: 'Home247 Riverside', type: 'Chung cư mini', province: 'Hồ Chí Minh', ward: 'Thảo Điền', detailAddress: '30 Xa lộ Hà Nội' }
-      ];
-    } catch (e) {
-      console.error('Error seeding data:', e);
-      return [];
+  React.useEffect(() => {
+    if (isFocused) {
+      fetchBuildings();
+      if (expandedBuildingId) {
+        fetchRoomsForBuilding(expandedBuildingId);
+      }
     }
-  };
+  }, [isFocused, expandedBuildingId, fetchBuildings, fetchRoomsForBuilding]);
 
   const toggleExpandBuilding = async (buildingId: string) => {
     if (expandedBuildingId === buildingId) {
@@ -174,40 +233,8 @@ export const RoomsManagement: React.FC = () => {
     }
   };
 
-  const fetchRoomsForBuilding = async (buildingId: string) => {
-    try {
-      setLoadingRooms(true);
-      const rQuery = query(
-        collection(db, 'rooms'),
-        where('buildingId', '==', buildingId)
-      );
-      const rSnapshot = await getDocs(rQuery);
-      const roomsList: any[] = [];
-      rSnapshot.forEach((doc) => {
-        roomsList.push({ id: doc.id, ...doc.data() });
-      });
-      
-      // Sort rooms by floor then code
-      roomsList.sort((a, b) => {
-        if (a.floor !== b.floor) {
-          return a.floor - b.floor;
-        }
-        return a.code.localeCompare(b.code);
-      });
-
-      setRoomsData((prev) => ({
-        ...prev,
-        [buildingId]: roomsList
-      }));
-    } catch (error) {
-      console.error('Error fetching rooms:', error);
-    } finally {
-      setLoadingRooms(false);
-    }
-  };
-
   const handleOpenAddRoom = (building: any) => {
-    setSelectedBuildingForRoom(building);
+    selectedBuildingForRoomRef.current = building;
     setRoomCode('');
     setRoomFloor('1');
     setRoomType('Phòng Đơn');
@@ -235,8 +262,8 @@ export const RoomsManagement: React.FC = () => {
       const uid = auth.currentUser?.uid || 'system';
 
       await addDoc(collection(db, 'rooms'), {
-        buildingId: selectedBuildingForRoom.id,
-        buildingName: selectedBuildingForRoom.name,
+        buildingId: selectedBuildingForRoomRef.current.id,
+        buildingName: selectedBuildingForRoomRef.current.name,
         code: roomCode.trim(),
         type: roomType,
         price: Number(roomPrice),
@@ -247,9 +274,9 @@ export const RoomsManagement: React.FC = () => {
         createdBy: uid
       });
 
-      Alert.alert('Thành công', `Đã thêm phòng ${roomCode.trim()} vào tòa nhà ${selectedBuildingForRoom.name}!`);
+      Alert.alert('Thành công', `Đã thêm phòng ${roomCode.trim()} vào tòa nhà ${selectedBuildingForRoomRef.current.name}!`);
       setShowAddRoomModal(false);
-      await fetchRoomsForBuilding(selectedBuildingForRoom.id);
+      await fetchRoomsForBuilding(selectedBuildingForRoomRef.current.id);
     } catch (e) {
       console.error('Error adding room:', e);
       Alert.alert('Lỗi', 'Không thể thêm phòng mới.');
