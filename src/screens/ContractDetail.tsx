@@ -156,12 +156,13 @@ export const ContractDetail: React.FC = () => {
       setGeneratingPdf(true);
 
       const ngayKy = contract.startDate ? contract.startDate.split('/') : ['', '', ''];
-      const benAName = admin?.fullName || 'Nguyễn Văn Admin';
-      const benAPhone = admin?.phoneNumber || '0901234567';
+      const benAName = admin?.name || 'Nguyễn Văn Admin';
+      const benAPhone = admin?.phone || '0901234567';
+      const benADob = admin?.dob || '........................';
       const benACccd = admin?.cccd || '079090001234';
-      const benAAddress = admin?.address || '123 Đường Số 1, Phường 2, Quận 3, TP. Hồ Chí Minh';
-      const benABankAccount = admin?.bankAccount || '1903456789999';
-      const benABankName = admin?.bankName || 'Techcombank';
+      const benAAddress = admin?.city || '123 Đường Số 1, Phường 2, Quận 3, TP. Hồ Chí Minh';
+      const benABankAccount = admin?.bankAccount?.accountNumber || '1903456789999';
+      const benABankName = admin?.bankAccount?.bankName || 'Techcombank';
 
       const benBName = tenant?.fullName || contract.tenantName;
       const benBPhone = tenant?.phoneNumber || contract.phoneNumber;
@@ -227,9 +228,10 @@ export const ContractDetail: React.FC = () => {
 
           <p>Hôm nay, ngày ${ngayKy[0] || '……'} tháng ${ngayKy[1] || '……'} năm ${ngayKy[2] || '……'}, tại ${contract.buildingName || '…………………………'}, các bên gồm:</p>
 
-          <p class="section-title">Bên cho thuê (Bên A)</p>
+           <p class="section-title">Bên cho thuê (Bên A)</p>
           <table style="width: 100%;">
             <tr><td style="width: 180px;"><span class="bold">Họ và tên:</span></td><td>${benAName}</td></tr>
+            <tr><td><span class="bold">Ngày sinh:</span></td><td>${benADob}</td></tr>
             <tr><td><span class="bold">Số điện thoại:</span></td><td>${benAPhone}</td></tr>
             <tr><td><span class="bold">CCCD/CMND số:</span></td><td>${benACccd}</td></tr>
             <tr><td><span class="bold">Địa chỉ thường trú:</span></td><td>${benAAddress}</td></tr>
