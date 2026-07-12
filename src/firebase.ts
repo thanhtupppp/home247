@@ -5,6 +5,8 @@ import { getFirestore } from 'firebase/firestore';
 import { getStorage } from 'firebase/storage';
 import ReactNativeAsyncStorage from '@react-native-async-storage/async-storage';
 
+import { getFunctions } from 'firebase/functions';
+
 const firebaseConfig = {
   apiKey: process.env.EXPO_PUBLIC_FIREBASE_API_KEY || "AIzaSyDummyKeyForDevelopment123456",
   authDomain: process.env.EXPO_PUBLIC_FIREBASE_AUTH_DOMAIN || "home247-dev.firebaseapp.com",
@@ -20,4 +22,5 @@ export const auth = initializeAuth(app, {
 });
 export const db = getFirestore(app);
 export const storage = getStorage(app);
+export const functions = getFunctions(app, 'asia-east1');
 // Firebase app initialized.
