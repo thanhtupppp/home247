@@ -1,6 +1,6 @@
 import React from 'react';
 import { ScrollView, View, Text, StyleSheet, Pressable } from 'react-native';
-import { useNavigation } from '@react-navigation/native';
+import { useNavigation, useIsFocused } from '@react-navigation/native';
 import { MaterialIcons } from '@expo/vector-icons';
 import BentoStatCard from '../components/BentoStatCard';
 import RevenueChart from '../components/RevenueChart';
@@ -8,6 +8,8 @@ import AlertItem from '../components/AlertItem';
 import TransactionTable from '../components/TransactionTable';
 import { dashboardStats, revenueHistory, emergencyAlerts, recentTransactions } from '../data/mockData';
 import { theme } from '../theme';
+import { doc, getDoc } from 'firebase/firestore';
+import { db, auth } from '../firebase';
 
 export interface DashboardProps {
   readonly className?: string;
@@ -15,7 +17,31 @@ export interface DashboardProps {
 
 export const Dashboard: React.FC<DashboardProps> = () => {
   const navigation = useNavigation<any>();
+  const isFocused = useIsFocused();
   const [activeTab, setActiveTab] = React.useState<'tasks' | 'stats'>('tasks');
+  const [adminName, setAdminName] = React.useState('tu');
+
+  React.useEffect(() => {
+    if (isFocused) {
+      loadAdminName();
+    }
+  }, [isFocused]);
+
+  const loadAdminName = async () => {
+    try {
+      const uid = auth.currentUser?.uid || 'mock-admin-uid';
+      const docRef = doc(db, 'admins', uid);
+      const docSnap = await getDoc(docRef);
+      if (docSnap.exists()) {
+        const data = docSnap.data();
+        if (data.name) {
+          setAdminName(data.name);
+        }
+      }
+    } catch (error) {
+      console.error('Error loading admin name on dashboard:', error);
+    }
+  };
 
   return (
     <View style={styles.container}>
@@ -27,7 +53,7 @@ export const Dashboard: React.FC<DashboardProps> = () => {
           </View>
           <View style={styles.welcomeTextContainer}>
             <Text style={styles.welcomeText}>Xin chào,</Text>
-            <Text style={styles.userName}>tu</Text>
+            <Text style={styles.userName}>{adminName}</Text>
           </View>
         </View>
         <Pressable style={styles.notificationBtn} accessibilityRole="button" accessibilityLabel="Notifications">
