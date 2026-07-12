@@ -1,5 +1,9 @@
 import React from 'react';
-import { ScrollView, View, Text, StyleSheet, Pressable, ActivityIndicator } from 'react-native';
+import { 
+  ScrollView, View, Text, StyleSheet, Pressable, 
+  ActivityIndicator, Modal, TextInput, FlatList, 
+  KeyboardAvoidingView, Platform 
+} from 'react-native';
 import { useNavigation, useIsFocused } from '@react-navigation/native';
 import { MaterialIcons } from '@expo/vector-icons';
 import BentoStatCard from '../components/BentoStatCard';
@@ -8,7 +12,8 @@ import AlertItem from '../components/AlertItem';
 import TransactionTable from '../components/TransactionTable';
 import { theme } from '../theme';
 import { doc, getDoc, getDocs, collection, query, where, limit } from 'firebase/firestore';
-import { db, auth } from '../firebase';
+import { db, auth, functions } from '../firebase';
+import { httpsCallable } from 'firebase/functions';
 import { Image } from 'expo-image';
 
 export interface DashboardProps {
@@ -41,12 +46,66 @@ export const Dashboard: React.FC<DashboardProps> = () => {
     return `${mm}/${now.getFullYear()}`;
   }, []);
 
+  // AI INTEGRATION STATES
+  const [aiSummary, setAiSummary] = React.useState('');
+  const [loadingSummary, setLoadingSummary] = React.useState(false);
+  const [showChatModal, setShowChatModal] = React.useState(false);
+  const [chatMessages, setChatMessages] = React.useState<any[]>([]);
+  const [userInput, setUserInput] = React.useState('');
+  const [sendingChat, setSendingChat] = React.useState(false);
+
+  const fetchAISummary = React.useCallback(async () => {
+    try {
+      setLoadingSummary(true);
+      const getSummary = httpsCallable(functions, 'getAISummary');
+      const res = await getSummary();
+      const resData = res.data as any;
+      setAiSummary(resData.summary || 'Không thể tạo tóm tắt vận hành.');
+    } catch (err) {
+      console.error('Error fetching AI summary:', err);
+      setAiSummary('Chào mừng bạn quay lại! Hệ thống AI đề xuất của bạn hiện đang sẵn sàng.');
+    } finally {
+      setLoadingSummary(false);
+    }
+  }, []);
+
+  const handleSendChatMessage = async () => {
+    if (!userInput.trim() || sendingChat) return;
+    const userMsg = userInput.trim();
+    setUserInput('');
+    
+    // Add user message to state
+    const newMsgList = [...chatMessages, { role: 'user', content: userMsg }];
+    setChatMessages(newMsgList);
+    
+    try {
+      setSendingChat(true);
+      const runAgent = httpsCallable(functions, 'runAIAgent');
+      const res = await runAgent({ 
+        userMessage: userMsg, 
+        history: chatMessages 
+      });
+      const resData = res.data as any;
+      
+      // Update with agent's response and conversation history
+      if (resData.content) {
+        setChatMessages([...newMsgList, { role: 'assistant', content: resData.content }]);
+      }
+    } catch (err) {
+      console.error('Error in AI Chat Agent:', err);
+      setChatMessages([...newMsgList, { role: 'assistant', content: 'Có lỗi kết nối tới trợ lý AI. Vui lòng kiểm tra lại cấu hình hoặc kết nối mạng của bạn.' }]);
+    } finally {
+      setSendingChat(false);
+    }
+  };
+
   React.useEffect(() => {
     if (isFocused) {
       loadAdminName();
       loadRealStats();
+      fetchAISummary();
     }
-  }, [isFocused]);
+  }, [isFocused, fetchAISummary]);
 
   const loadAdminName = async () => {
     try {
@@ -300,6 +359,40 @@ export const Dashboard: React.FC<DashboardProps> = () => {
       </View>
       
       <ScrollView contentContainerStyle={styles.scrollContent}>
+        {/* AI Daily Brief Card */}
+        <View style={styles.aiBriefCard}>
+          <View style={styles.aiBriefHeader}>
+            <MaterialIcons name="auto-awesome" size={20} color={theme.colors.primary} />
+            <Text style={styles.aiBriefTitle}>Trợ lý AI hôm nay</Text>
+          </View>
+          {loadingSummary ? (
+            <View style={styles.aiBriefLoading}>
+              <ActivityIndicator size="small" color={theme.colors.primary} />
+              <Text style={styles.aiBriefLoadingText}>Đang tổng hợp thông tin...</Text>
+            </View>
+          ) : (
+            <View>
+              <Text style={styles.aiBriefText}>
+                {aiSummary || 'Hệ thống chưa tạo tóm tắt vận hành nào.'}
+              </Text>
+              <Pressable 
+                style={styles.aiBriefActionBtn}
+                onPress={() => {
+                  setShowChatModal(true);
+                  if (chatMessages.length === 0) {
+                    setChatMessages([
+                      { role: 'assistant', content: 'Xin chào! Tôi là Trợ lý Vận hành Home247. Tôi có thể giúp gì cho bạn hôm nay?' }
+                    ]);
+                  }
+                }}
+              >
+                <MaterialIcons name="chat" size={16} color="#ffffff" />
+                <Text style={styles.aiBriefActionText}>Trò chuyện với Trợ lý AI</Text>
+              </Pressable>
+            </View>
+          )}
+        </View>
+
         {/* Section: Quản lý */}
         <View style={styles.section}>
           <Text style={styles.sectionTitle}>Quản lý</Text>
@@ -582,6 +675,86 @@ export const Dashboard: React.FC<DashboardProps> = () => {
       >
         <MaterialIcons name="add" size={28} color={theme.colors.onPrimary} />
       </Pressable>
+
+      {/* Chat Agent Modal */}
+      <Modal
+        visible={showChatModal}
+        animationType="slide"
+        transparent={false}
+        onRequestClose={() => setShowChatModal(false)}
+      >
+        <KeyboardAvoidingView
+          behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+          style={styles.chatModalContainer}
+        >
+          {/* Header */}
+          <View style={styles.chatHeader}>
+            <Pressable onPress={() => setShowChatModal(false)} style={styles.chatCloseBtn}>
+              <MaterialIcons name="arrow-back" size={24} color={theme.colors.onSurface} />
+            </Pressable>
+            <View style={styles.chatHeaderTitleContainer}>
+              <MaterialIcons name="auto-awesome" size={20} color={theme.colors.primary} />
+              <Text style={styles.chatHeaderTitle}>Trợ lý Vận hành AI</Text>
+            </View>
+            <Pressable 
+              onPress={() => {
+                setChatMessages([
+                  { role: 'assistant', content: 'Lịch sử cuộc trò chuyện đã được làm sạch. Tôi có thể giúp gì tiếp cho bạn?' }
+                ]);
+              }}
+              style={styles.chatClearBtn}
+            >
+              <MaterialIcons name="refresh" size={20} color="#64748b" />
+            </Pressable>
+          </View>
+
+          {/* Messages list */}
+          <FlatList
+            data={chatMessages}
+            keyExtractor={(_, index) => index.toString()}
+            contentContainerStyle={styles.chatMessagesList}
+            renderItem={({ item }) => (
+              <View style={[
+                styles.chatBubble,
+                item.role === 'user' ? styles.chatBubbleUser : styles.chatBubbleAssistant
+              ]}>
+                <Text style={[
+                  styles.chatBubbleText,
+                  item.role === 'user' ? styles.chatBubbleTextUser : styles.chatBubbleTextAssistant
+                ]}>
+                  {item.content}
+                </Text>
+              </View>
+            )}
+            ref={(ref) => {
+              // Auto scroll to end on message addition
+              setTimeout(() => ref?.scrollToEnd({ animated: true }), 100);
+            }}
+          />
+
+          {/* Input row */}
+          <View style={styles.chatInputRow}>
+            <TextInput
+              style={styles.chatTextInput}
+              placeholder="Hỏi trợ lý (Vd: Phòng nào chưa đóng tiền?)..."
+              value={userInput}
+              onChangeText={setUserInput}
+              onSubmitEditing={handleSendChatMessage}
+            />
+            <Pressable 
+              style={[styles.chatSendBtn, sendingChat && { opacity: 0.6 }]}
+              onPress={handleSendChatMessage}
+              disabled={sendingChat}
+            >
+              {sendingChat ? (
+                <ActivityIndicator size="small" color="#ffffff" />
+              ) : (
+                <MaterialIcons name="send" size={20} color="#ffffff" />
+              )}
+            </Pressable>
+          </View>
+        </KeyboardAvoidingView>
+      </Modal>
     </View>
   );
 };
@@ -883,6 +1056,143 @@ const styles = StyleSheet.create({
   },
   loadingText: {
     color: theme.colors.onSurfaceVariant,
+  },
+  aiBriefCard: {
+    backgroundColor: '#eff6ff',
+    borderRadius: theme.borderRadius.xl,
+    padding: 16,
+    marginHorizontal: theme.spacing.marginMobile,
+    marginTop: 12,
+    borderWidth: 1,
+    borderColor: '#bfdbfe',
+  },
+  aiBriefHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    marginBottom: 8,
+  },
+  aiBriefTitle: {
+    fontSize: 14,
+    fontWeight: 'bold',
+    color: '#1e3a8a',
+  },
+  aiBriefLoading: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    paddingVertical: 12,
+  },
+  aiBriefLoadingText: {
+    fontSize: 13,
+    color: '#60a5fa',
+  },
+  aiBriefText: {
+    fontSize: 13,
+    lineHeight: 18,
+    color: '#1e293b',
+  },
+  aiBriefActionBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: theme.colors.primary,
+    borderRadius: theme.borderRadius.lg,
+    paddingVertical: 8,
+    gap: 8,
+    marginTop: 12,
+  },
+  aiBriefActionText: {
+    fontSize: 12,
+    fontWeight: 'bold',
+    color: '#ffffff',
+  },
+  chatModalContainer: {
+    flex: 1,
+    backgroundColor: theme.colors.background,
+  },
+  chatHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingHorizontal: 16,
+    paddingTop: Platform.OS === 'ios' ? 50 : 20,
+    paddingBottom: 16,
+    borderBottomWidth: 1,
+    borderBottomColor: theme.colors.outlineVariant,
+    backgroundColor: theme.colors.surfaceContainerLowest,
+  },
+  chatCloseBtn: {
+    padding: 4,
+  },
+  chatHeaderTitleContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+  },
+  chatHeaderTitle: {
+    fontSize: 16,
+    fontWeight: 'bold',
+    color: theme.colors.onSurface,
+  },
+  chatClearBtn: {
+    padding: 4,
+  },
+  chatMessagesList: {
+    padding: 16,
+    gap: 12,
+  },
+  chatBubble: {
+    maxWidth: '80%',
+    padding: 12,
+    borderRadius: theme.borderRadius.xl,
+  },
+  chatBubbleUser: {
+    alignSelf: 'flex-end',
+    backgroundColor: theme.colors.primary,
+    borderBottomRightRadius: 4,
+  },
+  chatBubbleAssistant: {
+    alignSelf: 'flex-start',
+    backgroundColor: theme.colors.surfaceContainerHigh,
+    borderBottomLeftRadius: 4,
+  },
+  chatBubbleText: {
+    fontSize: 14,
+    lineHeight: 20,
+  },
+  chatBubbleTextUser: {
+    color: '#ffffff',
+  },
+  chatBubbleTextAssistant: {
+    color: theme.colors.onSurface,
+  },
+  chatInputRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: 16,
+    paddingVertical: 12,
+    borderTopWidth: 1,
+    borderTopColor: theme.colors.outlineVariant,
+    backgroundColor: theme.colors.surfaceContainerLowest,
+    gap: 12,
+  },
+  chatTextInput: {
+    flex: 1,
+    backgroundColor: theme.colors.surfaceContainer,
+    borderRadius: theme.borderRadius.xl,
+    paddingHorizontal: 16,
+    paddingVertical: 10,
+    fontSize: 14,
+    color: theme.colors.onSurface,
+  },
+  chatSendBtn: {
+    backgroundColor: theme.colors.primary,
+    width: 44,
+    height: 44,
+    borderRadius: 22,
+    alignItems: 'center',
+    justifyContent: 'center',
   },
 });
 
