@@ -21,7 +21,9 @@ import {
   addDoc, 
   writeBatch, 
   doc,
-  deleteDoc
+  deleteDoc,
+  getDoc,
+  setDoc
 } from 'firebase/firestore';
 import { db, auth } from '../firebase';
 import { mockRooms } from '../data/mockData';
@@ -67,9 +69,18 @@ export const RoomsManagement: React.FC = () => {
         list.push({ id: doc.id, ...doc.data() });
       });
 
-      // If empty, auto-seed the database with initial mock buildings and rooms
+      // If empty, check if we have already seeded. If not, auto-seed.
       if (list.length === 0) {
-        list = await seedInitialData();
+        const uid = auth.currentUser?.uid;
+        if (uid) {
+          const adminDocRef = doc(db, 'admins', uid);
+          const adminSnap = await getDoc(adminDocRef);
+          const hasSeeded = adminSnap.exists() && adminSnap.data()?.hasSeeded;
+          if (!hasSeeded) {
+            list = await seedInitialData();
+            await setDoc(adminDocRef, { hasSeeded: true }, { merge: true });
+          }
+        }
       }
 
       setBuildings(list);
