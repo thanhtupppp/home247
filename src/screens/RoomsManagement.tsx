@@ -268,6 +268,47 @@ export const RoomsManagement: React.FC = () => {
     );
   };
 
+  const handleDeleteBuilding = (building: any) => {
+    Alert.alert(
+      'Xác nhận xóa tòa nhà',
+      `Bạn có chắc chắn muốn xóa tòa nhà "${building.name}" cùng toàn bộ căn hộ/phòng thuộc tòa nhà này? Hành động này không thể hoàn tác.`,
+      [
+        { text: 'Hủy', style: 'cancel' },
+        { 
+          text: 'Xóa', 
+          style: 'destructive', 
+          onPress: async () => {
+            try {
+              setLoading(true);
+              const batch = writeBatch(db);
+              
+              // 1. Delete building doc
+              batch.delete(doc(db, 'buildings', building.id));
+              
+              // 2. Fetch and delete all rooms in this building
+              const rQuery = query(collection(db, 'rooms'), where('buildingId', '==', building.id));
+              const rSnapshot = await getDocs(rQuery);
+              rSnapshot.forEach((roomDoc: any) => {
+                batch.delete(doc(db, 'rooms', roomDoc.id));
+              });
+
+              // 3. Commit batch deletion
+              await batch.commit();
+              
+              Alert.alert('Thành công', `Đã xóa tòa nhà "${building.name}" thành công!`);
+              await fetchBuildings();
+            } catch (error) {
+              console.error('Error deleting building:', error);
+              Alert.alert('Lỗi', 'Không thể xóa tòa nhà.');
+            } finally {
+              setLoading(false);
+            }
+          }
+        }
+      ]
+    );
+  };
+
   const filteredBuildings = buildings.filter((b) =>
     b.name.toLowerCase().includes(searchText.toLowerCase())
   );
@@ -309,25 +350,33 @@ export const RoomsManagement: React.FC = () => {
             const rooms = roomsData[building.id] || [];
             return (
               <View key={building.id} style={styles.buildingCard}>
-                <Pressable 
-                  style={styles.buildingHeader} 
-                  onPress={() => toggleExpandBuilding(building.id)}
-                >
-                  <View style={styles.buildingHeaderLeft}>
+                <View style={styles.buildingHeader}>
+                  <Pressable 
+                    style={styles.buildingHeaderLeftClickable} 
+                    onPress={() => toggleExpandBuilding(building.id)}
+                  >
                     <MaterialIcons name="apartment" size={24} color={theme.colors.primary} style={{ marginRight: 8 }} />
-                    <View>
+                    <View style={{ flex: 1 }}>
                       <Text style={styles.buildingName}>{building.name}</Text>
                       <Text style={styles.buildingType}>{building.type || 'Chung cư mini'}</Text>
                     </View>
-                  </View>
+                  </Pressable>
                   <View style={styles.buildingHeaderRight}>
-                    <MaterialIcons 
-                      name={isExpanded ? "keyboard-arrow-up" : "keyboard-arrow-down"} 
-                      size={24} 
-                      color="#94a3b8" 
-                    />
+                    <Pressable 
+                      style={styles.deleteBuildingBtn}
+                      onPress={() => handleDeleteBuilding(building)}
+                    >
+                      <MaterialIcons name="delete-outline" size={22} color="#ef4444" style={{ marginRight: 12 }} />
+                    </Pressable>
+                    <Pressable onPress={() => toggleExpandBuilding(building.id)}>
+                      <MaterialIcons 
+                        name={isExpanded ? "keyboard-arrow-up" : "keyboard-arrow-down"} 
+                        size={24} 
+                        color="#94a3b8" 
+                      />
+                    </Pressable>
                   </View>
-                </Pressable>
+                </View>
 
                 {isExpanded && (
                   <View style={styles.expandedContent}>
@@ -570,6 +619,16 @@ const styles = StyleSheet.create({
   buildingHeaderLeft: {
     flexDirection: 'row',
     alignItems: 'center',
+  },
+  buildingHeaderLeftClickable: {
+    flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  deleteBuildingBtn: {
+    padding: 8,
+    alignItems: 'center',
+    justifyContent: 'center',
   },
   buildingName: {
     ...theme.typography.bodyLg,
