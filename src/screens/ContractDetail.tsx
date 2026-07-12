@@ -8,6 +8,7 @@ import { MaterialIcons } from '@expo/vector-icons';
 import { theme } from '../theme';
 import * as Print from 'expo-print';
 import * as Sharing from 'expo-sharing';
+import * as FileSystem from 'expo-file-system/legacy';
 import { doc, getDoc, getDocs, collection, query, where, updateDoc } from 'firebase/firestore';
 import { db, auth } from '../firebase';
 
@@ -305,7 +306,22 @@ export const ContractDetail: React.FC = () => {
       `;
 
       const { uri } = await Print.printToFileAsync({ html: htmlContent });
-      await Sharing.shareAsync(uri);
+      
+      // Copy to Cache directory with a clean human-readable name to bypass Android permission restrictions
+      const safeRoomCode = contract.roomCode.replace(/[^a-zA-Z0-9]/g, '_');
+      const cleanFileName = `Hop_Dong_Thue_Phong_${safeRoomCode}.pdf`;
+      const cachedUri = `${FileSystem.cacheDirectory}${cleanFileName}`;
+      
+      await FileSystem.copyAsync({
+        from: uri,
+        to: cachedUri
+      });
+
+      await Sharing.shareAsync(cachedUri, {
+        mimeType: 'application/pdf',
+        dialogTitle: `Hợp đồng thuê phòng ${contract.roomCode}`,
+        UTI: 'com.adobe.pdf'
+      });
       
       Alert.alert('Thành công', 'Đã tạo và chia sẻ tệp PDF hợp đồng thành công!');
     } catch (err) {
