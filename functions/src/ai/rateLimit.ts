@@ -1,5 +1,5 @@
 import { db } from '../utils/firestore';
-import * as admin from 'firebase-admin';
+import { FieldValue } from 'firebase-admin/firestore';
 
 // Unified limits per user ID (uid) per day
 const QUOTA_LIMITS = {
@@ -41,7 +41,7 @@ export async function checkAndIncrementQuota(
     transaction.set(docRef, {
       ...data,
       [feature]: currentCount + 1,
-      lastUsedAt: admin.firestore.FieldValue.serverTimestamp(),
+      lastUsedAt: FieldValue.serverTimestamp(),
     }, { merge: true });
   });
 }

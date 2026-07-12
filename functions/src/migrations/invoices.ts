@@ -1,5 +1,5 @@
-import * as admin from 'firebase-admin';
 import { db } from '../utils/firestore';
+import { Timestamp } from 'firebase-admin/firestore';
 
 /**
  * Idempotent, batched, dry-run capable migration for invoice due dates.
@@ -27,7 +27,7 @@ export async function runInvoicesMigration(uid: string, dryRun: boolean = false)
     const dueDate = data.dueDate;
 
     // 1. If dueDate is already a Timestamp, skip
-    if (dueDate instanceof admin.firestore.Timestamp) {
+    if (dueDate instanceof Timestamp) {
       skipped++;
       continue;
     }
@@ -95,7 +95,7 @@ export async function runInvoicesMigration(uid: string, dryRun: boolean = false)
     // 4. Batch write updates (idempotent, won't duplicate if already Timestamp)
     if (!dryRun) {
       currentBatch.update(doc.ref, {
-        dueDate: admin.firestore.Timestamp.fromDate(parsedDate)
+        dueDate: Timestamp.fromDate(parsedDate)
       });
       batchCount++;
       migrated++;
