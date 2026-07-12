@@ -1,5 +1,5 @@
 import React from 'react';
-import { ScrollView, View, Text, StyleSheet, Pressable } from 'react-native';
+import { ScrollView, View, Text, StyleSheet, Pressable, Image } from 'react-native';
 import { useNavigation, useIsFocused } from '@react-navigation/native';
 import { MaterialIcons } from '@expo/vector-icons';
 import BentoStatCard from '../components/BentoStatCard';
@@ -20,6 +20,7 @@ export const Dashboard: React.FC<DashboardProps> = () => {
   const isFocused = useIsFocused();
   const [activeTab, setActiveTab] = React.useState<'tasks' | 'stats'>('tasks');
   const [adminName, setAdminName] = React.useState(auth.currentUser?.displayName || auth.currentUser?.email?.split('@')[0] || 'Admin');
+  const [avatarUrl, setAvatarUrl] = React.useState<string | null>(null);
 
   React.useEffect(() => {
     if (isFocused) {
@@ -32,6 +33,7 @@ export const Dashboard: React.FC<DashboardProps> = () => {
       const currentUser = auth.currentUser;
       if (!currentUser) {
         setAdminName('Admin');
+        setAvatarUrl(null);
         return;
       }
       const uid = currentUser.uid;
@@ -42,8 +44,14 @@ export const Dashboard: React.FC<DashboardProps> = () => {
         if (data.name) {
           setAdminName(data.name);
         }
+        if (data.avatarUrl) {
+          setAvatarUrl(data.avatarUrl);
+        } else {
+          setAvatarUrl(null);
+        }
       } else {
         setAdminName(currentUser.displayName || currentUser.email?.split('@')[0] || 'Admin');
+        setAvatarUrl(null);
       }
     } catch (error) {
       console.error('Error loading admin name on dashboard:', error);
@@ -56,7 +64,11 @@ export const Dashboard: React.FC<DashboardProps> = () => {
       <View style={styles.headerContainer}>
         <View style={styles.headerLeft}>
           <View style={styles.avatarCircle}>
-            <MaterialIcons name="person" size={28} color="#a1a1aa" />
+            {avatarUrl ? (
+              <Image source={{ uri: avatarUrl }} style={styles.avatarImage} />
+            ) : (
+              <MaterialIcons name="person" size={28} color="#a1a1aa" />
+            )}
           </View>
           <View style={styles.welcomeTextContainer}>
             <Text style={styles.welcomeText}>Xin chào,</Text>
@@ -504,6 +516,11 @@ const styles = StyleSheet.create({
       blurRadius: 6,
       color: 'rgba(0, 0, 0, 0.3)'
     }],
+  },
+  avatarImage: {
+    width: '100%',
+    height: '100%',
+    borderRadius: 24,
   },
 });
 
