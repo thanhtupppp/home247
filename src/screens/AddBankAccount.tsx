@@ -26,7 +26,11 @@ export const AddBankAccount: React.FC = () => {
   const loadBankData = async () => {
     try {
       setLoading(true);
-      const uid = auth.currentUser?.uid || 'mock-admin-uid';
+      const uid = auth.currentUser?.uid;
+      if (!uid) {
+        setLoading(false);
+        return;
+      }
       const docRef = doc(db, 'admins', uid);
       const docSnap = await getDoc(docRef);
       if (docSnap.exists()) {
@@ -54,7 +58,12 @@ export const AddBankAccount: React.FC = () => {
 
     try {
       setSaving(true);
-      const uid = auth.currentUser?.uid || 'mock-admin-uid';
+      const uid = auth.currentUser?.uid;
+      if (!uid) {
+        Alert.alert('Lỗi', 'Phiên đăng nhập đã hết hạn.');
+        setSaving(false);
+        return;
+      }
       const docRef = doc(db, 'admins', uid);
       await setDoc(
         docRef,

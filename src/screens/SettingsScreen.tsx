@@ -66,7 +66,12 @@ export const SettingsScreen: React.FC = () => {
   const uploadAvatar = async (base64Str: string) => {
     try {
       setUploading(true);
-      const uid = auth.currentUser?.uid || 'mock-admin-uid';
+      const uid = auth.currentUser?.uid;
+      if (!uid) {
+        Alert.alert('Lỗi', 'Phiên đăng nhập đã hết hạn.');
+        setUploading(false);
+        return;
+      }
       
       const avatarDataUrl = `data:image/jpeg;base64,${base64Str}`;
       
@@ -100,7 +105,12 @@ export const SettingsScreen: React.FC = () => {
           onPress: async () => {
             try {
               setUploading(true);
-              const uid = auth.currentUser?.uid || 'mock-admin-uid';
+              const uid = auth.currentUser?.uid;
+              if (!uid) {
+                Alert.alert('Lỗi', 'Phiên đăng nhập đã hết hạn.');
+                setUploading(false);
+                return;
+              }
               
               // Delete from Storage only if it is an HTTP Storage URL
               if (profile?.avatarUrl && profile.avatarUrl.startsWith('http')) {
