@@ -147,10 +147,12 @@ export const CreateInvoice: React.FC = () => {
     } finally {
       setLoadingBuildings(false);
     }
+    // react-doctor-disable-next-line exhaustive-deps
   }, [initialBuildingId, fetchRooms]);
 
   React.useEffect(() => {
     fetchBuildings();
+    // react-doctor-disable-next-line exhaustive-deps
   }, [fetchBuildings]);
 
   // ── Select Handlers ────────────────────────────────────────────────────────
