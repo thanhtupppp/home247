@@ -1,4 +1,4 @@
-import { initializeApp } from 'firebase/app';
+import { initializeApp, getApps, getApp } from 'firebase/app';
 // @ts-ignore
 import { initializeAuth, getReactNativePersistence, getAuth } from 'firebase/auth';
 import { getFirestore } from 'firebase/firestore';
@@ -15,18 +15,15 @@ const firebaseConfig = {
   appId: process.env.EXPO_PUBLIC_FIREBASE_APP_ID || "1:1234567890:web:abcdef123456"
 };
 
-const app = initializeApp(firebaseConfig);
+const alreadyInitialized = getApps().length > 0;
+const app = alreadyInitialized ? getApp() : initializeApp(firebaseConfig);
 
-let firebaseAuth;
-try {
-  firebaseAuth = getAuth(app);
-} catch (e) {
-  firebaseAuth = initializeAuth(app, {
-    persistence: getReactNativePersistence(ReactNativeAsyncStorage)
-  });
-}
+export const auth = alreadyInitialized 
+  ? getAuth(app) 
+  : initializeAuth(app, {
+      persistence: getReactNativePersistence(ReactNativeAsyncStorage)
+    });
 
-export const auth = firebaseAuth;
 export const db = getFirestore(app);
 export const storage = getStorage(app);
 export const functions = getFunctions(app, 'asia-east1');
