@@ -15,20 +15,21 @@ const getPreviousMonth = (monthStr: string): string => {
   return `${String(m - 1).padStart(2, '0')}/${y}`;
 };
 
+const generateMonthsList = (): string[] => {
+  const list: string[] = [];
+  const date = new Date();
+  for (let i = 5; i >= 0; i--) {
+    const d = new Date(date.getFullYear(), date.getMonth() - i, 1);
+    const mm = String(d.getMonth() + 1).padStart(2, '0');
+    const yyyy = d.getFullYear();
+    list.push(`${mm}/${yyyy}`);
+  }
+  return list;
+};
+
 export const UtilityRecording: React.FC = () => {
   const navigation = useNavigation<any>();
   const route = useRoute<any>();
-  const generateMonthsList = (): string[] => {
-    const list: string[] = [];
-    const date = new Date();
-    for (let i = 5; i >= 0; i--) {
-      const d = new Date(date.getFullYear(), date.getMonth() - i, 1);
-      const mm = String(d.getMonth() + 1).padStart(2, '0');
-      const yyyy = d.getFullYear();
-      list.push(`${mm}/${yyyy}`);
-    }
-    return list;
-  };
   const monthsList = generateMonthsList();
   const defaultMonth = monthsList[monthsList.length - 1];
 
@@ -58,7 +59,7 @@ export const UtilityRecording: React.FC = () => {
   const [rooms, setRooms] = React.useState<string[]>([]);
   const [waterCalcMethod, setWaterCalcMethod] = React.useState('Theo chỉ số đồng hồ');
 
-  const fetchWaterServiceType = async (buildingName: string) => {
+  const fetchWaterServiceType = React.useCallback(async (buildingName: string) => {
     try {
       const snap = await getDocs(collection(db, 'services'));
       let method = 'Theo chỉ số đồng hồ'; // default fallback
@@ -80,36 +81,10 @@ export const UtilityRecording: React.FC = () => {
     } catch (err) {
       console.error('Error fetching water service type:', err);
     }
-  };
+  }, []);
 
-  React.useEffect(() => {
-    if (selectedBuilding) {
-      fetchWaterServiceType(selectedBuilding);
-    }
-  }, [selectedBuilding]);
-
-  React.useEffect(() => {
-    if (route.params?.room) {
-      setSelectedRoom(route.params.room);
-      setActiveTab('room');
-    }
-  }, [route.params?.room]);
-
-  React.useEffect(() => {
-    fetchBuildingsAndRooms();
-  }, [selectedBuilding]);
-
-  React.useEffect(() => {
-    if (activeTab === 'room') {
-      loadSingleRoomData();
-    } else {
-      loadBulkData();
-    }
-  }, [activeTab, selectedRoom, selectedBuilding, selectedMonth]);
-
-  const fetchBuildingsAndRooms = async () => {
+  const fetchBuildingsAndRooms = React.useCallback(async () => {
     try {
-      // Fetch buildings
       const bSnapshot = await getDocs(query(collection(db, 'buildings')));
       const bList: any[] = [];
       bSnapshot.forEach((doc: any) => {
@@ -117,28 +92,25 @@ export const UtilityRecording: React.FC = () => {
       });
       setBuildings(bList);
 
-      // Fetch rooms for this building
       const rSnapshot = await getDocs(
         query(collection(db, 'rooms'), where('buildingName', '==', selectedBuilding))
       );
       const rList: string[] = [];
       rSnapshot.forEach((doc: any) => {
-        const data = doc.data();
-        if (data.code) rList.push(data.code);
+        if (doc.data().code) rList.push(doc.data().code);
       });
       rList.sort((a, b) => a.localeCompare(b));
       setRooms(rList);
     } catch (e) {
       console.error('Error loading buildings/rooms in recording screen:', e);
     }
-  };
+  }, [selectedBuilding]);
 
-  const loadSingleRoomData = async () => {
+  const loadSingleRoomData = React.useCallback(async () => {
     if (!selectedRoom) return;
     try {
       setLoading(true);
       const prevMonth = getPreviousMonth(selectedMonth);
-      
       const currentDocId = `${selectedBuilding}_${selectedRoom}_${selectedMonth.replace('/', '-')}`;
       const prevDocId = `${selectedBuilding}_${selectedRoom}_${prevMonth.replace('/', '-')}`;
       
@@ -173,14 +145,12 @@ export const UtilityRecording: React.FC = () => {
     } finally {
       setLoading(false);
     }
-  };
+  }, [selectedBuilding, selectedRoom, selectedMonth]);
 
-  const loadBulkData = async () => {
+  const loadBulkData = React.useCallback(async () => {
     try {
       setLoading(true);
       const prevMonth = getPreviousMonth(selectedMonth);
-      
-      // Fetch rooms dynamically
       const rSnapshot = await getDocs(
         query(collection(db, 'rooms'), where('buildingName', '==', selectedBuilding))
       );
@@ -193,52 +163,71 @@ export const UtilityRecording: React.FC = () => {
       const promises = roomsList.map(async (room) => {
         const currentDocId = `${selectedBuilding}_${room.code}_${selectedMonth.replace('/', '-')}`;
         const prevDocId = `${selectedBuilding}_${room.code}_${prevMonth.replace('/', '-')}`;
-        
-        const [currentSnap, prevSnap] = await Promise.all([
+        const [curSnap, prvSnap] = await Promise.all([
           getDoc(doc(db, 'utilityReadings', currentDocId)),
           getDoc(doc(db, 'utilityReadings', prevDocId))
         ]);
-        
+
         let oldElectric = 0;
         let oldWater = 0;
+        if (prvSnap.exists()) {
+          oldElectric = prvSnap.data().electricNew || 0;
+          oldWater = prvSnap.data().waterNew || 0;
+        }
+
         let newElectric = '';
         let newWater = '';
-        let isRecorded = false;
-        
-        if (prevSnap.exists()) {
-          oldElectric = prevSnap.data().electricNew || 0;
-          oldWater = prevSnap.data().waterNew || 0;
+        let electricOldVal = String(oldElectric);
+        let waterOldVal = String(oldWater);
+
+        if (curSnap.exists()) {
+          const d = curSnap.data();
+          newElectric = d.electricNew !== undefined ? String(d.electricNew) : '';
+          newWater = d.waterNew !== undefined ? String(d.waterNew) : '';
+          if (d.electricOld !== undefined) electricOldVal = String(d.electricOld);
+          if (d.waterOld !== undefined) waterOldVal = String(d.waterOld);
         }
-        
-        if (currentSnap.exists()) {
-          const curData = currentSnap.data();
-          newElectric = String(curData.electricNew || '');
-          newWater = String(curData.waterNew || '');
-          oldElectric = curData.electricOld !== undefined ? curData.electricOld : oldElectric;
-          oldWater = curData.waterOld !== undefined ? curData.waterOld : oldWater;
-          isRecorded = true;
-        }
-        
+
         return {
           id: room.id,
-          code: room.code,
-          enabled: true,
-          electricOld: oldElectric,
+          roomCode: room.code,
+          electricOld: electricOldVal,
+          waterOld: waterOldVal,
           electricNew: newElectric,
-          waterOld: oldWater,
           waterNew: newWater,
-          isRecorded
+          enabled: true
         };
       });
-      
-      const results = await Promise.all(promises);
-      setBulkRooms(results);
+
+      const list = await Promise.all(promises);
+      setBulkRooms(list);
     } catch (error) {
       console.error('Error loading bulk utility data:', error);
     } finally {
       setLoading(false);
     }
-  };
+  }, [selectedBuilding, selectedMonth]);
+
+  React.useEffect(() => {
+    if (selectedBuilding) {
+      fetchWaterServiceType(selectedBuilding);
+      fetchBuildingsAndRooms();
+      if (activeTab === 'room') {
+        loadSingleRoomData();
+      } else {
+        loadBulkData();
+      }
+    }
+  }, [
+    selectedBuilding,
+    activeTab,
+    selectedRoom,
+    selectedMonth,
+    fetchWaterServiceType,
+    fetchBuildingsAndRooms,
+    loadSingleRoomData,
+    loadBulkData
+  ]);
 
   const handleSave = async () => {
     if (activeTab === 'room') {
