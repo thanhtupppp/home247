@@ -1,15 +1,17 @@
 import React from 'react';
-import { View, Text, StyleSheet, Pressable, ScrollView, TextInput } from 'react-native';
+import { View, Text, StyleSheet, Pressable, ScrollView, TextInput, Alert, ActivityIndicator } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
 import { MaterialIcons } from '@expo/vector-icons';
 import { theme } from '../theme';
+import { collection, addDoc } from 'firebase/firestore';
+import { db, auth } from '../firebase';
 
 const TYPES = ['Chung cư mini', 'Nhà nguyên căn', 'Dãy phòng trọ'];
 const PROVINCES = ['Hồ Chí Minh', 'Hà Nội', 'Đà Nẵng'];
 const WARDS = ['Phường 1', 'Phường 2', 'Phường 3'];
 
 export const CreateBuilding: React.FC = () => {
-  const navigation = useNavigation();
+  const navigation = useNavigation<any>();
 
   const [buildingName, setBuildingName] = React.useState('');
   const [selectedType, setSelectedType] = React.useState('');
@@ -22,6 +24,46 @@ export const CreateBuilding: React.FC = () => {
   const [showWardDropdown, setShowWardDropdown] = React.useState(false);
 
   const [detailAddress, setDetailAddress] = React.useState('');
+  const [saving, setSaving] = React.useState(false);
+
+  const handleSave = async () => {
+    if (!buildingName.trim()) {
+      Alert.alert('Thông báo', 'Vui lòng nhập tên nhà.');
+      return;
+    }
+    if (!selectedType) {
+      Alert.alert('Thông báo', 'Vui lòng chọn loại nhà.');
+      return;
+    }
+    if (!selectedProvince) {
+      Alert.alert('Thông báo', 'Vui lòng chọn tỉnh/thành phố.');
+      return;
+    }
+    if (!selectedWard) {
+      Alert.alert('Thông báo', 'Vui lòng chọn phường/xã.');
+      return;
+    }
+
+    try {
+      setSaving(true);
+      await addDoc(collection(db, 'buildings'), {
+        name: buildingName.trim(),
+        type: selectedType,
+        province: selectedProvince,
+        ward: selectedWard,
+        detailAddress: detailAddress.trim(),
+        createdAt: new Date(),
+        createdBy: auth.currentUser?.uid || 'system'
+      });
+      Alert.alert('Thành công', 'Đã thêm nhà thành công!');
+      navigation.goBack();
+    } catch (error) {
+      console.error('Error saving building:', error);
+      Alert.alert('Lỗi', 'Không thể thêm nhà.');
+    } finally {
+      setSaving(false);
+    }
+  };
 
   return (
     <View style={styles.container}>
@@ -124,8 +166,12 @@ export const CreateBuilding: React.FC = () => {
         <Pressable style={styles.closeBtn} onPress={() => navigation.goBack()}>
           <Text style={styles.closeBtnText}>Đóng</Text>
         </Pressable>
-        <Pressable style={styles.saveBtn} onPress={() => navigation.goBack()}>
-          <Text style={styles.saveBtnText}>Thêm nhà</Text>
+        <Pressable style={styles.saveBtn} onPress={handleSave} disabled={saving}>
+          {saving ? (
+            <ActivityIndicator size="small" color="#ffffff" />
+          ) : (
+            <Text style={styles.saveBtnText}>Thêm nhà</Text>
+          )}
         </Pressable>
       </View>
     </View>

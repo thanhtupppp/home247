@@ -4,7 +4,7 @@ import { useNavigation, useRoute } from '@react-navigation/native';
 import { MaterialIcons } from '@expo/vector-icons';
 import { theme } from '../theme';
 import { mockRooms } from '../data/mockData';
-import { doc, getDoc, setDoc, writeBatch } from 'firebase/firestore';
+import { doc, getDoc, setDoc, writeBatch, collection, query, where, getDocs } from 'firebase/firestore';
 import { db, auth } from '../firebase';
 
 const getPreviousMonth = (monthStr: string): string => {
@@ -14,8 +14,6 @@ const getPreviousMonth = (monthStr: string): string => {
   }
   return `${String(m - 1).padStart(2, '0')}/${y}`;
 };
-
-const BUILDINGS = ['nơ trang long', 'Home247 Landmark', 'Home247 Riverside'];
 
 export const UtilityRecording: React.FC = () => {
   const navigation = useNavigation<any>();
@@ -42,7 +40,8 @@ export const UtilityRecording: React.FC = () => {
   const [loading, setLoading] = React.useState(false);
   const [saving, setSaving] = React.useState(false);
 
-  const rooms = mockRooms.map(r => r.code);
+  const [buildings, setBuildings] = React.useState<any[]>([]);
+  const [rooms, setRooms] = React.useState<string[]>([]);
 
   React.useEffect(() => {
     if (route.params?.room) {
@@ -52,12 +51,42 @@ export const UtilityRecording: React.FC = () => {
   }, [route.params?.room]);
 
   React.useEffect(() => {
+    fetchBuildingsAndRooms();
+  }, [selectedBuilding]);
+
+  React.useEffect(() => {
     if (activeTab === 'room') {
       loadSingleRoomData();
     } else {
       loadBulkData();
     }
   }, [activeTab, selectedRoom, selectedBuilding, selectedMonth]);
+
+  const fetchBuildingsAndRooms = async () => {
+    try {
+      // Fetch buildings
+      const bSnapshot = await getDocs(query(collection(db, 'buildings')));
+      const bList: any[] = [];
+      bSnapshot.forEach((doc: any) => {
+        bList.push({ id: doc.id, ...doc.data() });
+      });
+      setBuildings(bList);
+
+      // Fetch rooms for this building
+      const rSnapshot = await getDocs(
+        query(collection(db, 'rooms'), where('buildingName', '==', selectedBuilding))
+      );
+      const rList: string[] = [];
+      rSnapshot.forEach((doc: any) => {
+        const data = doc.data();
+        if (data.code) rList.push(data.code);
+      });
+      rList.sort((a, b) => a.localeCompare(b));
+      setRooms(rList);
+    } catch (e) {
+      console.error('Error loading buildings/rooms in recording screen:', e);
+    }
+  };
 
   const loadSingleRoomData = async () => {
     if (!selectedRoom) return;
@@ -106,7 +135,17 @@ export const UtilityRecording: React.FC = () => {
       setLoading(true);
       const prevMonth = getPreviousMonth(selectedMonth);
       
-      const promises = mockRooms.map(async (room) => {
+      // Fetch rooms dynamically
+      const rSnapshot = await getDocs(
+        query(collection(db, 'rooms'), where('buildingName', '==', selectedBuilding))
+      );
+      const roomsList: any[] = [];
+      rSnapshot.forEach((doc: any) => {
+        roomsList.push({ id: doc.id, ...doc.data() });
+      });
+      roomsList.sort((a, b) => a.code.localeCompare(b.code));
+
+      const promises = roomsList.map(async (room) => {
         const currentDocId = `${selectedBuilding}_${room.code}_${selectedMonth.replace('/', '-')}`;
         const prevDocId = `${selectedBuilding}_${room.code}_${prevMonth.replace('/', '-')}`;
         
@@ -302,9 +341,9 @@ export const UtilityRecording: React.FC = () => {
               </Pressable>
               {showBuildingDropdown && (
                 <View style={styles.dropdown}>
-                  {BUILDINGS.map((b) => (
-                    <Pressable key={b} style={styles.dropdownItem} onPress={() => { setSelectedBuilding(b); setShowBuildingDropdown(false); }}>
-                      <Text style={styles.dropdownItemText}>{b}</Text>
+                  {buildings.map((b: any) => (
+                    <Pressable key={b.id} style={styles.dropdownItem} onPress={() => { setSelectedBuilding(b.name); setShowBuildingDropdown(false); }}>
+                      <Text style={styles.dropdownItemText}>{b.name}</Text>
                     </Pressable>
                   ))}
                 </View>
@@ -389,9 +428,9 @@ export const UtilityRecording: React.FC = () => {
               </Pressable>
               {showBuildingDropdown && (
                 <View style={styles.dropdown}>
-                  {BUILDINGS.map((b) => (
-                    <Pressable key={b} style={styles.dropdownItem} onPress={() => { setSelectedBuilding(b); setShowBuildingDropdown(false); }}>
-                      <Text style={styles.dropdownItemText}>{b}</Text>
+                  {buildings.map((b: any) => (
+                    <Pressable key={b.id} style={styles.dropdownItem} onPress={() => { setSelectedBuilding(b.name); setShowBuildingDropdown(false); }}>
+                      <Text style={styles.dropdownItemText}>{b.name}</Text>
                     </Pressable>
                   ))}
                 </View>

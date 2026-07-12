@@ -8,7 +8,6 @@ import { collection, query, where, getDocs } from 'firebase/firestore';
 import { db } from '../firebase';
 
 const MONTHS = ['2026', '09/2026', '10/2026', '11/2026', '12/2026'];
-const BUILDINGS = ['nơ trang long', 'Home247 Landmark', 'Home247 Riverside'];
 
 export const UtilityManagement: React.FC = () => {
   const navigation = useNavigation<any>();
@@ -17,6 +16,8 @@ export const UtilityManagement: React.FC = () => {
   const [selectedBuilding, setSelectedBuilding] = React.useState('nơ trang long');
   const [showBuildingDropdown, setShowBuildingDropdown] = React.useState(false);
   const [recordedRooms, setRecordedRooms] = React.useState<string[]>([]);
+  const [buildings, setBuildings] = React.useState<any[]>([]);
+  const [rooms, setRooms] = React.useState<any[]>([]);
   const [loading, setLoading] = React.useState(false);
 
   React.useEffect(() => {
@@ -28,22 +29,57 @@ export const UtilityManagement: React.FC = () => {
   const loadRecordedRooms = async () => {
     try {
       setLoading(true);
+      
+      // 1. Fetch buildings
+      const bSnapshot = await getDocs(query(collection(db, 'buildings')));
+      const bList: any[] = [];
+      bSnapshot.forEach((doc) => {
+        bList.push({ id: doc.id, ...doc.data() });
+      });
+      setBuildings(bList);
+
+      // Default selected building if not set or not in list
+      let currentBuilding = selectedBuilding;
+      if (bList.length > 0) {
+        const exists = bList.some(b => b.name === selectedBuilding);
+        if (!exists) {
+          setSelectedBuilding(bList[0].name);
+          currentBuilding = bList[0].name;
+        }
+      }
+
+      // 2. Fetch rooms for this building
+      let rList: any[] = [];
+      if (currentBuilding) {
+        const rQuery = query(
+          collection(db, 'rooms'),
+          where('buildingName', '==', currentBuilding)
+        );
+        const rSnapshot = await getDocs(rQuery);
+        rSnapshot.forEach((doc) => {
+          rList.push({ id: doc.id, ...doc.data() });
+        });
+        rList.sort((a, b) => a.code.localeCompare(b.code));
+      }
+      setRooms(rList);
+
+      // 3. Fetch utilityReadings
       const q = query(
         collection(db, 'utilityReadings'),
-        where('building', '==', selectedBuilding),
+        where('building', '==', currentBuilding),
         where('month', '==', selectedMonth)
       );
       const querySnapshot = await getDocs(q);
-      const rooms: string[] = [];
+      const recorded: string[] = [];
       querySnapshot.forEach((doc) => {
         const data = doc.data();
         if (data.room) {
-          rooms.push(data.room);
+          recorded.push(data.room);
         }
       });
-      setRecordedRooms(rooms);
+      setRecordedRooms(recorded);
     } catch (error) {
-      console.error('Error loading recorded utility rooms:', error);
+      console.error('Error loading dynamic utility management data:', error);
     } finally {
       setLoading(false);
     }
@@ -85,7 +121,7 @@ export const UtilityManagement: React.FC = () => {
           </View>
           <View style={styles.selectorRight}>
             <View style={styles.badge}>
-              <Text style={styles.badgeText}>{String(mockRooms.length)}</Text>
+              <Text style={styles.badgeText}>{String(rooms.length)}</Text>
             </View>
             <MaterialIcons name="keyboard-arrow-down" size={24} color={theme.colors.primary} />
           </View>
@@ -93,16 +129,16 @@ export const UtilityManagement: React.FC = () => {
 
         {showBuildingDropdown && (
           <View style={styles.dropdown}>
-            {BUILDINGS.map((building) => (
+            {buildings.map((b) => (
               <Pressable
-                key={building}
+                key={b.id}
                 style={styles.dropdownItem}
                 onPress={() => {
-                  setSelectedBuilding(building);
+                  setSelectedBuilding(b.name);
                   setShowBuildingDropdown(false);
                 }}
               >
-                <Text style={styles.dropdownItemText}>{building}</Text>
+                <Text style={styles.dropdownItemText}>{b.name}</Text>
               </Pressable>
             ))}
           </View>
@@ -116,26 +152,30 @@ export const UtilityManagement: React.FC = () => {
           </View>
         ) : (
           <ScrollView style={styles.roomsList} showsVerticalScrollIndicator={false}>
-            {mockRooms.map((room) => {
-              const isRecorded = recordedRooms.includes(room.code);
-              return (
-                <Pressable 
-                  key={room.id} 
-                  style={styles.roomItem}
-                  onPress={() => navigation.navigate('dien-nuoc/ghi', { building: selectedBuilding, room: room.code, month: selectedMonth })}
-                >
-                  <View style={styles.roomLeft}>
-                    <View style={[styles.statusDot, { backgroundColor: isRecorded ? '#10b981' : '#a1a1aa' }]} />
-                    <Text style={styles.roomCode}>{room.code}</Text>
-                  </View>
-                  <View style={[styles.statusBadge, { backgroundColor: isRecorded ? '#e6f4ea' : '#f1f5f9' }]}>
-                    <Text style={[styles.statusBadgeText, { color: isRecorded ? '#137333' : '#475569' }]}>
-                      {isRecorded ? 'Đã ghi' : 'Chưa ghi'}
-                    </Text>
-                  </View>
-                </Pressable>
-              );
-            })}
+            {rooms.length === 0 ? (
+              <Text style={{ textAlign: 'center', color: '#94a3b8', marginTop: 24 }}>Tòa nhà này chưa có căn hộ/phòng nào.</Text>
+            ) : (
+              rooms.map((room) => {
+                const isRecorded = recordedRooms.includes(room.code);
+                return (
+                  <Pressable 
+                    key={room.id} 
+                    style={styles.roomItem}
+                    onPress={() => navigation.navigate('dien-nuoc/ghi', { building: selectedBuilding, room: room.code, month: selectedMonth })}
+                  >
+                    <View style={styles.roomLeft}>
+                      <View style={[styles.statusDot, { backgroundColor: isRecorded ? '#10b981' : '#a1a1aa' }]} />
+                      <Text style={styles.roomCode}>{room.code}</Text>
+                    </View>
+                    <View style={[styles.statusBadge, { backgroundColor: isRecorded ? '#e6f4ea' : '#f1f5f9' }]}>
+                      <Text style={[styles.statusBadgeText, { color: isRecorded ? '#137333' : '#475569' }]}>
+                        {isRecorded ? 'Đã ghi' : 'Chưa ghi'}
+                      </Text>
+                    </View>
+                  </Pressable>
+                );
+              })
+            )}
           </ScrollView>
         )}
       </View>
