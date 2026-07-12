@@ -6,10 +6,11 @@ import { theme } from '../theme';
 
 export interface AlertItemProps {
   readonly alert: AlertItemType;
+  readonly onPress?: () => void;
   readonly className?: string;
 }
 
-export const AlertItem: React.FC<AlertItemProps> = ({ alert }) => {
+export const AlertItem: React.FC<AlertItemProps> = ({ alert, onPress }) => {
   let containerStyle = styles.infoContainer;
   let titleStyle = styles.infoTitle;
   let iconColor = theme.colors.onSurfaceVariant;
@@ -42,6 +43,7 @@ export const AlertItem: React.FC<AlertItemProps> = ({ alert }) => {
         {alert.actionText && (
           <Pressable 
             style={styles.actionPressable}
+            onPress={onPress}
             accessibilityRole="button"
             accessibilityLabel={alert.actionText}
           >

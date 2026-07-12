@@ -32,6 +32,7 @@ export const Dashboard: React.FC<DashboardProps> = () => {
   const [chartData, setChartData] = React.useState<any[]>([]);
   const [recentTx, setRecentTx] = React.useState<any[]>([]);
   const [pendingTasks, setPendingTasks] = React.useState<any[]>([]);
+  const [dashboardAlerts, setDashboardAlerts] = React.useState<any[]>([]);
 
   // CURRENT MONTH
   const currentMonthStr = React.useMemo(() => {
@@ -185,6 +186,72 @@ export const Dashboard: React.FC<DashboardProps> = () => {
         };
       });
       setRecentTx(mappedTx);
+      // 6. Calculate real-time emergency alerts
+      const alertsList: any[] = [];
+
+      // 6a. Unpaid Invoices
+      const unpaidInvoicesSnap = await getDocs(
+        query(collection(db, 'invoices'), where('status', '==', 'pending'), limit(3))
+      );
+      unpaidInvoicesSnap.forEach(d => {
+        const data = d.data();
+        const amt = Number(data.amount) || 0;
+        alertsList.push({
+          id: `inv_${d.id}`,
+          type: 'error',
+          title: `Phòng ${data.roomCode} quá hạn`,
+          description: `Chưa thanh toán hóa đơn tháng ${data.month}. Số tiền: ${amt.toLocaleString('vi-VN')} đ`,
+          icon: 'report',
+          actionText: 'Xử lý ngay',
+          targetRoute: 'Invoices'
+        });
+      });
+
+      // 6b. Emergency Support Tickets
+      const emergencyTickets = activeReqs.filter((r: any) => r.level === 'emergency');
+      emergencyTickets.slice(0, 3).forEach((t: any) => {
+        alertsList.push({
+          id: `tkt_${t.id}`,
+          type: 'warning',
+          title: `Sự cố khẩn cấp phòng ${t.roomCode}`,
+          description: t.title,
+          icon: 'electrical_services',
+          actionText: 'Điều thợ đến',
+          targetRoute: 'cu-dan/phan-anh'
+        });
+      });
+
+      // 6c. Approaching Contract End (expiring in next 30 days)
+      try {
+        const contractsSnap = await getDocs(query(collection(db, 'contracts'), where('status', '==', 'active'), limit(3)));
+        const today = new Date();
+        contractsSnap.forEach(d => {
+          const data = d.data();
+          if (data.endDate) {
+            const endParts = data.endDate.split('/'); // DD/MM/YYYY
+            if (endParts.length === 3) {
+              const endD = new Date(Number(endParts[2]), Number(endParts[1]) - 1, Number(endParts[0]));
+              const diffTime = endD.getTime() - today.getTime();
+              const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+              if (diffDays >= 0 && diffDays <= 30) {
+                alertsList.push({
+                  id: `ctr_${d.id}`,
+                  type: 'info',
+                  title: `Hợp đồng sắp hết hạn phòng ${data.roomCode}`,
+                  description: `Hết hạn sau ${diffDays} ngày (${data.endDate}). Vui lòng liên hệ gia hạn.`,
+                  icon: 'water_drop',
+                  actionText: 'Xem chi tiết',
+                  targetRoute: 'hop-dong'
+                });
+              }
+            }
+          }
+        });
+      } catch (err) {
+        console.error('Error fetching contracts for alerts:', err);
+      }
+
+      setDashboardAlerts(alertsList);
 
     } catch (err) {
       console.error('Error loading operational stats on dashboard:', err);
@@ -340,11 +407,30 @@ export const Dashboard: React.FC<DashboardProps> = () => {
                   </View>
                 </View>
                 <View style={styles.alertList}>
-                  {emergencyAlerts.map((alert) => (
-                    <AlertItem key={alert.id} alert={alert} />
-                  ))}
+                  {dashboardAlerts.length === 0 ? (
+                    <View style={{ paddingVertical: 12, alignItems: 'center' }}>
+                      <Text style={{ fontSize: 13, color: '#94a3b8' }}>Hiện không có cảnh báo nào tồn đọng</Text>
+                    </View>
+                  ) : (
+                    dashboardAlerts.map((alert) => (
+                      <AlertItem 
+                        key={alert.id} 
+                        alert={alert} 
+                        onPress={() => {
+                          if (alert.targetRoute) {
+                            navigation.navigate(alert.targetRoute);
+                          }
+                        }}
+                      />
+                    ))
+                  )}
                 </View>
-                <Pressable style={styles.allAlertsBtn} accessibilityRole="button" accessibilityLabel="View all alerts">
+                <Pressable 
+                  style={styles.allAlertsBtn} 
+                  onPress={() => navigation.navigate('cu-dan/phan-anh')}
+                  accessibilityRole="button" 
+                  accessibilityLabel="View all alerts"
+                >
                   <Text style={styles.allAlertsBtnText}>Xem tất cả thông báo</Text>
                 </Pressable>
               </View>
