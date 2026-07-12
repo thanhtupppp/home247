@@ -29,11 +29,14 @@ export const EditProfile: React.FC = () => {
       const docSnap = await getDoc(docRef);
       if (docSnap.exists()) {
         const data = docSnap.data();
-        setName(data.name || '');
-        setPhone(data.phone || '');
+        setName(data.name || auth.currentUser?.displayName || auth.currentUser?.email?.split('@')[0] || '');
+        setPhone(data.phone || auth.currentUser?.phoneNumber || '');
         setDob(data.dob || '');
         setCity(data.city || '');
         setCccd(data.cccd || '');
+      } else {
+        setName(auth.currentUser?.displayName || auth.currentUser?.email?.split('@')[0] || '');
+        setPhone(auth.currentUser?.phoneNumber || '');
       }
     } catch (error) {
       console.error('Error loading profile:', error);

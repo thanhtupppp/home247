@@ -29,8 +29,8 @@ export const SettingsScreen: React.FC = () => {
         setProfile(docSnap.data());
       } else {
         const defaultProfile = {
-          name: 'tu',
-          phone: '+8439643137',
+          name: auth.currentUser?.displayName || auth.currentUser?.email?.split('@')[0] || 'Admin',
+          phone: auth.currentUser?.phoneNumber || 'Chưa cập nhật',
           cccd: 'Chưa cập nhật',
           dob: 'Chưa cập nhật',
           city: 'Chưa cập nhật',
@@ -54,7 +54,7 @@ export const SettingsScreen: React.FC = () => {
   }
 
   const infoGrid = [
-    { id: '1', label: 'Số điện thoại', value: profile?.phone || '+8439643137', icon: 'phone' },
+    { id: '1', label: 'Số điện thoại', value: profile?.phone || auth.currentUser?.phoneNumber || 'Chưa cập nhật', icon: 'phone' },
     { id: '2', label: 'CCCD', value: profile?.cccd || 'Chưa cập nhật', icon: 'badge' },
     { id: '3', label: 'Ngày sinh', value: profile?.dob || 'Chưa cập nhật', icon: 'calendar-today' },
     { id: '4', label: 'Thành phố', value: profile?.city || 'Chưa cập nhật', icon: 'place' },
@@ -82,10 +82,10 @@ export const SettingsScreen: React.FC = () => {
               <MaterialIcons name="photo-camera" size={16} color="#ffffff" />
             </Pressable>
           </View>
-          <Text style={styles.username}>{profile?.name || 'tu'}</Text>
+          <Text style={styles.username}>{profile?.name || auth.currentUser?.displayName || auth.currentUser?.email?.split('@')[0] || 'Admin'}</Text>
           <View style={styles.phoneRow}>
             <MaterialIcons name="phone" size={16} color="#64748b" />
-            <Text style={styles.phoneText}>{profile?.phone || '+8439643137'}</Text>
+            <Text style={styles.phoneText}>{profile?.phone || auth.currentUser?.phoneNumber || 'Chưa cập nhật'}</Text>
           </View>
         </View>
 

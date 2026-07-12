@@ -19,7 +19,7 @@ export const Dashboard: React.FC<DashboardProps> = () => {
   const navigation = useNavigation<any>();
   const isFocused = useIsFocused();
   const [activeTab, setActiveTab] = React.useState<'tasks' | 'stats'>('tasks');
-  const [adminName, setAdminName] = React.useState('tu');
+  const [adminName, setAdminName] = React.useState(auth.currentUser?.displayName || auth.currentUser?.email?.split('@')[0] || 'Admin');
 
   React.useEffect(() => {
     if (isFocused) {
@@ -37,6 +37,8 @@ export const Dashboard: React.FC<DashboardProps> = () => {
         if (data.name) {
           setAdminName(data.name);
         }
+      } else {
+        setAdminName(auth.currentUser?.displayName || auth.currentUser?.email?.split('@')[0] || 'Admin');
       }
     } catch (error) {
       console.error('Error loading admin name on dashboard:', error);
