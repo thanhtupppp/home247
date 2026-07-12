@@ -17,5 +17,10 @@
     "react-doctor/rn-no-scrollview-mapped-list": "off",
     "react-doctor/rerender-state-only-in-handlers": "off",
     "react-doctor/firebase-client-owned-authz-field": "off"
+  },
+  "ignore": {
+    "files": [
+      "functions/**"
+    ]
   }
 }
