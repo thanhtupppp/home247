@@ -1,14 +1,71 @@
 import React from 'react';
-import { View, Text, StyleSheet, Pressable, ScrollView, TextInput } from 'react-native';
+import { View, Text, StyleSheet, Pressable, ScrollView, TextInput, Alert, ActivityIndicator } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
 import { MaterialIcons } from '@expo/vector-icons';
 import { theme } from '../theme';
+import { doc, getDoc, setDoc } from 'firebase/firestore';
+import { db, auth } from '../firebase';
 
 export const EditProfile: React.FC = () => {
-  const navigation = useNavigation();
+  const navigation = useNavigation<any>();
 
+  const [name, setName] = React.useState('');
+  const [phone, setPhone] = React.useState('');
   const [dob, setDob] = React.useState('');
   const [city, setCity] = React.useState('');
+  const [cccd, setCccd] = React.useState('');
+  const [loading, setLoading] = React.useState(true);
+  const [saving, setSaving] = React.useState(false);
+
+  React.useEffect(() => {
+    loadProfileData();
+  }, []);
+
+  const loadProfileData = async () => {
+    try {
+      setLoading(true);
+      const uid = auth.currentUser?.uid || 'mock-admin-uid';
+      const docRef = doc(db, 'admins', uid);
+      const docSnap = await getDoc(docRef);
+      if (docSnap.exists()) {
+        const data = docSnap.data();
+        setName(data.name || '');
+        setPhone(data.phone || '');
+        setDob(data.dob || '');
+        setCity(data.city || '');
+        setCccd(data.cccd || '');
+      }
+    } catch (error) {
+      console.error('Error loading profile:', error);
+      Alert.alert('Lỗi', 'Không thể tải thông tin cá nhân.');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleSave = async () => {
+    try {
+      setSaving(true);
+      const uid = auth.currentUser?.uid || 'mock-admin-uid';
+      const docRef = doc(db, 'admins', uid);
+      await setDoc(docRef, { name, phone, dob, city, cccd }, { merge: true });
+      Alert.alert('Thành công', 'Lưu thông tin thành công!');
+      navigation.goBack();
+    } catch (error) {
+      console.error('Error saving profile:', error);
+      Alert.alert('Lỗi', 'Không thể lưu thông tin cá nhân.');
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  if (loading) {
+    return (
+      <View style={[styles.container, { justifyContent: 'center', alignItems: 'center' }]}>
+        <ActivityIndicator size="large" color={theme.colors.primary} />
+      </View>
+    );
+  }
 
   return (
     <View style={styles.container}>
@@ -27,6 +84,27 @@ export const EditProfile: React.FC = () => {
           <Text style={styles.sectionTitle}>Thông tin liên hệ</Text>
 
           <View style={styles.inputContainer}>
+            <MaterialIcons name="person" size={20} color="#94a3b8" />
+            <TextInput
+              style={styles.textInput}
+              placeholder="Họ và tên"
+              value={name}
+              onChangeText={setName}
+            />
+          </View>
+
+          <View style={[styles.inputContainer, { marginTop: 14 }]}>
+            <MaterialIcons name="phone" size={20} color="#94a3b8" />
+            <TextInput
+              style={styles.textInput}
+              placeholder="Số điện thoại"
+              value={phone}
+              onChangeText={setPhone}
+              keyboardType="phone-pad"
+            />
+          </View>
+
+          <View style={[styles.inputContainer, { marginTop: 14 }]}>
             <MaterialIcons name="calendar-today" size={20} color="#94a3b8" />
             <TextInput
               style={styles.textInput}
@@ -48,29 +126,27 @@ export const EditProfile: React.FC = () => {
 
           {/* Section 2: CCCD/CMND */}
           <Text style={[styles.sectionTitle, { marginTop: 24 }]}>CCCD/CMND</Text>
-          
-          <Pressable style={styles.blueBtn} onPress={() => {}}>
-            <MaterialIcons name="badge" size={20} color="#ffffff" />
-            <Text style={styles.blueBtnText}>Xác thực CCCD</Text>
-          </Pressable>
 
-          <Pressable style={[styles.blueBtn, { marginTop: 14 }]} onPress={() => navigation.goBack()}>
-            <MaterialIcons name="save" size={20} color="#ffffff" />
-            <Text style={styles.blueBtnText}>Lưu thông tin</Text>
-          </Pressable>
+          <View style={styles.inputContainer}>
+            <MaterialIcons name="badge" size={20} color="#94a3b8" />
+            <TextInput
+              style={styles.textInput}
+              placeholder="Số CCCD/CMND"
+              value={cccd}
+              onChangeText={setCccd}
+              keyboardType="numeric"
+            />
+          </View>
 
-          {/* Section 3: Cập nhật số điện thoại */}
-          <Pressable style={styles.phoneCard} onPress={() => {}}>
-            <View style={styles.phoneCardLeft}>
-              <View style={styles.phoneIconCircle}>
-                <MaterialIcons name="phone" size={20} color={theme.colors.primary} />
-              </View>
-              <View>
-                <Text style={styles.phoneTitle}>Cập nhật số điện thoại</Text>
-                <Text style={styles.phoneSubtitle}>Cần nhập mật khẩu để xác nhận</Text>
-              </View>
-            </View>
-            <MaterialIcons name="chevron-right" size={22} color="#cbd5e1" />
+          <Pressable style={[styles.blueBtn, { marginTop: 24 }]} onPress={handleSave} disabled={saving}>
+            {saving ? (
+              <ActivityIndicator size="small" color="#ffffff" />
+            ) : (
+              <>
+                <MaterialIcons name="save" size={20} color="#ffffff" />
+                <Text style={styles.blueBtnText}>Lưu thông tin</Text>
+              </>
+            )}
           </Pressable>
         </View>
       </ScrollView>

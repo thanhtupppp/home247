@@ -1,25 +1,74 @@
 import React from 'react';
-import { View, Text, StyleSheet, ScrollView, Pressable, Modal } from 'react-native';
-import { useNavigation } from '@react-navigation/native';
+import { View, Text, StyleSheet, ScrollView, Pressable, Modal, ActivityIndicator } from 'react-native';
+import { useNavigation, useIsFocused } from '@react-navigation/native';
 import { MaterialIcons } from '@expo/vector-icons';
 import { theme } from '../theme';
+import { doc, getDoc, setDoc } from 'firebase/firestore';
+import { db, auth } from '../firebase';
 
 export const SettingsScreen: React.FC = () => {
   const navigation = useNavigation<any>();
+  const isFocused = useIsFocused();
   const [showBottomSheet, setShowBottomSheet] = React.useState(false);
+  const [profile, setProfile] = React.useState<any>(null);
+  const [loading, setLoading] = React.useState(true);
+
+  React.useEffect(() => {
+    if (isFocused) {
+      loadProfileData();
+    }
+  }, [isFocused]);
+
+  const loadProfileData = async () => {
+    try {
+      setLoading(true);
+      const uid = auth.currentUser?.uid || 'mock-admin-uid';
+      const docRef = doc(db, 'admins', uid);
+      const docSnap = await getDoc(docRef);
+      if (docSnap.exists()) {
+        setProfile(docSnap.data());
+      } else {
+        const defaultProfile = {
+          name: 'tu',
+          phone: '+8439643137',
+          cccd: 'Chưa cập nhật',
+          dob: 'Chưa cập nhật',
+          city: 'Chưa cập nhật',
+        };
+        await setDoc(docRef, defaultProfile);
+        setProfile(defaultProfile);
+      }
+    } catch (error) {
+      console.error('Error loading profile:', error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  if (loading) {
+    return (
+      <View style={[styles.container, { justifyContent: 'center', alignItems: 'center' }]}>
+        <ActivityIndicator size="large" color={theme.colors.primary} />
+      </View>
+    );
+  }
 
   const infoGrid = [
-    { id: '1', label: 'Số điện thoại', value: '+8439643137', icon: 'phone' },
-    { id: '2', label: 'CCCD', value: 'Chưa cập nhật', icon: 'badge' },
-    { id: '3', label: 'Ngày sinh', value: 'Chưa cập nhật', icon: 'calendar-today' },
-    { id: '4', label: 'Thành phố', value: 'Chưa cập nhật', icon: 'place' },
+    { id: '1', label: 'Số điện thoại', value: profile?.phone || '+8439643137', icon: 'phone' },
+    { id: '2', label: 'CCCD', value: profile?.cccd || 'Chưa cập nhật', icon: 'badge' },
+    { id: '3', label: 'Ngày sinh', value: profile?.dob || 'Chưa cập nhật', icon: 'calendar-today' },
+    { id: '4', label: 'Thành phố', value: profile?.city || 'Chưa cập nhật', icon: 'place' },
   ];
 
   return (
     <View style={styles.container}>
       {/* Header */}
       <View style={styles.header}>
+        <Pressable onPress={() => navigation.goBack()} style={styles.backButton}>
+          <MaterialIcons name="arrow-back" size={24} color={theme.colors.onSurface} />
+        </Pressable>
         <Text style={styles.headerTitle}>Thông tin tài khoản</Text>
+        <View style={{ width: 40 }} />
       </View>
 
       <ScrollView contentContainerStyle={styles.scrollContent}>
@@ -33,10 +82,10 @@ export const SettingsScreen: React.FC = () => {
               <MaterialIcons name="photo-camera" size={16} color="#ffffff" />
             </Pressable>
           </View>
-          <Text style={styles.username}>tu</Text>
+          <Text style={styles.username}>{profile?.name || 'tu'}</Text>
           <View style={styles.phoneRow}>
             <MaterialIcons name="phone" size={16} color="#64748b" />
-            <Text style={styles.phoneText}>+8439643137</Text>
+            <Text style={styles.phoneText}>{profile?.phone || '+8439643137'}</Text>
           </View>
         </View>
 
@@ -67,10 +116,26 @@ export const SettingsScreen: React.FC = () => {
           <View style={styles.bankHeader}>
             <Text style={styles.bankTitle}>Tài khoản ngân hàng</Text>
             <Pressable onPress={() => navigation.navigate('cai-dat/ngan-hang')}>
-              <Text style={styles.addBankText}>Thêm</Text>
+              <Text style={styles.addBankText}>{profile?.bankAccount ? 'Thay đổi' : 'Thêm'}</Text>
             </Pressable>
           </View>
-          <Text style={styles.bankEmptyText}>Chưa có tài khoản ngân hàng.</Text>
+          {profile?.bankAccount ? (
+            <View style={styles.bankCard}>
+              <View style={styles.bankCardHeader}>
+                <MaterialIcons name="account-balance" size={24} color={theme.colors.primary} />
+                <View style={styles.bankDetails}>
+                  <Text style={styles.bankNameText}>{profile.bankAccount.bankName}</Text>
+                  <Text style={styles.bankNumberText}>{profile.bankAccount.accountNumber}</Text>
+                </View>
+              </View>
+              <View style={styles.bankCardFooter}>
+                <Text style={styles.bankOwnerText}>{profile.bankAccount.ownerName || ''}</Text>
+                <Text style={styles.bankBranchText}>{profile.bankAccount.branch || ''}</Text>
+              </View>
+            </View>
+          ) : (
+            <Text style={styles.bankEmptyText}>Chưa có tài khoản ngân hàng.</Text>
+          )}
         </View>
       </ScrollView>
 
@@ -138,12 +203,20 @@ const styles = StyleSheet.create({
   header: {
     flexDirection: 'row',
     alignItems: 'center',
+    justifyContent: 'space-between',
     paddingHorizontal: theme.spacing.marginMobile,
     paddingTop: theme.spacing.lg + 16,
     paddingBottom: theme.spacing.md,
     backgroundColor: theme.colors.surfaceContainerLowest,
     borderBottomWidth: 1,
     borderBottomColor: theme.colors.outlineVariant,
+  },
+  backButton: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    alignItems: 'center',
+    justifyContent: 'center',
   },
   headerTitle: {
     ...theme.typography.titleLg,
@@ -276,6 +349,48 @@ const styles = StyleSheet.create({
   },
   bankEmptyText: {
     fontSize: 13,
+    color: theme.colors.onSurfaceVariant,
+  },
+  bankCard: {
+    backgroundColor: '#eff6ff',
+    borderRadius: theme.borderRadius.lg,
+    padding: 16,
+    borderWidth: 1,
+    borderColor: '#dbeafe',
+  },
+  bankCardHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+    marginBottom: 12,
+  },
+  bankDetails: {
+    flex: 1,
+  },
+  bankNameText: {
+    fontSize: 16,
+    fontWeight: 'bold',
+    color: theme.colors.onSurface,
+  },
+  bankNumberText: {
+    fontSize: 14,
+    color: theme.colors.onSurfaceVariant,
+    marginTop: 2,
+  },
+  bankCardFooter: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    borderTopWidth: 1,
+    borderTopColor: '#dbeafe',
+    paddingTop: 10,
+  },
+  bankOwnerText: {
+    fontSize: 13,
+    fontWeight: 'bold',
+    color: theme.colors.onSurface,
+  },
+  bankBranchText: {
+    fontSize: 12,
     color: theme.colors.onSurfaceVariant,
   },
   modalOverlay: {

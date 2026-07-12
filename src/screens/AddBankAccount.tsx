@@ -1,20 +1,90 @@
 import React from 'react';
-import { View, Text, StyleSheet, Pressable, ScrollView, TextInput } from 'react-native';
+import { View, Text, StyleSheet, Pressable, ScrollView, TextInput, Alert, ActivityIndicator } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
 import { MaterialIcons } from '@expo/vector-icons';
 import { theme } from '../theme';
+import { doc, getDoc, setDoc } from 'firebase/firestore';
+import { db, auth } from '../firebase';
 
 const BANKS = ['Vietcombank', 'Techcombank', 'MB Bank', 'ACB'];
 
 export const AddBankAccount: React.FC = () => {
-  const navigation = useNavigation();
+  const navigation = useNavigation<any>();
 
   const [selectedBank, setSelectedBank] = React.useState('');
   const [showBankDropdown, setShowBankDropdown] = React.useState(false);
-
   const [accountNumber, setAccountNumber] = React.useState('');
   const [branch, setBranch] = React.useState('');
-  const [ownerName, setOwnerName] = React.useState('NGUYEN VAN A');
+  const [ownerName, setOwnerName] = React.useState('');
+  const [loading, setLoading] = React.useState(true);
+  const [saving, setSaving] = React.useState(false);
+
+  React.useEffect(() => {
+    loadBankData();
+  }, []);
+
+  const loadBankData = async () => {
+    try {
+      setLoading(true);
+      const uid = auth.currentUser?.uid || 'mock-admin-uid';
+      const docRef = doc(db, 'admins', uid);
+      const docSnap = await getDoc(docRef);
+      if (docSnap.exists()) {
+        const data = docSnap.data();
+        if (data.bankAccount) {
+          setSelectedBank(data.bankAccount.bankName || '');
+          setAccountNumber(data.bankAccount.accountNumber || '');
+          setBranch(data.bankAccount.branch || '');
+          setOwnerName(data.bankAccount.ownerName || '');
+        }
+      }
+    } catch (error) {
+      console.error('Error loading bank details:', error);
+      Alert.alert('Lỗi', 'Không thể tải thông tin tài khoản ngân hàng.');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleSave = async () => {
+    if (!selectedBank || !accountNumber || !ownerName || !branch) {
+      Alert.alert('Thông báo', 'Vui lòng nhập đầy đủ thông tin tài khoản.');
+      return;
+    }
+
+    try {
+      setSaving(true);
+      const uid = auth.currentUser?.uid || 'mock-admin-uid';
+      const docRef = doc(db, 'admins', uid);
+      await setDoc(
+        docRef,
+        {
+          bankAccount: {
+            bankName: selectedBank,
+            accountNumber,
+            branch,
+            ownerName,
+          },
+        },
+        { merge: true }
+      );
+      Alert.alert('Thành công', 'Lưu tài khoản ngân hàng thành công!');
+      navigation.goBack();
+    } catch (error) {
+      console.error('Error saving bank account:', error);
+      Alert.alert('Lỗi', 'Lưu thông tin tài khoản ngân hàng thất bại.');
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  if (loading) {
+    return (
+      <View style={[styles.container, { justifyContent: 'center', alignItems: 'center' }]}>
+        <ActivityIndicator size="large" color={theme.colors.primary} />
+      </View>
+    );
+  }
 
   return (
     <View style={styles.container}>
@@ -68,14 +138,18 @@ export const AddBankAccount: React.FC = () => {
           <Text style={[styles.label, { marginTop: 16 }]}>Tên chủ tài khoản</Text>
           <TextInput
             style={styles.textInput}
-            placeholder="NGUYEN VAN A"
+            placeholder="Tên chủ tài khoản"
             value={ownerName}
             onChangeText={setOwnerName}
           />
 
           {/* Bottom Button */}
-          <Pressable style={styles.saveBtn} onPress={() => navigation.goBack()}>
-            <Text style={styles.saveBtnText}>Lưu tài khoản</Text>
+          <Pressable style={styles.saveBtn} onPress={handleSave} disabled={saving}>
+            {saving ? (
+              <ActivityIndicator size="small" color="#ffffff" />
+            ) : (
+              <Text style={styles.saveBtnText}>Lưu tài khoản</Text>
+            )}
           </Pressable>
         </View>
       </ScrollView>
