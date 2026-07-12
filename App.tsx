@@ -36,6 +36,7 @@ import RoomDetail from './src/screens/RoomDetail';
 import ContractDetail from './src/screens/ContractDetail';
 import StatisticsScreen from './src/screens/StatisticsScreen';
 import { SupportRequests } from './src/screens/SupportRequests';
+import NotificationsScreen from './src/screens/NotificationsScreen';
 
 
 const Stack = createNativeStackNavigator();
@@ -210,6 +211,7 @@ export function App() {
           <Stack.Screen name="cai-dat" component={SettingsScreen} />
           <Stack.Screen name="cai-dat/chinh-sua" component={EditProfile} />
           <Stack.Screen name="cai-dat/ngan-hang" component={AddBankAccount} />
+          <Stack.Screen name="thong-bao" component={NotificationsScreen} />
         </Stack.Navigator>
       </NavigationContainer>
     </SafeAreaProvider>

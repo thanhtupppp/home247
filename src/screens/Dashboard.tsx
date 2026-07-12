@@ -277,11 +277,18 @@ export const Dashboard: React.FC<DashboardProps> = () => {
             <Text style={styles.userName}>{adminName}</Text>
           </View>
         </View>
-        <Pressable style={styles.notificationBtn} accessibilityRole="button" accessibilityLabel="Notifications">
+        <Pressable 
+          style={styles.notificationBtn} 
+          onPress={() => navigation.navigate('thong-bao')}
+          accessibilityRole="button" 
+          accessibilityLabel="Notifications"
+        >
           <MaterialIcons name="notifications" size={24} color={theme.colors.primary} />
-          <View style={styles.notificationBadge}>
-            <Text style={styles.notificationBadgeText}>1</Text>
-          </View>
+          {dashboardAlerts.length > 0 && (
+            <View style={styles.notificationBadge}>
+              <Text style={styles.notificationBadgeText}>{dashboardAlerts.length}</Text>
+            </View>
+          )}
         </Pressable>
       </View>
       
