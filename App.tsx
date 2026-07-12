@@ -32,6 +32,9 @@ import AddBankAccount from './src/screens/AddBankAccount';
 import LoginScreen from './src/screens/LoginScreen';
 
 
+import RoomDetail from './src/screens/RoomDetail';
+
+
 const Stack = createNativeStackNavigator();
 const Tab = createBottomTabNavigator();
 
@@ -124,15 +127,7 @@ export function App() {
           <Stack.Screen name="MainTabs" component={MainTabNavigator} />
 
           {/* Sub-Pages & Detail views mapped directly from Stitch screens */}
-          <Stack.Screen name="phong/id">
-            {() => (
-              <GenericScreen 
-                title="Chi tiết Phòng & Hợp đồng" 
-                type="contract" 
-                description="Thông tin chi tiết về phòng trọ, giá thuê, trang thiết bị và thời hạn hợp đồng đang áp dụng." 
-              />
-            )}
-          </Stack.Screen>
+          <Stack.Screen name="phong/id" component={RoomDetail} />
 
           <Stack.Screen name="hop-dong" component={ContractsList} />
 

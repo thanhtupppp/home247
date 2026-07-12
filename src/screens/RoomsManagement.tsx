@@ -407,16 +407,21 @@ export const RoomsManagement: React.FC = () => {
                             const statusColor = room.status === 'occupied' ? '#137333' : room.status === 'maintenance' ? '#b45309' : '#475569';
                             return (
                               <View key={room.id} style={styles.roomRow}>
-                                <View style={styles.roomInfoCol}>
-                                  <Text style={styles.roomCodeText}>{room.code}</Text>
-                                  <Text style={styles.roomDetailsText}>Tầng {room.floor} • {room.area} • {room.type}</Text>
-                                </View>
-                                <View style={styles.roomRightCol}>
-                                  <Text style={styles.roomPriceText}>{Number(room.price).toLocaleString('vi-VN')}đ</Text>
-                                  <View style={[styles.statusBadge, { backgroundColor: statusBg }]}>
-                                    <Text style={[styles.statusBadgeText, { color: statusColor }]}>{statusLabel}</Text>
+                                <Pressable 
+                                  style={{ flex: 1, flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}
+                                  onPress={() => navigation.navigate('phong/id', { roomId: room.id })}
+                                >
+                                  <View style={styles.roomInfoCol}>
+                                    <Text style={styles.roomCodeText}>{room.code}</Text>
+                                    <Text style={styles.roomDetailsText}>Tầng {room.floor} • {room.area} • {room.type}</Text>
                                   </View>
-                                </View>
+                                  <View style={[styles.roomRightCol, { marginRight: 16 }]}>
+                                    <Text style={styles.roomPriceText}>{Number(room.price).toLocaleString('vi-VN')}đ</Text>
+                                    <View style={[styles.statusBadge, { backgroundColor: statusBg }]}>
+                                      <Text style={[styles.statusBadgeText, { color: statusColor }]}>{statusLabel}</Text>
+                                    </View>
+                                  </View>
+                                </Pressable>
                                 <Pressable 
                                   style={styles.deleteRoomBtn} 
                                   onPress={() => handleDeleteRoom(room)}
