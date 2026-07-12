@@ -75,33 +75,27 @@ export const CreateInvoice: React.FC = () => {
     return MONTHS;
   }, [selectedMonth]);
 
-  // ── Fetch Buildings ────────────────────────────────────────────────────────
-  React.useEffect(() => {
-    fetchBuildings();
-  }, []);
+  // ── Fetch Methods ──────────────────────────────────────────────────────────
 
-  const fetchBuildings = async () => {
+  const fetchActiveTenant = React.useCallback(async (roomId: string) => {
     try {
-      setLoadingBuildings(true);
-      const snap = await getDocs(query(collection(db, 'buildings'), orderBy('name')));
-      const list = snap.docs.map((d) => ({ id: d.id, name: d.data().name }));
-      setBuildings(list);
-
-      // Try selecting initial building or first building
-      if (list.length > 0) {
-        const found = list.find((b) => b.id === initialBuildingId) || list[0];
-        setSelectedBuilding(found);
-        fetchRooms(found.id);
+      setLoadingTenant(true);
+      setActiveTenant(null);
+      const snap = await getDocs(
+        query(collection(db, 'tenants'), where('roomId', '==', roomId), where('status', '==', 'active'))
+      );
+      if (!snap.empty) {
+        const data = snap.docs[0].data();
+        setActiveTenant({ id: snap.docs[0].id, fullName: data.fullName || '' });
       }
     } catch (err) {
-      console.error('Error fetching buildings:', err);
+      console.error('Error fetching tenant:', err);
     } finally {
-      setLoadingBuildings(false);
+      setLoadingTenant(false);
     }
-  };
+  }, []);
 
-  // ── Fetch Rooms ────────────────────────────────────────────────────────────
-  const fetchRooms = async (buildingId: string) => {
+  const fetchRooms = React.useCallback(async (buildingId: string) => {
     try {
       setLoadingRooms(true);
       setSelectedRoom(null);
@@ -126,31 +120,38 @@ export const CreateInvoice: React.FC = () => {
         }
         fetchActiveTenant(list[0].id);
       }
+      return list;
     } catch (err) {
       console.error('Error fetching rooms:', err);
+      return [];
     } finally {
       setLoadingRooms(false);
     }
-  };
+  }, [fetchActiveTenant]);
 
-  // ── Fetch Active Tenant for Selected Room ──────────────────────────────────
-  const fetchActiveTenant = async (roomId: string) => {
+  const fetchBuildings = React.useCallback(async () => {
     try {
-      setLoadingTenant(true);
-      setActiveTenant(null);
-      const snap = await getDocs(
-        query(collection(db, 'tenants'), where('roomId', '==', roomId), where('status', '==', 'active'))
-      );
-      if (!snap.empty) {
-        const data = snap.docs[0].data();
-        setActiveTenant({ id: snap.docs[0].id, fullName: data.fullName || '' });
+      setLoadingBuildings(true);
+      const snap = await getDocs(query(collection(db, 'buildings'), orderBy('name')));
+      const list = snap.docs.map((d) => ({ id: d.id, name: d.data().name }));
+      setBuildings(list);
+
+      // Try selecting initial building or first building
+      if (list.length > 0) {
+        const found = list.find((b) => b.id === initialBuildingId) || list[0];
+        setSelectedBuilding(found);
+        fetchRooms(found.id);
       }
     } catch (err) {
-      console.error('Error fetching tenant:', err);
+      console.error('Error fetching buildings:', err);
     } finally {
-      setLoadingTenant(false);
+      setLoadingBuildings(false);
     }
-  };
+  }, [initialBuildingId, fetchRooms]);
+
+  React.useEffect(() => {
+    fetchBuildings();
+  }, [fetchBuildings]);
 
   // ── Select Handlers ────────────────────────────────────────────────────────
   const handleSelectBuilding = (b: Building) => {

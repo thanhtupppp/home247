@@ -1,7 +1,7 @@
 import React from 'react';
 import {
   View, Text, StyleSheet, ScrollView, TextInput, Pressable,
-  Switch, Alert, ActivityIndicator, Image
+  Switch, Alert, ActivityIndicator
 } from 'react-native';
 import * as ImagePicker from 'expo-image-picker';
 import { useNavigation } from '@react-navigation/native';
@@ -11,6 +11,7 @@ import { theme } from '../theme';
 import { collection, addDoc, getDocs, query, where, orderBy, doc, updateDoc } from 'firebase/firestore';
 import { db, auth } from '../firebase';
 import { getProvinceNames, getWardNamesByProvinceName } from '../data/vietnameseAddress';
+import { Image } from 'expo-image';
 
 const ALL_PROVINCES = getProvinceNames();
 
@@ -394,7 +395,7 @@ export const CreateTenant: React.FC = () => {
             <Pressable style={styles.photoUploadCard} onPress={() => pickCccdImage('front')}>
               {cccdFront ? (
                 <>
-                  <Image source={{ uri: cccdFront }} style={styles.cccdPreview} resizeMode="cover" />
+                  <Image source={{ uri: cccdFront }} style={styles.cccdPreview} contentFit="cover" />
                   <View style={styles.cccdOverlay}>
                     <MaterialIcons name="edit" size={18} color="#fff" />
                     <Text style={styles.cccdOverlayText}>Đổi ảnh</Text>
@@ -415,7 +416,7 @@ export const CreateTenant: React.FC = () => {
             <Pressable style={styles.photoUploadCard} onPress={() => pickCccdImage('back')}>
               {cccdBack ? (
                 <>
-                  <Image source={{ uri: cccdBack }} style={styles.cccdPreview} resizeMode="cover" />
+                  <Image source={{ uri: cccdBack }} style={styles.cccdPreview} contentFit="cover" />
                   <View style={styles.cccdOverlay}>
                     <MaterialIcons name="edit" size={18} color="#fff" />
                     <Text style={styles.cccdOverlayText}>Đổi ảnh</Text>

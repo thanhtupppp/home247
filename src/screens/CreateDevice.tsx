@@ -36,26 +36,7 @@ export const CreateDevice: React.FC = () => {
   const [loadingDevice, setLoadingDevice] = React.useState(false);
   const [initialBuildingId, setInitialBuildingId] = React.useState<string | null>(null);
 
-  React.useEffect(() => {
-    fetchBuildings();
-  }, []);
-
-  React.useEffect(() => {
-    if (deviceId) {
-      fetchDeviceDetail();
-    }
-  }, [deviceId]);
-
-  React.useEffect(() => {
-    if (buildings.length > 0 && initialBuildingId) {
-      const matched = buildings.find(b => b.id === initialBuildingId);
-      if (matched) {
-        setSelectedBuilding(matched);
-      }
-    }
-  }, [buildings, initialBuildingId]);
-
-  const fetchBuildings = async () => {
+  const fetchBuildings = React.useCallback(async () => {
     try {
       setLoadingBuildings(true);
       const qSnap = await getDocs(query(collection(db, 'buildings'), orderBy('name')));
@@ -73,9 +54,9 @@ export const CreateDevice: React.FC = () => {
     } finally {
       setLoadingBuildings(false);
     }
-  };
+  }, [deviceId]);
 
-  const fetchDeviceDetail = async () => {
+  const fetchDeviceDetail = React.useCallback(async () => {
     try {
       setLoadingDevice(true);
       const docSnap = await getDoc(doc(db, 'devices', deviceId));
@@ -92,7 +73,26 @@ export const CreateDevice: React.FC = () => {
     } finally {
       setLoadingDevice(false);
     }
-  };
+  }, [deviceId]);
+
+  React.useEffect(() => {
+    fetchBuildings();
+  }, [fetchBuildings]);
+
+  React.useEffect(() => {
+    if (deviceId) {
+      fetchDeviceDetail();
+    }
+  }, [deviceId, fetchDeviceDetail]);
+
+  React.useEffect(() => {
+    if (buildings.length > 0 && initialBuildingId) {
+      const matched = buildings.find(b => b.id === initialBuildingId);
+      if (matched) {
+        setSelectedBuilding(matched);
+      }
+    }
+  }, [buildings, initialBuildingId]);
 
   const handleSave = async () => {
     if (!deviceName.trim()) {
