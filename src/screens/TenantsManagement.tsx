@@ -1,17 +1,53 @@
 import React from 'react';
-import { View, Text, StyleSheet, ScrollView, Pressable } from 'react-native';
-import { useNavigation } from '@react-navigation/native';
+import { View, Text, StyleSheet, ScrollView, Pressable, ActivityIndicator } from 'react-native';
+import { useNavigation, useIsFocused } from '@react-navigation/native';
 import { MaterialIcons } from '@expo/vector-icons';
 import { theme } from '../theme';
+import { collection, getDocs, query, where } from 'firebase/firestore';
+import { db } from '../firebase';
 
 export const TenantsManagement: React.FC = () => {
   const navigation = useNavigation<any>();
+  const isFocused = useIsFocused();
+
+  const [loading, setLoading] = React.useState(false);
+  const [pendingTenants, setPendingTenants] = React.useState(0);
+  const [pendingFeedback, setPendingFeedback] = React.useState(0);
+
+  React.useEffect(() => {
+    if (isFocused) {
+      fetchApprovalCounts();
+    }
+  }, [isFocused]);
+
+  const fetchApprovalCounts = async () => {
+    try {
+      setLoading(true);
+      
+      // 1. Fetch pending tenants
+      const tenantsSnap = await getDocs(
+        query(collection(db, 'tenants'), where('status', '==', 'pending'))
+      );
+      setPendingTenants(tenantsSnap.size);
+
+      // 2. Fetch pending support requests / feedback
+      const supportSnap = await getDocs(
+        query(collection(db, 'supportRequests'), where('status', '==', 'pending'))
+      );
+      setPendingFeedback(supportSnap.size);
+
+    } catch (err) {
+      console.error('Error fetching approvals count:', err);
+    } finally {
+      setLoading(false);
+    }
+  };
 
   const approvals = [
-    { id: '1', title: 'Cư dân chờ duyệt', count: 0, icon: 'people', iconColor: '#f97316', bgColor: '#fff7ed' },
-    { id: '2', title: 'Phương tiện chờ duyệt', count: 0, icon: 'directions-car', iconColor: '#3b82f6', bgColor: '#eff6ff' },
-    { id: '3', title: 'Tạm trú chờ duyệt', count: 0, icon: 'description', iconColor: '#eab308', bgColor: '#fefce8' },
-    { id: '4', title: 'Phản ánh chờ duyệt', count: 0, icon: 'forum', iconColor: '#ef4444', bgColor: '#fef2f2' },
+    { id: '1', title: 'Cư dân chờ duyệt', count: pendingTenants, icon: 'people', iconColor: '#f97316', bgColor: '#fff7ed', route: 'cu-dan/danh-sach' },
+    { id: '2', title: 'Phương tiện chờ duyệt', count: 0, icon: 'directions-car', iconColor: '#3b82f6', bgColor: '#eff6ff', route: null },
+    { id: '3', title: 'Tạm trú chờ duyệt', count: 0, icon: 'description', iconColor: '#eab308', bgColor: '#fefce8', route: null },
+    { id: '4', title: 'Phản ánh chờ duyệt', count: pendingFeedback, icon: 'forum', iconColor: '#ef4444', bgColor: '#fef2f2', route: 'cu-dan/phan-anh' },
   ];
 
   const menus = [
@@ -25,12 +61,23 @@ export const TenantsManagement: React.FC = () => {
     <View style={styles.container}>
       <ScrollView contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false}>
         {/* Approvals Title */}
-        <Text style={styles.sectionTitle}>Công việc cần duyệt</Text>
+        <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
+          <Text style={styles.sectionTitle}>Công việc cần duyệt</Text>
+          {loading && <ActivityIndicator size="small" color={theme.colors.primary} />}
+        </View>
 
         {/* 2x2 Grid of Approval Cards */}
         <View style={styles.grid}>
           {approvals.map((item) => (
-            <Pressable key={item.id} style={styles.gridCard}>
+            <Pressable 
+              key={item.id} 
+              style={styles.gridCard}
+              onPress={() => {
+                if (item.route) {
+                  navigation.navigate(item.route);
+                }
+              }}
+            >
               <View style={styles.gridCardHeader}>
                 <View style={[styles.iconCircle, { backgroundColor: item.bgColor }]}>
                   <MaterialIcons name={item.icon as any} size={22} color={item.iconColor} />
@@ -56,6 +103,8 @@ export const TenantsManagement: React.FC = () => {
               onPress={() => {
                 if (menu.route === 'cu-dan/danh-sach') {
                   navigation.navigate('cu-dan/danh-sach');
+                } else if (menu.route === 'cu-dan/phan-anh') {
+                  navigation.navigate('cu-dan/phan-anh');
                 }
               }}
             >
@@ -88,7 +137,7 @@ const styles = StyleSheet.create({
     ...theme.typography.titleLg,
     color: theme.colors.onSurface,
     fontWeight: 'bold',
-    marginBottom: 16,
+    marginBottom: 0,
   },
   grid: {
     flexDirection: 'row',
@@ -98,10 +147,10 @@ const styles = StyleSheet.create({
   gridCard: {
     width: '48%',
     backgroundColor: theme.colors.surfaceContainerLowest,
-    borderRadius: theme.borderRadius.xl,
     padding: 16,
+    borderRadius: theme.borderRadius.xl,
     borderWidth: 1,
-    borderColor: '#f1f5f9',
+    borderColor: theme.colors.outlineVariant,
     gap: 12,
   },
   gridCardHeader: {
@@ -112,19 +161,19 @@ const styles = StyleSheet.create({
   iconCircle: {
     width: 40,
     height: 40,
-    borderRadius: 12,
+    borderRadius: 20,
     alignItems: 'center',
     justifyContent: 'center',
   },
   bigNumber: {
-    fontSize: 28,
+    fontSize: 24,
     fontWeight: 'bold',
     color: theme.colors.onSurface,
   },
   gridCardLabel: {
     fontSize: 13,
     color: theme.colors.onSurfaceVariant,
-    lineHeight: 18,
+    fontWeight: '500',
   },
   menuList: {
     gap: 12,
@@ -134,11 +183,10 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     alignItems: 'center',
     backgroundColor: theme.colors.surfaceContainerLowest,
+    padding: 16,
     borderRadius: theme.borderRadius.xl,
-    paddingHorizontal: 16,
-    paddingVertical: 14,
     borderWidth: 1,
-    borderColor: '#f1f5f9',
+    borderColor: theme.colors.outlineVariant,
   },
   menuItemLeft: {
     flexDirection: 'row',
@@ -146,16 +194,16 @@ const styles = StyleSheet.create({
     gap: 12,
   },
   menuIconCircle: {
-    width: 38,
-    height: 38,
-    borderRadius: 10,
-    backgroundColor: '#f1f5f9',
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+    backgroundColor: theme.colors.surfaceContainer,
     alignItems: 'center',
     justifyContent: 'center',
   },
   menuItemTitle: {
-    ...theme.typography.bodyLg,
-    fontWeight: 'bold',
+    fontSize: 14,
+    fontWeight: '600',
     color: theme.colors.onSurface,
   },
 });

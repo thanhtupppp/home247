@@ -31,6 +31,7 @@ export const Dashboard: React.FC<DashboardProps> = () => {
   const [requestCount, setRequestCount] = React.useState('0');
   const [chartData, setChartData] = React.useState<any[]>([]);
   const [recentTx, setRecentTx] = React.useState<any[]>([]);
+  const [pendingTasks, setPendingTasks] = React.useState<any[]>([]);
 
   // CURRENT MONTH
   const currentMonthStr = React.useMemo(() => {
@@ -108,9 +109,18 @@ export const Dashboard: React.FC<DashboardProps> = () => {
         : `${(totalRev / 1000).toFixed(0)}K`;
       setRevenueThisMonth(totalRev === 0 ? '0 đ' : formattedRev);
 
-      // 3. Calculate new requests
+      // 3. Calculate new requests & load pending support requests
       const reqsSnap = await getDocs(collection(db, 'supportRequests'));
-      setRequestCount(String(reqsSnap.size).padStart(2, '0'));
+      const allReqs = reqsSnap.docs.map(d => ({ id: d.id, ...d.data() }));
+      const activeReqs = allReqs.filter((r: any) => r.status === 'pending' || r.status === 'processing');
+      
+      activeReqs.sort((a: any, b: any) => {
+        const t1 = a.createdAt?.seconds || 0;
+        const t2 = b.createdAt?.seconds || 0;
+        return t2 - t1;
+      });
+      setPendingTasks(activeReqs);
+      setRequestCount(String(activeReqs.length).padStart(2, '0'));
 
       // 4. Calculate real MoM revenue for last 6 months
       const allInvoicesSnap = await getDocs(collection(db, 'invoices'));
@@ -342,13 +352,62 @@ export const Dashboard: React.FC<DashboardProps> = () => {
 
             {/* To-Do Section */}
             <View style={styles.section}>
-              <Text style={styles.sectionTitle}>Công việc cần làm</Text>
-              <View style={styles.todoCard}>
-                <View style={styles.todoIconContainer}>
-                  <MaterialIcons name="check-circle" size={32} color={theme.colors.primary} />
-                </View>
-                <Text style={styles.todoText}>Không có công việc nào cần làm</Text>
+              <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 }}>
+                <Text style={styles.sectionTitle}>Công việc cần làm</Text>
+                <Pressable onPress={() => navigation.navigate('cu-dan/phan-anh')}>
+                  <Text style={{ fontSize: 13, color: theme.colors.primary, fontWeight: 'bold' }}>Xem tất cả</Text>
+                </Pressable>
               </View>
+              
+              {pendingTasks.length === 0 ? (
+                <View style={styles.todoCard}>
+                  <View style={styles.todoIconContainer}>
+                    <MaterialIcons name="check-circle" size={32} color={theme.colors.primary} />
+                  </View>
+                  <Text style={styles.todoText}>Tuyệt vời! Không có công việc nào tồn đọng</Text>
+                </View>
+              ) : (
+                <View style={{ gap: 12 }}>
+                  {pendingTasks.slice(0, 3).map((task) => (
+                    <Pressable 
+                      key={task.id} 
+                      style={styles.todoCardItem}
+                      onPress={() => navigation.navigate('cu-dan/phan-anh')}
+                    >
+                      <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}>
+                        <View style={[
+                          styles.taskLevelBadge, 
+                          task.level === 'emergency' ? { backgroundColor: '#fee2e2' } : { backgroundColor: '#f1f5f9' }
+                        ]}>
+                          <Text style={[
+                            styles.taskLevelText,
+                            task.level === 'emergency' ? { color: '#ef4444' } : { color: '#64748b' }
+                          ]}>
+                            {task.level === 'emergency' ? 'KHẨN CẤP' : 'THÔNG THƯỜNG'}
+                          </Text>
+                        </View>
+                        <Text style={{ fontSize: 11, color: '#94a3b8' }}>
+                          Phòng {task.roomCode}
+                        </Text>
+                      </View>
+                      <Text style={{ fontSize: 14, fontWeight: 'bold', color: theme.colors.onSurface, marginTop: 6 }}>
+                        {task.title}
+                      </Text>
+                      <Text style={{ fontSize: 12, color: theme.colors.onSurfaceVariant, marginTop: 4 }} numberOfLines={2}>
+                        {task.description}
+                      </Text>
+                    </Pressable>
+                  ))}
+                  {pendingTasks.length > 3 && (
+                    <Pressable 
+                      style={styles.moreTasksBtn}
+                      onPress={() => navigation.navigate('cu-dan/phan-anh')}
+                    >
+                      <Text style={styles.moreTasksBtnText}>+ Xem thêm {pendingTasks.length - 3} công việc</Text>
+                    </Pressable>
+                  )}
+                </View>
+              )}
             </View>
           </>
         ) : (
@@ -686,6 +745,34 @@ const styles = StyleSheet.create({
   emptyText: {
     color: '#94a3b8',
     fontSize: 13,
+  },
+  todoCardItem: {
+    backgroundColor: theme.colors.surfaceContainerLowest,
+    padding: 16,
+    borderRadius: theme.borderRadius.xl,
+    borderWidth: 1,
+    borderColor: theme.colors.outlineVariant,
+  },
+  taskLevelBadge: {
+    paddingHorizontal: 8,
+    paddingVertical: 3,
+    borderRadius: theme.borderRadius.default,
+  },
+  taskLevelText: {
+    fontSize: 9,
+    fontWeight: 'bold',
+  },
+  moreTasksBtn: {
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingVertical: 12,
+    borderRadius: theme.borderRadius.xl,
+    backgroundColor: theme.colors.surfaceContainer,
+  },
+  moreTasksBtnText: {
+    fontSize: 13,
+    fontWeight: 'bold',
+    color: theme.colors.primary,
   },
   loadingContainer: {
     flexDirection: 'row',

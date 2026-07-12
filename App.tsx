@@ -35,6 +35,7 @@ import LoginScreen from './src/screens/LoginScreen';
 import RoomDetail from './src/screens/RoomDetail';
 import ContractDetail from './src/screens/ContractDetail';
 import StatisticsScreen from './src/screens/StatisticsScreen';
+import { SupportRequests } from './src/screens/SupportRequests';
 
 
 const Stack = createNativeStackNavigator();
@@ -197,6 +198,7 @@ export function App() {
           <Stack.Screen name="cu-dan/danh-sach" component={TenantsList} />
           <Stack.Screen name="cu-dan/them" component={CreateTenant} />
           <Stack.Screen name="cu-dan/chi-tiet" component={TenantDetail} />
+          <Stack.Screen name="cu-dan/phan-anh" component={SupportRequests} />
 
           <Stack.Screen name="dien-nuoc" component={UtilityManagement} />
           <Stack.Screen name="dien-nuoc/ghi" component={UtilityRecording} />

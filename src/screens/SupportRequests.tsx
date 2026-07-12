@@ -1,91 +1,317 @@
 import React from 'react';
-import { ScrollView, View, Text, StyleSheet, Pressable } from 'react-native';
-import TopAppBar from '../components/TopAppBar';
+import {
+  ScrollView, View, Text, StyleSheet, Pressable,
+  ActivityIndicator, Alert, TextInput, Modal, Switch
+} from 'react-native';
+import { useNavigation, useIsFocused } from '@react-navigation/native';
+import { MaterialIcons } from '@expo/vector-icons';
 import { theme } from '../theme';
+import { collection, getDocs, doc, updateDoc, addDoc, query, orderBy, deleteDoc } from 'firebase/firestore';
+import { db, auth } from '../firebase';
 
-export interface SupportRequestsProps {
-  readonly className?: string;
+interface SupportRequest {
+  id: string;
+  roomCode: string;
+  buildingName: string;
+  title: string;
+  description: string;
+  level: 'emergency' | 'normal';
+  status: 'pending' | 'processing' | 'resolved' | 'closed';
+  createdAt: any;
 }
 
-export const SupportRequests: React.FC<SupportRequestsProps> = () => {
+export const SupportRequests: React.FC = () => {
+  const navigation = useNavigation<any>();
+  const isFocused = useIsFocused();
+
+  const [requests, setRequests] = React.useState<SupportRequest[]>([]);
+  const [loading, setLoading] = React.useState(true);
+  const [activeTab, setActiveTab] = React.useState<'pending' | 'resolved'>('pending');
+
+  // Modal State for creating support request
+  const [showCreateModal, setShowCreateModal] = React.useState(false);
+  const [newTitle, setNewTitle] = React.useState('');
+  const [newDesc, setNewDesc] = React.useState('');
+  const [newRoom, setNewRoom] = React.useState('');
+  const [newBuilding, setNewBuilding] = React.useState('');
+  const [newLevel, setNewLevel] = React.useState<'emergency' | 'normal'>('normal');
+  const [creating, setCreating] = React.useState(false);
+
+  React.useEffect(() => {
+    if (isFocused) {
+      fetchRequests();
+    }
+  }, [isFocused]);
+
+  const fetchRequests = async () => {
+    try {
+      setLoading(true);
+      const snap = await getDocs(query(collection(db, 'supportRequests'), orderBy('createdAt', 'desc')));
+      const list: SupportRequest[] = [];
+      snap.forEach((doc) => {
+        const data = doc.data();
+        list.push({
+          id: doc.id,
+          roomCode: data.roomCode || '',
+          buildingName: data.buildingName || '',
+          title: data.title || '',
+          description: data.description || '',
+          level: data.level || 'normal',
+          status: data.status || 'pending',
+          createdAt: data.createdAt,
+        });
+      });
+      setRequests(list);
+    } catch (err) {
+      console.error('Error fetching support requests:', err);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleUpdateStatus = async (id: string, newStatus: 'resolved' | 'closed' | 'pending') => {
+    try {
+      await updateDoc(doc(db, 'supportRequests', id), { status: newStatus });
+      setRequests(prev => prev.map(item => item.id === id ? { ...item, status: newStatus } : item));
+      Alert.alert('Thành công', 'Đã cập nhật trạng thái yêu cầu hỗ trợ.');
+    } catch (err) {
+      console.error('Error updating support request status:', err);
+      Alert.alert('Lỗi', 'Không thể cập nhật trạng thái.');
+    }
+  };
+
+  const handleDeleteRequest = async (id: string) => {
+    Alert.alert(
+      'Xác nhận xóa',
+      'Bạn có chắc chắn muốn xóa phản ánh này?',
+      [
+        { text: 'Hủy', style: 'cancel' },
+        { 
+          text: 'Xóa', 
+          style: 'destructive',
+          onPress: async () => {
+            try {
+              await deleteDoc(doc(db, 'supportRequests', id));
+              setRequests(prev => prev.filter(item => item.id !== id));
+            } catch (err) {
+              console.error('Error deleting support request:', err);
+              Alert.alert('Lỗi', 'Không thể xóa phản ánh.');
+            }
+          }
+        }
+      ]
+    );
+  };
+
+  const handleCreateRequest = async () => {
+    if (!newTitle.trim() || !newDesc.trim() || !newRoom.trim() || !newBuilding.trim()) {
+      Alert.alert('Thông báo', 'Vui lòng nhập đầy đủ thông tin yêu cầu.');
+      return;
+    }
+
+    try {
+      setCreating(true);
+      const reqData = {
+        title: newTitle.trim(),
+        description: newDesc.trim(),
+        roomCode: newRoom.trim(),
+        buildingName: newBuilding.trim(),
+        level: newLevel,
+        status: 'pending',
+        createdAt: new Date(),
+        createdBy: auth.currentUser?.uid || 'system',
+      };
+      await addDoc(collection(db, 'supportRequests'), reqData);
+      
+      // Reset & close modal
+      setNewTitle('');
+      setNewDesc('');
+      setNewRoom('');
+      setNewBuilding('');
+      setNewLevel('normal');
+      setShowCreateModal(false);
+      
+      Alert.alert('Thành công', 'Đã tạo phản ánh hỗ trợ thành công!');
+      fetchRequests();
+    } catch (err) {
+      console.error('Error creating support request:', err);
+      Alert.alert('Lỗi', 'Không thể gửi phản ánh hỗ trợ.');
+    } finally {
+      setCreating(false);
+    }
+  };
+
+  const filteredRequests = React.useMemo(() => {
+    return requests.filter(r => {
+      const isPending = r.status === 'pending' || r.status === 'processing';
+      if (activeTab === 'pending') return isPending;
+      return r.status === 'resolved' || r.status === 'closed';
+    });
+  }, [requests, activeTab]);
+
   return (
     <View style={styles.container}>
-      <TopAppBar />
-      
-      <ScrollView contentContainerStyle={styles.scrollContent}>
-        {/* Page Title */}
-        <View style={styles.titleSection}>
-          <View>
-            <Text style={styles.subtitle}>TRANG QUẢN TRỊ</Text>
-            <Text style={styles.title}>Yêu cầu hỗ trợ</Text>
-          </View>
-        </View>
+      {/* Header */}
+      <View style={styles.header}>
+        <Pressable onPress={() => navigation.goBack()} style={styles.backButton}>
+          <MaterialIcons name="arrow-back" size={24} color={theme.colors.onSurface} />
+        </Pressable>
+        <Text style={styles.headerTitle}>Yêu cầu hỗ trợ</Text>
+        <Pressable onPress={() => setShowCreateModal(true)} style={styles.createButton}>
+          <MaterialIcons name="add" size={20} color={theme.colors.primary} />
+          <Text style={styles.createButtonText}>Tạo yêu cầu</Text>
+        </Pressable>
+      </View>
 
-        {/* Support Request list */}
-        <View style={styles.listContainer}>
-          <View style={styles.requestCard}>
-            <View style={styles.cardHeader}>
-              <View style={styles.badgeRow}>
-                <View style={styles.emergencyBadge}>
-                  <Text style={styles.emergencyText}>SỰ CỐ KHẨN CẤP</Text>
-                </View>
-                <Text style={styles.roomCode}>Phòng 305</Text>
-              </View>
-            </View>
-            <Text style={styles.requestTitle}>Mất điện đột ngột khu vực bếp</Text>
-            <Text style={styles.requestDesc}>
-              Khách hàng phản hồi: Ổ cắm điện góc bếp đột ngột mất điện khi đang cắm nồi cơm, các thiết bị khác trong phòng vẫn hoạt động bình thường.
-            </Text>
-            <View style={styles.cardActions}>
-              <Pressable 
-                style={styles.primaryActionBtn}
-                accessibilityRole="button"
-                accessibilityLabel="Dispatch electrician"
-              >
-                <Text style={styles.primaryActionText}>Điều thợ sửa</Text>
-              </Pressable>
-              <Pressable 
-                style={styles.secondaryActionBtn}
-                accessibilityRole="button"
-                accessibilityLabel="Close request"
-              >
-                <Text style={styles.secondaryActionText}>Đóng yêu cầu</Text>
-              </Pressable>
-            </View>
-          </View>
+      {/* Tabs */}
+      <View style={styles.tabContainer}>
+        <Pressable 
+          style={[styles.tabButton, activeTab === 'pending' && styles.tabButtonActive]}
+          onPress={() => setActiveTab('pending')}
+        >
+          <Text style={[styles.tabText, activeTab === 'pending' && styles.tabTextActive]}>
+            Chưa giải quyết
+          </Text>
+        </Pressable>
+        <Pressable 
+          style={[styles.tabButton, activeTab === 'resolved' && styles.tabButtonActive]}
+          onPress={() => setActiveTab('resolved')}
+        >
+          <Text style={[styles.tabText, activeTab === 'resolved' && styles.tabTextActive]}>
+            Đã xử lý
+          </Text>
+        </Pressable>
+      </View>
 
-          <View style={styles.requestCard}>
-            <View style={styles.cardHeader}>
-              <View style={styles.badgeRow}>
-                <View style={styles.warningBadge}>
-                  <Text style={styles.warningText}>CẦN GIẢI QUYẾT</Text>
-                </View>
-                <Text style={styles.roomCode}>Phòng 102</Text>
-              </View>
-            </View>
-            <Text style={styles.requestTitle}>Đề nghị sửa vòi hoa sen rỉ nước</Text>
-            <Text style={styles.requestDesc}>
-              Khách hàng phản hồi: Vòi hoa sen trong phòng tắm bị rỉ nước liên tục gây thất thoát nước và ẩm ướt phòng vệ sinh.
-            </Text>
-            <View style={styles.cardActions}>
-              <Pressable 
-                style={styles.primaryActionBtn}
-                accessibilityRole="button"
-                accessibilityLabel="Mark resolved"
-              >
-                <Text style={styles.primaryActionText}>Đã xử lý</Text>
-              </Pressable>
-              <Pressable 
-                style={styles.secondaryActionBtn}
-                accessibilityRole="button"
-                accessibilityLabel="Ignore request"
-              >
-                <Text style={styles.secondaryActionText}>Bỏ qua</Text>
-              </Pressable>
-            </View>
+      <ScrollView contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false}>
+        {loading ? (
+          <ActivityIndicator size="large" color={theme.colors.primary} style={{ marginTop: 40 }} />
+        ) : filteredRequests.length === 0 ? (
+          <View style={styles.emptyContainer}>
+            <MaterialIcons name="forum" size={48} color="#cbd5e1" />
+            <Text style={styles.emptyText}>Không có yêu cầu hỗ trợ nào</Text>
           </View>
-        </View>
+        ) : (
+          <View style={styles.listContainer}>
+            {filteredRequests.map((req) => (
+              <View key={req.id} style={styles.requestCard}>
+                <View style={styles.cardHeader}>
+                  <View style={styles.badgeRow}>
+                    <View style={[
+                      styles.levelBadge, 
+                      req.level === 'emergency' ? styles.emergencyBadge : styles.normalBadge
+                    ]}>
+                      <Text style={[
+                        styles.levelText,
+                        req.level === 'emergency' ? styles.emergencyText : styles.normalText
+                      ]}>
+                        {req.level === 'emergency' ? 'SỰ CỐ KHẨN CẤP' : 'BÌNH THƯỜNG'}
+                      </Text>
+                    </View>
+                    <Text style={styles.roomCode}>Phòng {req.roomCode} ({req.buildingName})</Text>
+                  </View>
+                  <Pressable onPress={() => handleDeleteRequest(req.id)}>
+                    <MaterialIcons name="delete-outline" size={20} color="#ef4444" />
+                  </Pressable>
+                </View>
+                <Text style={styles.requestTitle}>{req.title}</Text>
+                <Text style={styles.requestDesc}>{req.description}</Text>
+                
+                {req.status === 'pending' && (
+                  <View style={styles.cardActions}>
+                    <Pressable 
+                      style={styles.primaryActionBtn}
+                      onPress={() => handleUpdateStatus(req.id, 'resolved')}
+                    >
+                      <Text style={styles.primaryActionText}>Đã xử lý</Text>
+                    </Pressable>
+                    <Pressable 
+                      style={styles.secondaryActionBtn}
+                      onPress={() => handleUpdateStatus(req.id, 'closed')}
+                    >
+                      <Text style={styles.secondaryActionText}>Đóng yêu cầu</Text>
+                    </Pressable>
+                  </View>
+                )}
+                {req.status === 'resolved' && (
+                  <View style={styles.resolvedLabelRow}>
+                    <MaterialIcons name="check-circle" size={16} color="#16a34a" />
+                    <Text style={styles.resolvedLabelText}>Đã xử lý xong</Text>
+                  </View>
+                )}
+              </View>
+            ))}
+          </View>
+        )}
       </ScrollView>
+
+      {/* Modal for creating support request */}
+      <Modal visible={showCreateModal} animationType="slide" transparent>
+        <View style={styles.modalBg}>
+          <View style={styles.modalContent}>
+            <View style={styles.modalHeader}>
+              <Text style={styles.modalTitle}>Tạo phản ánh mới</Text>
+              <Pressable onPress={() => setShowCreateModal(false)}>
+                <MaterialIcons name="close" size={24} color={theme.colors.onSurface} />
+              </Pressable>
+            </View>
+
+            <ScrollView contentContainerStyle={styles.modalForm} keyboardShouldPersistTaps="handled">
+              <Text style={styles.label}>Tên tòa nhà *</Text>
+              <TextInput 
+                style={styles.textInput} 
+                placeholder="Vd: Nơ Trang Long" 
+                value={newBuilding} 
+                onChangeText={setNewBuilding} 
+              />
+
+              <Text style={styles.label}>Mã phòng *</Text>
+              <TextInput 
+                style={styles.textInput} 
+                placeholder="Vd: 305" 
+                value={newRoom} 
+                onChangeText={setNewRoom} 
+              />
+
+              <Text style={styles.label}>Tiêu đề sự cố *</Text>
+              <TextInput 
+                style={styles.textInput} 
+                placeholder="Vd: Hỏng điều hòa" 
+                value={newTitle} 
+                onChangeText={setNewTitle} 
+              />
+
+              <Text style={styles.label}>Mô tả chi tiết *</Text>
+              <TextInput 
+                style={[styles.textInput, styles.textArea]} 
+                placeholder="Mô tả sự cố cần hỗ trợ..." 
+                value={newDesc} 
+                onChangeText={setNewDesc}
+                multiline
+                numberOfLines={4}
+              />
+
+              <View style={styles.switchRow}>
+                <Text style={styles.switchLabel}>Mức độ khẩn cấp?</Text>
+                <Switch 
+                  value={newLevel === 'emergency'}
+                  onValueChange={(val) => setNewLevel(val ? 'emergency' : 'normal')}
+                  trackColor={{ false: '#cbd5e1', true: '#fca5a5' }}
+                  thumbColor={newLevel === 'emergency' ? '#ef4444' : '#64748b'}
+                />
+              </View>
+
+              <Pressable style={styles.submitBtn} onPress={handleCreateRequest} disabled={creating}>
+                {creating ? (
+                  <ActivityIndicator size="small" color="#fff" />
+                ) : (
+                  <Text style={styles.submitBtnText}>Gửi yêu cầu hỗ trợ</Text>
+                )}
+              </Pressable>
+            </ScrollView>
+          </View>
+        </View>
+      </Modal>
     </View>
   );
 };
@@ -95,115 +321,247 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: theme.colors.background,
   },
-  scrollContent: {
-    paddingBottom: 40,
-  },
-  titleSection: {
+  header: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
     paddingHorizontal: theme.spacing.marginMobile,
-    paddingTop: theme.spacing.lg,
+    paddingTop: theme.spacing.lg + 16,
     paddingBottom: theme.spacing.md,
+    backgroundColor: theme.colors.surfaceContainerLowest,
+    borderBottomWidth: 1,
+    borderBottomColor: theme.colors.outlineVariant,
   },
-  subtitle: {
-    ...theme.typography.labelMd,
-    color: theme.colors.onSurfaceVariant,
-    letterSpacing: 1.2,
+  backButton: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    alignItems: 'center',
+    justifyContent: 'center',
   },
-  title: {
-    ...theme.typography.headlineLgMobile,
+  headerTitle: {
+    ...theme.typography.titleLg,
     color: theme.colors.onSurface,
     fontWeight: 'bold',
-    marginTop: 4,
+  },
+  createButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+    paddingHorizontal: 8,
+    paddingVertical: 6,
+  },
+  createButtonText: {
+    ...theme.typography.bodyMd,
+    color: theme.colors.primary,
+    fontWeight: 'bold',
+  },
+  tabContainer: {
+    flexDirection: 'row',
+    backgroundColor: theme.colors.surfaceContainerLowest,
+    borderBottomWidth: 1,
+    borderBottomColor: theme.colors.outlineVariant,
+  },
+  tabButton: {
+    flex: 1,
+    alignItems: 'center',
+    paddingVertical: 14,
+    borderBottomWidth: 2,
+    borderBottomColor: 'transparent',
+  },
+  tabButtonActive: {
+    borderBottomColor: theme.colors.primary,
+  },
+  tabText: {
+    ...theme.typography.bodyMd,
+    color: theme.colors.onSurfaceVariant,
+  },
+  tabTextActive: {
+    color: theme.colors.primary,
+    fontWeight: 'bold',
+  },
+  scrollContent: {
+    padding: theme.spacing.marginMobile,
+    paddingBottom: 40,
+  },
+  emptyContainer: {
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingVertical: 120,
+    gap: 8,
+  },
+  emptyText: {
+    ...theme.typography.bodyMd,
+    color: theme.colors.onSurfaceVariant,
   },
   listContainer: {
-    paddingHorizontal: theme.spacing.marginMobile,
     gap: 16,
   },
   requestCard: {
     backgroundColor: theme.colors.surfaceContainerLowest,
-    padding: 16,
     borderRadius: theme.borderRadius.xl,
+    padding: 16,
     borderWidth: 1,
     borderColor: theme.colors.outlineVariant,
+    gap: 12,
   },
   cardHeader: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    marginBottom: 8,
   },
   badgeRow: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: 8,
   },
+  levelBadge: {
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    borderRadius: theme.borderRadius.default,
+  },
   emergencyBadge: {
     backgroundColor: '#fee2e2',
-    paddingHorizontal: 8,
-    paddingVertical: 2,
-    borderRadius: theme.borderRadius.full,
+  },
+  normalBadge: {
+    backgroundColor: '#f1f5f9',
+  },
+  levelText: {
+    fontSize: 9,
+    fontWeight: 'bold',
   },
   emergencyText: {
-    color: '#991b1b',
-    fontSize: 9,
-    fontWeight: 'bold',
+    color: '#ef4444',
   },
-  warningBadge: {
-    backgroundColor: '#fff7ed',
-    paddingHorizontal: 8,
-    paddingVertical: 2,
-    borderRadius: theme.borderRadius.full,
-  },
-  warningText: {
-    color: '#9a3412',
-    fontSize: 9,
-    fontWeight: 'bold',
+  normalText: {
+    color: '#64748b',
   },
   roomCode: {
-    ...theme.typography.bodyMd,
-    color: theme.colors.primary,
+    fontSize: 12,
     fontWeight: 'bold',
+    color: theme.colors.onSurfaceVariant,
   },
   requestTitle: {
     ...theme.typography.titleLg,
     color: theme.colors.onSurface,
     fontWeight: 'bold',
-    marginBottom: 6,
   },
   requestDesc: {
     ...theme.typography.bodyMd,
     color: theme.colors.onSurfaceVariant,
-    lineHeight: 20,
-    marginBottom: 16,
   },
   cardActions: {
     flexDirection: 'row',
     gap: 12,
+    marginTop: 4,
   },
   primaryActionBtn: {
     flex: 1,
-    paddingVertical: 10,
     backgroundColor: theme.colors.primary,
-    borderRadius: theme.borderRadius.lg,
+    borderRadius: theme.borderRadius.xl,
+    paddingVertical: 10,
     alignItems: 'center',
     justifyContent: 'center',
   },
   primaryActionText: {
-    ...theme.typography.labelMd,
-    color: theme.colors.onPrimary,
+    color: '#fff',
+    fontSize: 13,
     fontWeight: 'bold',
   },
   secondaryActionBtn: {
     flex: 1,
-    paddingVertical: 10,
     borderWidth: 1,
     borderColor: theme.colors.outlineVariant,
-    borderRadius: theme.borderRadius.lg,
+    borderRadius: theme.borderRadius.xl,
+    paddingVertical: 10,
     alignItems: 'center',
     justifyContent: 'center',
   },
   secondaryActionText: {
-    ...theme.typography.labelMd,
+    color: theme.colors.onSurfaceVariant,
+    fontSize: 13,
+    fontWeight: 'bold',
+  },
+  resolvedLabelRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+  },
+  resolvedLabelText: {
+    fontSize: 13,
+    color: '#16a34a',
+    fontWeight: 'bold',
+  },
+  modalBg: {
+    flex: 1,
+    backgroundColor: 'rgba(0,0,0,0.5)',
+    justifyContent: 'flex-end',
+  },
+  modalContent: {
+    backgroundColor: theme.colors.background,
+    borderTopLeftRadius: 24,
+    borderTopRightRadius: 24,
+    maxHeight: '85%',
+  },
+  modalHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    padding: 20,
+    borderBottomWidth: 1,
+    borderBottomColor: '#e2e8f0',
+  },
+  modalTitle: {
+    fontSize: 18,
+    fontWeight: 'bold',
     color: theme.colors.onSurface,
+  },
+  modalForm: {
+    padding: 20,
+    gap: 16,
+    paddingBottom: 40,
+  },
+  label: {
+    fontSize: 14,
+    fontWeight: 'bold',
+    color: theme.colors.onSurfaceVariant,
+  },
+  textInput: {
+    borderWidth: 1,
+    borderColor: theme.colors.outlineVariant,
+    borderRadius: theme.borderRadius.xl,
+    paddingHorizontal: 16,
+    paddingVertical: 12,
+    fontSize: 15,
+    color: theme.colors.onSurface,
+    backgroundColor: theme.colors.surfaceContainerLowest,
+  },
+  textArea: {
+    height: 100,
+    textAlignVertical: 'top',
+  },
+  switchRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginVertical: 8,
+  },
+  switchLabel: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: theme.colors.onSurface,
+  },
+  submitBtn: {
+    backgroundColor: theme.colors.primary,
+    borderRadius: theme.borderRadius.xl,
+    paddingVertical: 14,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginTop: 12,
+  },
+  submitBtnText: {
+    color: '#fff',
+    fontSize: 15,
     fontWeight: 'bold',
   },
 });
