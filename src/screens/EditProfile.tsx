@@ -5,6 +5,9 @@ import { MaterialIcons } from '@expo/vector-icons';
 import { theme } from '../theme';
 import { doc, getDoc, setDoc } from 'firebase/firestore';
 import { db, auth } from '../firebase';
+import { getProvinceNames } from '../data/vietnameseAddress';
+
+const ALL_PROVINCES = getProvinceNames();
 
 export const EditProfile: React.FC = () => {
   const navigation = useNavigation<any>();
@@ -13,9 +16,17 @@ export const EditProfile: React.FC = () => {
   const [phone, setPhone] = React.useState('');
   const [dob, setDob] = React.useState('');
   const [city, setCity] = React.useState('');
+  const [showCityDropdown, setShowCityDropdown] = React.useState(false);
+  const [citySearch, setCitySearch] = React.useState('');
   const [cccd, setCccd] = React.useState('');
   const [loading, setLoading] = React.useState(true);
   const [saving, setSaving] = React.useState(false);
+
+  const filteredProvinces = React.useMemo(() => {
+    if (!citySearch.trim()) return ALL_PROVINCES;
+    const q = citySearch.toLowerCase();
+    return ALL_PROVINCES.filter((p) => p.toLowerCase().includes(q));
+  }, [citySearch]);
 
   React.useEffect(() => {
     loadProfileData();
@@ -132,15 +143,43 @@ export const EditProfile: React.FC = () => {
             />
           </View>
 
-          <View style={[styles.inputContainer, { marginTop: 14 }]}>
+          {/* Province / City picker */}
+          <Pressable
+            style={[styles.inputContainer, { marginTop: 14 }]}
+            onPress={() => { setShowCityDropdown(!showCityDropdown); setCitySearch(''); }}
+          >
             <MaterialIcons name="place" size={20} color="#94a3b8" />
-            <TextInput
-              style={styles.textInput}
-              placeholder="Thành phố"
-              value={city}
-              onChangeText={setCity}
-            />
-          </View>
+            <Text style={[styles.textInput, !city && { color: '#94a3b8' }]} numberOfLines={1}>
+              {city || 'Tỉnh/Thành phố'}
+            </Text>
+            <MaterialIcons name="keyboard-arrow-down" size={20} color="#a1a1aa" />
+          </Pressable>
+          {showCityDropdown && (
+            <View style={styles.cityDropdown}>
+              <TextInput
+                style={styles.citySearch}
+                placeholder="Tìm tỉnh/thành..."
+                value={citySearch}
+                onChangeText={setCitySearch}
+                autoFocus
+              />
+              <ScrollView style={{ maxHeight: 200 }} keyboardShouldPersistTaps="handled" nestedScrollEnabled>
+                {filteredProvinces.length === 0 ? (
+                  <Text style={styles.emptyDropdown}>Không tìm thấy kết quả</Text>
+                ) : (
+                  filteredProvinces.map((p) => (
+                    <Pressable
+                      key={p}
+                      style={styles.cityDropdownItem}
+                      onPress={() => { setCity(p); setShowCityDropdown(false); setCitySearch(''); }}
+                    >
+                      <Text style={[styles.textInput, { paddingVertical: 2, flex: 0 }]}>{p}</Text>
+                    </Pressable>
+                  ))
+                )}
+              </ScrollView>
+            </View>
+          )}
 
           {/* Section 2: CCCD/CMND */}
           <Text style={[styles.sectionTitle, { marginTop: 24 }]}>CCCD/CMND</Text>
@@ -205,6 +244,35 @@ const styles = StyleSheet.create({
   },
   form: {
     padding: theme.spacing.marginMobile,
+  },
+  cityDropdown: {
+    marginTop: 4,
+    borderWidth: 1,
+    borderColor: theme.colors.outlineVariant,
+    borderRadius: theme.borderRadius.xl,
+    backgroundColor: theme.colors.surfaceContainerLowest,
+    overflow: 'hidden',
+  },
+  citySearch: {
+    paddingHorizontal: 16,
+    paddingVertical: 10,
+    borderBottomWidth: 1,
+    borderBottomColor: theme.colors.outlineVariant,
+    fontSize: 14,
+    color: theme.colors.onSurface,
+    backgroundColor: '#f8fafc',
+  },
+  cityDropdownItem: {
+    paddingHorizontal: 16,
+    paddingVertical: 12,
+    borderBottomWidth: 1,
+    borderBottomColor: theme.colors.surfaceContainer,
+  },
+  emptyDropdown: {
+    padding: 16,
+    color: '#94a3b8',
+    textAlign: 'center',
+    fontSize: 13,
   },
   sectionTitle: {
     ...theme.typography.labelMd,

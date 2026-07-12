@@ -5,10 +5,11 @@ import { MaterialIcons } from '@expo/vector-icons';
 import { theme } from '../theme';
 import { collection, addDoc } from 'firebase/firestore';
 import { db, auth } from '../firebase';
+import { getProvinceNames, getWardNamesByProvinceName } from '../data/vietnameseAddress';
 
 const TYPES = ['Chung cư mini', 'Nhà nguyên căn', 'Dãy phòng trọ'];
-const PROVINCES = ['Hồ Chí Minh', 'Hà Nội', 'Đà Nẵng'];
-const WARDS = ['Phường 1', 'Phường 2', 'Phường 3'];
+// Loaded once at module level for performance
+const ALL_PROVINCES = getProvinceNames();
 
 export const CreateBuilding: React.FC = () => {
   const navigation = useNavigation<any>();
@@ -19,12 +20,45 @@ export const CreateBuilding: React.FC = () => {
 
   const [selectedProvince, setSelectedProvince] = React.useState('');
   const [showProvinceDropdown, setShowProvinceDropdown] = React.useState(false);
+  const [provinceSearch, setProvinceSearch] = React.useState('');
 
   const [selectedWard, setSelectedWard] = React.useState('');
   const [showWardDropdown, setShowWardDropdown] = React.useState(false);
+  const [wardSearch, setWardSearch] = React.useState('');
 
   const [detailAddress, setDetailAddress] = React.useState('');
   const [saving, setSaving] = React.useState(false);
+
+  // Computed lists from real database
+  const filteredProvinces = React.useMemo(() => {
+    if (!provinceSearch.trim()) return ALL_PROVINCES;
+    const q = provinceSearch.toLowerCase();
+    return ALL_PROVINCES.filter((p) => p.toLowerCase().includes(q));
+  }, [provinceSearch]);
+
+  const allWards = React.useMemo(
+    () => (selectedProvince ? getWardNamesByProvinceName(selectedProvince) : []),
+    [selectedProvince]
+  );
+
+  const filteredWards = React.useMemo(() => {
+    if (!wardSearch.trim()) return allWards;
+    const q = wardSearch.toLowerCase();
+    return allWards.filter((w) => w.toLowerCase().includes(q));
+  }, [allWards, wardSearch]);
+
+  const handleSelectProvince = (p: string) => {
+    setSelectedProvince(p);
+    setSelectedWard(''); // reset ward when province changes
+    setShowProvinceDropdown(false);
+    setProvinceSearch('');
+  };
+
+  const handleSelectWard = (w: string) => {
+    setSelectedWard(w);
+    setShowWardDropdown(false);
+    setWardSearch('');
+  };
 
   const handleSave = async () => {
     if (!buildingName.trim()) {
@@ -76,7 +110,7 @@ export const CreateBuilding: React.FC = () => {
         <View style={{ width: 40 }} />
       </View>
 
-      <ScrollView contentContainerStyle={styles.scrollContent}>
+      <ScrollView contentContainerStyle={styles.scrollContent} keyboardShouldPersistTaps="handled">
         <View style={styles.form}>
           {/* Section 1: Thông tin cơ bản */}
           <View style={styles.sectionHeader}>
@@ -113,21 +147,36 @@ export const CreateBuilding: React.FC = () => {
             <Text style={styles.sectionTitle}>Địa chỉ</Text>
           </View>
 
-          <Text style={styles.label}>Tỉnh thành phố</Text>
-          <Pressable onPress={() => setShowProvinceDropdown(!showProvinceDropdown)} style={styles.dropdownButton}>
+          {/* Province dropdown with search */}
+          <Text style={styles.label}>Tỉnh/Thành phố</Text>
+          <Pressable onPress={() => { setShowProvinceDropdown(!showProvinceDropdown); setProvinceSearch(''); }} style={styles.dropdownButton}>
             <Text style={styles.dropdownButtonText}>{selectedProvince || 'Chọn tỉnh/thành'}</Text>
             <MaterialIcons name="keyboard-arrow-down" size={24} color="#a1a1aa" />
           </Pressable>
           {showProvinceDropdown && (
             <View style={styles.dropdown}>
-              {PROVINCES.map((p) => (
-                <Pressable key={p} style={styles.dropdownItem} onPress={() => { setSelectedProvince(p); setShowProvinceDropdown(false); }}>
-                  <Text style={styles.dropdownItemText}>{p}</Text>
-                </Pressable>
-              ))}
+              <TextInput
+                style={styles.searchInput}
+                placeholder="Tìm tỉnh/thành..."
+                value={provinceSearch}
+                onChangeText={setProvinceSearch}
+                autoFocus
+              />
+              <ScrollView style={styles.dropdownScrollable} keyboardShouldPersistTaps="handled" nestedScrollEnabled>
+                {filteredProvinces.length === 0 ? (
+                  <Text style={styles.emptyDropdown}>Không tìm thấy kết quả</Text>
+                ) : (
+                  filteredProvinces.map((p) => (
+                    <Pressable key={p} style={styles.dropdownItem} onPress={() => handleSelectProvince(p)}>
+                      <Text style={styles.dropdownItemText}>{p}</Text>
+                    </Pressable>
+                  ))
+                )}
+              </ScrollView>
             </View>
           )}
 
+          {/* Ward dropdown with search — only active after province selected */}
           <Text style={[styles.label, { marginTop: 16 }]}>Phường/Xã</Text>
           {!selectedProvince ? (
             <View style={styles.banner}>
@@ -135,17 +184,30 @@ export const CreateBuilding: React.FC = () => {
             </View>
           ) : (
             <View>
-              <Pressable onPress={() => setShowWardDropdown(!showWardDropdown)} style={styles.dropdownButton}>
+              <Pressable onPress={() => { setShowWardDropdown(!showWardDropdown); setWardSearch(''); }} style={styles.dropdownButton}>
                 <Text style={styles.dropdownButtonText}>{selectedWard || 'Chọn phường/xã'}</Text>
                 <MaterialIcons name="keyboard-arrow-down" size={24} color="#a1a1aa" />
               </Pressable>
               {showWardDropdown && (
                 <View style={styles.dropdown}>
-                  {WARDS.map((w) => (
-                    <Pressable key={w} style={styles.dropdownItem} onPress={() => { setSelectedWard(w); setShowWardDropdown(false); }}>
-                      <Text style={styles.dropdownItemText}>{w}</Text>
-                    </Pressable>
-                  ))}
+                  <TextInput
+                    style={styles.searchInput}
+                    placeholder="Tìm phường/xã..."
+                    value={wardSearch}
+                    onChangeText={setWardSearch}
+                    autoFocus
+                  />
+                  <ScrollView style={styles.dropdownScrollable} keyboardShouldPersistTaps="handled" nestedScrollEnabled>
+                    {filteredWards.length === 0 ? (
+                      <Text style={styles.emptyDropdown}>Không tìm thấy kết quả</Text>
+                    ) : (
+                      filteredWards.map((w) => (
+                        <Pressable key={w} style={styles.dropdownItem} onPress={() => handleSelectWard(w)}>
+                          <Text style={styles.dropdownItemText}>{w}</Text>
+                        </Pressable>
+                      ))
+                    )}
+                  </ScrollView>
                 </View>
               )}
             </View>
@@ -263,6 +325,18 @@ const styles = StyleSheet.create({
     marginTop: 4,
     overflow: 'hidden',
   },
+  dropdownScrollable: {
+    maxHeight: 220,
+  },
+  searchInput: {
+    paddingHorizontal: 16,
+    paddingVertical: 10,
+    borderBottomWidth: 1,
+    borderBottomColor: theme.colors.outlineVariant,
+    fontSize: 14,
+    color: theme.colors.onSurface,
+    backgroundColor: '#f8fafc',
+  },
   dropdownItem: {
     paddingHorizontal: 16,
     paddingVertical: 12,
@@ -272,6 +346,12 @@ const styles = StyleSheet.create({
   dropdownItemText: {
     ...theme.typography.bodyMd,
     color: theme.colors.onSurface,
+  },
+  emptyDropdown: {
+    padding: 16,
+    color: '#94a3b8',
+    textAlign: 'center',
+    fontSize: 13,
   },
   banner: {
     backgroundColor: '#f1f5f9',
