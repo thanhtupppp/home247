@@ -5,7 +5,9 @@ import { MaterialIcons } from '@expo/vector-icons';
 import { theme } from '../theme';
 import { mockRooms } from '../data/mockData';
 import { doc, getDoc, setDoc, writeBatch, collection, query, where, getDocs } from 'firebase/firestore';
-import { db, auth } from '../firebase';
+import { db, auth, functions } from '../firebase';
+import { httpsCallable } from 'firebase/functions';
+import * as ImagePicker from 'expo-image-picker';
 
 const getPreviousMonth = (monthStr: string): string => {
   const [m, y] = monthStr.split('/').map(Number);
@@ -54,6 +56,67 @@ export const UtilityRecording: React.FC = () => {
   const [bulkRooms, setBulkRooms] = React.useState<any[]>([]);
   const [loading, setLoading] = React.useState(false);
   const [saving, setSaving] = React.useState(false);
+  const [scanningElectric, setScanningElectric] = React.useState(false);
+  const [scanningWater, setScanningWater] = React.useState(false);
+
+  const handleScanMeter = async (type: 'electricity' | 'water') => {
+    // 1. Request media library permissions
+    const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
+    if (status !== 'granted') {
+      Alert.alert('Quyền truy cập', 'Ứng dụng cần quyền truy cập thư viện ảnh để quét chỉ số công tơ.');
+      return;
+    }
+
+    // 2. Launch Image Picker
+    const result = await ImagePicker.launchImageLibraryAsync({
+      mediaTypes: ['images'],
+      allowsEditing: true,
+      quality: 0.7,
+      base64: true,
+    });
+
+    if (result.canceled || !result.assets?.[0]?.base64) return;
+
+    try {
+      if (type === 'electricity') setScanningElectric(true);
+      else setScanningWater(true);
+
+      const ocrMeter = httpsCallable(functions, 'ocrUtilityMeter');
+      const res = await ocrMeter({
+        imageBase64: result.assets[0].base64,
+        type: type === 'electricity' ? 'điện' : 'nước'
+      });
+      const resData = res.data as any;
+
+      if (resData.reading !== undefined) {
+        Alert.alert(
+          'Kết quả nhận diện AI',
+          `AI đọc được chỉ số: ${resData.reading} (Độ tin cậy: ${Math.round((resData.confidence || 0) * 100)}%).\nBạn có muốn sử dụng số này không?`,
+          [
+            { text: 'Hủy', style: 'cancel' },
+            { 
+              text: 'Đồng ý', 
+              onPress: () => {
+                if (type === 'electricity') {
+                  setSingleElectricNew(String(resData.reading));
+                } else {
+                  setSingleWaterNew(String(resData.reading));
+                }
+              } 
+            }
+          ]
+        );
+      } else {
+        Alert.alert('Thông báo', 'AI không thể nhận diện được số trên công tơ này. Vui lòng nhập tay.');
+      }
+    } catch (err) {
+      console.error('Error scanning meter:', err);
+      Alert.alert('Lỗi', 'Không thể kết nối dịch vụ quét ảnh AI. Vui lòng nhập thủ công.');
+    } finally {
+      setScanningElectric(false);
+      setScanningWater(false);
+    }
+  };
 
   const [buildings, setBuildings] = React.useState<any[]>([]);
   const [rooms, setRooms] = React.useState<any[]>([]);
@@ -471,8 +534,24 @@ export const UtilityRecording: React.FC = () => {
                   {/* Electricity Card */}
                   <View style={styles.card}>
                     <View style={styles.cardHeader}>
-                      <MaterialIcons name="bolt" size={20} color="#d97706" />
-                      <Text style={styles.cardTitle}>Điện</Text>
+                      <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
+                        <MaterialIcons name="bolt" size={20} color="#d97706" />
+                        <Text style={styles.cardTitle}>Điện</Text>
+                      </View>
+                      <Pressable 
+                        style={styles.aiScanInlineBtn}
+                        onPress={() => handleScanMeter('electricity')}
+                        disabled={scanningElectric}
+                      >
+                        {scanningElectric ? (
+                          <ActivityIndicator size="small" color={theme.colors.primary} />
+                        ) : (
+                          <>
+                            <MaterialIcons name="auto-awesome" size={14} color={theme.colors.primary} />
+                            <Text style={styles.aiScanInlineText}>AI Quét chỉ số</Text>
+                          </>
+                        )}
+                      </Pressable>
                     </View>
                     <View style={styles.cardRow}>
                       <View style={styles.inputCol}>
@@ -502,8 +581,24 @@ export const UtilityRecording: React.FC = () => {
                   {waterCalcMethod === 'Theo chỉ số đồng hồ' ? (
                     <View style={styles.card}>
                       <View style={styles.cardHeader}>
-                        <MaterialIcons name="water-drop" size={20} color={theme.colors.primary} />
-                        <Text style={styles.cardTitle}>Nước</Text>
+                        <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
+                          <MaterialIcons name="water-drop" size={20} color={theme.colors.primary} />
+                          <Text style={styles.cardTitle}>Nước</Text>
+                        </View>
+                        <Pressable 
+                          style={styles.aiScanInlineBtn}
+                          onPress={() => handleScanMeter('water')}
+                          disabled={scanningWater}
+                        >
+                          {scanningWater ? (
+                            <ActivityIndicator size="small" color={theme.colors.primary} />
+                          ) : (
+                            <>
+                              <MaterialIcons name="auto-awesome" size={14} color={theme.colors.primary} />
+                              <Text style={styles.aiScanInlineText}>AI Quét chỉ số</Text>
+                            </>
+                          )}
+                        </Pressable>
                       </View>
                       <View style={styles.cardRow}>
                         <View style={styles.inputCol}>
@@ -861,6 +956,22 @@ const styles = StyleSheet.create({
     ...theme.typography.bodyLg,
     color: theme.colors.onPrimary,
     fontWeight: 'bold',
+  },
+  aiScanInlineBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+    borderWidth: 1,
+    borderColor: theme.colors.outlineVariant,
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    borderRadius: theme.borderRadius.default,
+    backgroundColor: '#eff6ff',
+  },
+  aiScanInlineText: {
+    fontSize: 10,
+    fontWeight: 'bold',
+    color: theme.colors.primary,
   },
 });
 
