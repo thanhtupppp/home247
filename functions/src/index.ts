@@ -18,7 +18,8 @@ import {
   getExpiringContracts, 
   getLandlordSupportRequests,
   getLandlordBuildings,
-  getLandlordRooms
+  getLandlordRooms,
+  getAllLandlordInvoices
 } from './utils/firestore';
 import { 
   ocrUtilityMeterSchema, 
@@ -107,13 +108,20 @@ export const getAISummary = functions.region('asia-east1').https.onCall(async (d
     // 1. Quota check
     await checkAndIncrementQuota(uid, 'summary');
 
-    const [overdueInvoices, expiringContracts, supportRequests, buildings, rooms] = await Promise.all([
+    const [allInvoices, overdueInvoices, expiringContracts, supportRequests, buildings, rooms] = await Promise.all([
+      getAllLandlordInvoices(uid),
       getOverdueInvoices(uid),
       getExpiringContracts(uid, 30),
       getLandlordSupportRequests(uid),
       getLandlordBuildings(uid),
       getLandlordRooms(uid),
     ]);
+
+    // Calculate billing/revenue metrics
+    const totalBillingAmount = allInvoices.reduce((sum, i) => sum + (Number(i.amount) || 0), 0);
+    const paidBillingAmount = allInvoices.filter(i => i.status === 'paid').reduce((sum, i) => sum + (Number(i.amount) || 0), 0);
+    const pendingBillingAmount = allInvoices.filter(i => i.status === 'pending').reduce((sum, i) => sum + (Number(i.amount) || 0), 0);
+    const collectionRate = totalBillingAmount > 0 ? Math.round((paidBillingAmount / totalBillingAmount) * 100) : 0;
 
     const totalOverdueAmount = overdueInvoices.reduce((sum, i) => sum + (Number(i.amount) || 0), 0);
     const totalRooms = rooms.length;
@@ -126,9 +134,14 @@ export const getAISummary = functions.region('asia-east1').https.onCall(async (d
     - Tổng số tòa nhà đang quản lý: ${buildings.length}
     - Tổng số phòng trọ: ${totalRooms} (Phòng đang cho thuê/đang ở: ${occupiedRooms}, Phòng còn trống: ${emptyRooms})
 
+    Thống kê doanh số và dòng tiền:
+    - Tổng doanh số hóa đơn phát sinh: ${totalBillingAmount} VND
+    - Doanh thu thực tế đã thu: ${paidBillingAmount} VND
+    - Doanh thu còn nợ (chưa thanh toán): ${pendingBillingAmount} VND (Trong đó nợ quá hạn: ${totalOverdueAmount} VND)
+    - Tỷ lệ thu hồi dòng tiền: ${collectionRate}%
+
     Dữ liệu thô vận hành hiện tại:
     - Tổng số hóa đơn trễ hạn: ${overdueInvoices.length}
-    - Tổng số tiền trễ hạn cần thu hồi: ${totalOverdueAmount} VND
     - Các hóa đơn trễ hạn (phòng, tháng, số tiền): ${JSON.stringify(overdueInvoices.map(i => ({ room: i.roomCode, month: i.month, amount: i.amount })))}
     - Số hợp đồng sẽ hết hạn trong 30 ngày: ${expiringContracts.length}
     - Các phòng có hợp đồng hết hạn: ${JSON.stringify(expiringContracts.map(c => ({ room: c.roomCode, endDate: c.endDate })))}
