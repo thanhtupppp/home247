@@ -1,6 +1,6 @@
 import { 
-  getLandlordInvoices, 
-  getLandlordContracts, 
+  getOverdueInvoices, 
+  getExpiringContracts, 
   getLandlordSupportRequests,
   getLandlordBuildings,
   getLandlordRooms
@@ -11,7 +11,7 @@ export const agentTools = [
     type: 'function',
     function: {
       name: 'get_overdue_invoices',
-      description: 'Lấy danh sách các hóa đơn quá hạn/chờ thanh toán của chủ nhà. Chỉ trả về dữ liệu tối giản phục vụ phân tích.',
+      description: 'Lấy danh sách các hóa đơn quá hạn (chờ thanh toán và quá ngày hạn thanh toán) của chủ nhà. Chỉ trả về dữ liệu tối giản phục vụ phân tích.',
       parameters: {
         type: 'object',
         properties: {
@@ -62,7 +62,7 @@ export async function executeTool(name: string, args: any, ownerId: string): Pro
   try {
     switch (name) {
       case 'get_overdue_invoices': {
-        const invoices = await getLandlordInvoices(ownerId);
+        const invoices = await getOverdueInvoices(ownerId);
         const filtered = args.buildingId 
           ? invoices.filter(i => i.buildingId === args.buildingId)
           : invoices;
@@ -73,35 +73,20 @@ export async function executeTool(name: string, args: any, ownerId: string): Pro
           buildingName: i.buildingName,
           month: i.month,
           amount: i.amount,
-          tenantName: i.tenantName,
           dueDate: i.dueDate ? (i.dueDate.toDate ? i.dueDate.toDate().toISOString() : i.dueDate) : null
         }));
       }
 
       case 'get_expiring_contracts': {
-        const contracts = await getLandlordContracts(ownerId);
-        const today = new Date();
-        const expiring = [];
-        for (const c of contracts) {
-          if (c.endDate) {
-            const parts = c.endDate.split('/');
-            if (parts.length === 3) {
-              const endD = new Date(Number(parts[2]), Number(parts[1]) - 1, Number(parts[0]));
-              const diffDays = Math.ceil((endD.getTime() - today.getTime()) / (1000 * 60 * 60 * 24));
-              if (diffDays >= 0 && diffDays <= 30) {
-                expiring.push({
-                  id: c.id,
-                  tenantName: c.tenantName,
-                  roomCode: c.roomCode,
-                  buildingName: c.buildingName,
-                  endDate: c.endDate,
-                  diffDays
-                });
-              }
-            }
-          }
-        }
-        return expiring;
+        const contracts = await getExpiringContracts(ownerId, 30);
+        // Sanitize: do not send tenantName to AI to protect privacy
+        return contracts.map(c => ({
+          id: c.id,
+          roomCode: c.roomCode,
+          buildingName: c.buildingName,
+          endDate: c.endDate,
+          diffDays: c.diffDays
+        }));
       }
 
       case 'get_open_support_requests': {

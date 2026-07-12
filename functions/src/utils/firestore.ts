@@ -22,6 +22,19 @@ export async function getLandlordInvoices(ownerId: string): Promise<any[]> {
 }
 
 /**
+ * Safely fetch pending invoices owned by landlord that are overdue (dueDate < today)
+ */
+export async function getOverdueInvoices(ownerId: string): Promise<any[]> {
+  const snapshot = await db.collection('invoices')
+    .where('ownerId', '==', ownerId)
+    .where('status', '==', 'pending')
+    .where('dueDate', '<', admin.firestore.Timestamp.now())
+    .get();
+  
+  return snapshot.docs.map(doc => ({ id: doc.id, ...(doc.data() as any) }));
+}
+
+/**
  * Safely fetch active contracts owned by landlord
  */
 export async function getLandlordContracts(ownerId: string): Promise<any[]> {

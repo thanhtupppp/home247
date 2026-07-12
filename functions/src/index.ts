@@ -14,7 +14,7 @@ import {
 } from './ai/prompts';
 import { agentTools, executeTool } from './ai/tools';
 import { 
-  getLandlordInvoices, 
+  getOverdueInvoices, 
   getExpiringContracts, 
   getLandlordSupportRequests 
 } from './utils/firestore';
@@ -40,32 +40,20 @@ export const getAISummary = functions.region('asia-east1').https.onCall(async (d
   const uid = verifyAuth(context);
 
   try {
-    const [invoices, expiringContracts, supportRequests] = await Promise.all([
-      getLandlordInvoices(uid),
+    const [overdueInvoices, expiringContracts, supportRequests] = await Promise.all([
+      getOverdueInvoices(uid),
       getExpiringContracts(uid, 30),
       getLandlordSupportRequests(uid),
     ]);
 
-    // Filter to only invoices that are pending AND overdue
-    const today = new Date();
-    const overdueInvoices = invoices.filter(i => {
-      if (!i.dueDate) return false;
-      const parts = i.dueDate.split('/');
-      if (parts.length === 3) {
-        const dueD = new Date(Number(parts[2]), Number(parts[1]) - 1, Number(parts[0]));
-        return dueD.getTime() < today.getTime();
-      }
-      return false;
-    });
-
     const totalOverdueAmount = overdueInvoices.reduce((sum, i) => sum + (Number(i.amount) || 0), 0);
 
-    // Sanitize stats: remove tenant name to protect privacy
+    // Sanitize stats: remove tenant names to protect privacy
     const statsText = `
     Dữ liệu thô vận hành hiện tại:
     - Tổng số hóa đơn trễ hạn: ${overdueInvoices.length}
     - Tổng số tiền trễ hạn cần thu hồi: ${totalOverdueAmount} VND
-    - Các hóa đơn trễ hạn (phòng, tháng): ${JSON.stringify(overdueInvoices.map(i => ({ room: i.roomCode, month: i.month, amount: i.amount })))}
+    - Các hóa đơn trễ hạn (phòng, tháng, số tiền): ${JSON.stringify(overdueInvoices.map(i => ({ room: i.roomCode, month: i.month, amount: i.amount })))}
     - Số hợp đồng sẽ hết hạn trong 30 ngày: ${expiringContracts.length}
     - Các phòng có hợp đồng hết hạn: ${JSON.stringify(expiringContracts.map(c => ({ room: c.roomCode, endDate: c.endDate })))}
     - Số phản ánh đang chờ xử lý: ${supportRequests.length}
@@ -246,9 +234,14 @@ export const runAIAgent = functions.region('asia-east1').https.onCall(async (dat
   }
 
   try {
+    // Sanitize conversation history: only allow user & assistant messages, cap at 20 for rate limits / token budget
+    const cleanHistory = history
+      .filter((msg: any) => msg && (msg.role === 'user' || msg.role === 'assistant'))
+      .slice(-20);
+
     const messages: ChatMessage[] = [
       { role: 'system', content: SYSTEM_AGENT_PROMPT },
-      ...history.slice(-20), // Quota limit: only process last 20 messages for context window stability
+      ...cleanHistory,
       { role: 'user', content: userMessage }
     ];
 
@@ -266,23 +259,26 @@ export const runAIAgent = functions.region('asia-east1').https.onCall(async (dat
     if (responseMsg.tool_calls && responseMsg.tool_calls.length > 0) {
       messages.push(responseMsg);
 
-      const toolCall = responseMsg.tool_calls[0];
-      let toolArgs = {};
-      try {
-        toolArgs = typeof toolCall.function.arguments === 'string' 
-          ? JSON.parse(toolCall.function.arguments) 
-          : toolCall.function.arguments;
-      } catch (e) {}
+      // Loop through all tool calls returned by the model sequentially to support parallel tool execution
+      for (const toolCall of responseMsg.tool_calls) {
+        let toolArgs = {};
+        try {
+          toolArgs = typeof toolCall.function.arguments === 'string' 
+            ? JSON.parse(toolCall.function.arguments) 
+            : toolCall.function.arguments;
+        } catch (e) {}
 
-      const toolResult = await executeTool(toolCall.function.name, toolArgs, uid);
+        const toolResult = await executeTool(toolCall.function.name, toolArgs, uid);
 
-      messages.push({
-        role: 'tool',
-        tool_call_id: toolCall.id,
-        name: toolCall.function.name,
-        content: JSON.stringify(toolResult)
-      });
+        messages.push({
+          role: 'tool',
+          tool_call_id: toolCall.id,
+          name: toolCall.function.name,
+          content: JSON.stringify(toolResult)
+        });
+      }
 
+      // Recall OpenRouter to interpret all executed tools outputs
       const secondCallResult = await callOpenRouter(messages, {
         model: OpenRouterModels.AGENT,
         temperature: 0.1

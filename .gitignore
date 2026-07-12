@@ -42,3 +42,5 @@ yarn-error.log*
 .env.local
 .env.*.local
 
+# Firebase Functions builds
+functions/lib/

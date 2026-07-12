@@ -13,6 +13,11 @@ service cloud.firestore {
       return signedIn() && request.resource.data.ownerId == request.auth.uid;
     }
 
+    // P1 SECURITY: Ensure the updated document still belongs to the same owner (cannot edit ownerId to target someone else)
+    function ownsUpdatedDocument() {
+      return ownsExistingDocument() && request.resource.data.ownerId == request.auth.uid;
+    }
+
     // Admin profile: only the admin user can read/write their own profile doc
     match /admins/{adminId} {
       allow read, write: if signedIn() && request.auth.uid == adminId;
@@ -21,55 +26,64 @@ service cloud.firestore {
     // Buildings
     match /buildings/{buildingId} {
       allow create: if ownsNewDocument();
-      allow read, update, delete: if ownsExistingDocument();
+      allow read, delete: if ownsExistingDocument();
+      allow update: if ownsUpdatedDocument();
     }
     
     // Rooms
     match /rooms/{roomId} {
       allow create: if ownsNewDocument();
-      allow read, update, delete: if ownsExistingDocument();
+      allow read, delete: if ownsExistingDocument();
+      allow update: if ownsUpdatedDocument();
     }
     
     // Services
     match /services/{serviceId} {
       allow create: if ownsNewDocument();
-      allow read, update, delete: if ownsExistingDocument();
+      allow read, delete: if ownsExistingDocument();
+      allow update: if ownsUpdatedDocument();
     }
     
     // Devices
     match /devices/{deviceId} {
       allow create: if ownsNewDocument();
-      allow read, update, delete: if ownsExistingDocument();
+      allow read, delete: if ownsExistingDocument();
+      allow update: if ownsUpdatedDocument();
     }
     
     // Utility Readings
     match /utilityReadings/{readingId} {
       allow create: if ownsNewDocument();
-      allow read, update, delete: if ownsExistingDocument();
+      allow read, delete: if ownsExistingDocument();
+      allow update: if ownsUpdatedDocument();
     }
     
     // Invoices
     match /invoices/{invoiceId} {
       allow create: if ownsNewDocument();
-      allow read, update, delete: if ownsExistingDocument();
+      allow read, delete: if ownsExistingDocument();
+      allow update: if ownsUpdatedDocument();
     }
     
     // Contracts
     match /contracts/{contractId} {
       allow create: if ownsNewDocument();
-      allow read, update, delete: if ownsExistingDocument();
+      allow read, delete: if ownsExistingDocument();
+      allow update: if ownsUpdatedDocument();
     }
     
     // Tenants
     match /tenants/{tenantId} {
       allow create: if ownsNewDocument();
-      allow read, update, delete: if ownsExistingDocument();
+      allow read, delete: if ownsExistingDocument();
+      allow update: if ownsUpdatedDocument();
     }
     
     // Support Requests
     match /supportRequests/{requestId} {
       allow create: if ownsNewDocument();
-      allow read, update, delete: if ownsExistingDocument();
+      allow read, delete: if ownsExistingDocument();
+      allow update: if ownsUpdatedDocument();
     }
   }
 }
