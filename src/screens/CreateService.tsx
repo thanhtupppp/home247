@@ -3,10 +3,10 @@ import {
   View, Text, StyleSheet, Pressable, ScrollView,
   TextInput, ActivityIndicator, Alert
 } from 'react-native';
-import { useNavigation } from '@react-navigation/native';
+import { useNavigation, useRoute } from '@react-navigation/native';
 import { MaterialIcons } from '@expo/vector-icons';
 import { theme } from '../theme';
-import { collection, addDoc, getDocs, query, orderBy } from 'firebase/firestore';
+import { collection, addDoc, getDocs, query, orderBy, doc, getDoc, updateDoc } from 'firebase/firestore';
 import { db, auth } from '../firebase';
 
 const CALC_METHODS = ['Cố định', 'Theo người', 'Theo chỉ số đồng hồ'];
@@ -18,6 +18,8 @@ interface Building {
 
 export const CreateService: React.FC = () => {
   const navigation = useNavigation<any>();
+  const route = useRoute<any>();
+  const { serviceId } = route.params || {};
 
   const [serviceName, setServiceName] = React.useState('');
   
@@ -32,10 +34,28 @@ export const CreateService: React.FC = () => {
   const [unit, setUnit] = React.useState('');
   const [unitPrice, setUnitPrice] = React.useState('');
   const [saving, setSaving] = React.useState(false);
+  const [loadingService, setLoadingService] = React.useState(false);
+  
+  const [initialBuildingId, setInitialBuildingId] = React.useState<string | null>(null);
 
   React.useEffect(() => {
     fetchBuildings();
   }, []);
+
+  React.useEffect(() => {
+    if (serviceId) {
+      fetchServiceDetail();
+    }
+  }, [serviceId]);
+
+  React.useEffect(() => {
+    if (buildings.length > 0 && initialBuildingId) {
+      const matched = buildings.find(b => b.id === initialBuildingId);
+      if (matched) {
+        setSelectedBuilding(matched);
+      }
+    }
+  }, [buildings, initialBuildingId]);
 
   const fetchBuildings = async () => {
     try {
@@ -45,12 +65,35 @@ export const CreateService: React.FC = () => {
         id: doc.id,
         name: doc.data().name || '',
       }));
-      setBuildings([{ id: 'all', name: 'Tất cả tòa nhà (Dịch vụ chung)' }, ...list]);
-      setSelectedBuilding({ id: 'all', name: 'Tất cả tòa nhà (Dịch vụ chung)' });
+      const fullList = [{ id: 'all', name: 'Tất cả tòa nhà (Dịch vụ chung)' }, ...list];
+      setBuildings(fullList);
+      if (!serviceId) {
+        setSelectedBuilding(fullList[0]);
+      }
     } catch (err) {
       console.error('Error fetching buildings for service:', err);
     } finally {
       setLoadingBuildings(false);
+    }
+  };
+
+  const fetchServiceDetail = async () => {
+    try {
+      setLoadingService(true);
+      const docSnap = await getDoc(doc(db, 'services', serviceId));
+      if (docSnap.exists()) {
+        const data = docSnap.data();
+        setServiceName(data.name || '');
+        setCalcMethod(data.calcMethod || 'Cố định');
+        setUnit(data.unit || '');
+        setUnitPrice(String(data.unitPrice || ''));
+        setInitialBuildingId(data.buildingId || 'all');
+      }
+    } catch (err) {
+      console.error('Error fetching service details:', err);
+      Alert.alert('Lỗi', 'Không thể tải chi tiết dịch vụ.');
+    } finally {
+      setLoadingService(false);
     }
   };
 
@@ -74,27 +117,46 @@ export const CreateService: React.FC = () => {
 
     try {
       setSaving(true);
-      const newService = {
+      const serviceData = {
         name: serviceName.trim(),
         buildingId: selectedBuilding.id,
         buildingName: selectedBuilding.id === 'all' ? 'Khác' : selectedBuilding.name,
         calcMethod,
         unit: unit.trim() || (calcMethod === 'Theo người' ? 'người' : calcMethod === 'Theo chỉ số đồng hồ' ? 'chỉ số' : 'tháng'),
         unitPrice: Number(unitPrice),
-        createdAt: new Date(),
-        createdBy: auth.currentUser?.uid || 'system',
       };
 
-      await addDoc(collection(db, 'services'), newService);
-      Alert.alert('Thành công', `Đã thêm cấu hình dịch vụ ${serviceName.trim()} thành công!`);
+      if (serviceId) {
+        // Edit mode
+        await updateDoc(doc(db, 'services', serviceId), serviceData);
+        Alert.alert('Thành công', `Đã cập nhật cấu hình dịch vụ ${serviceName.trim()}!`);
+      } else {
+        // Create mode
+        const newDoc = {
+          ...serviceData,
+          createdAt: new Date(),
+          createdBy: auth.currentUser?.uid || 'system',
+        };
+        await addDoc(collection(db, 'services'), newDoc);
+        Alert.alert('Thành công', `Đã thêm cấu hình dịch vụ ${serviceName.trim()} thành công!`);
+      }
       navigation.goBack();
     } catch (err) {
-      console.error('Error creating service:', err);
-      Alert.alert('Lỗi', 'Không thể tạo dịch vụ mới.');
+      console.error('Error saving service:', err);
+      Alert.alert('Lỗi', 'Không thể lưu dịch vụ.');
     } finally {
       setSaving(false);
     }
   };
+
+  if (loadingService) {
+    return (
+      <View style={styles.loadingContainer}>
+        <ActivityIndicator size="large" color={theme.colors.primary} />
+        <Text style={styles.loadingText}>Đang tải cấu hình dịch vụ...</Text>
+      </View>
+    );
+  }
 
   return (
     <View style={styles.container}>
@@ -103,7 +165,7 @@ export const CreateService: React.FC = () => {
         <Pressable onPress={() => navigation.goBack()} style={styles.backButton}>
           <MaterialIcons name="arrow-back" size={24} color={theme.colors.onSurface} />
         </Pressable>
-        <Text style={styles.headerTitle}>Tạo dịch vụ mới</Text>
+        <Text style={styles.headerTitle}>{serviceId ? 'Chỉnh sửa dịch vụ' : 'Tạo dịch vụ mới'}</Text>
         <View style={{ width: 40 }} />
       </View>
 
@@ -189,8 +251,8 @@ export const CreateService: React.FC = () => {
             <ActivityIndicator size="small" color="#fff" />
           ) : (
             <>
-              <MaterialIcons name="add" size={20} color="#fff" />
-              <Text style={styles.saveBtnText}>Tạo dịch vụ</Text>
+              <MaterialIcons name="check" size={20} color="#fff" />
+              <Text style={styles.saveBtnText}>{serviceId ? 'Lưu thay đổi' : 'Tạo dịch vụ'}</Text>
             </>
           )}
         </Pressable>
@@ -325,6 +387,15 @@ const styles = StyleSheet.create({
     ...theme.typography.bodyLg,
     color: '#fff',
     fontWeight: 'bold',
+  },
+  loadingContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    gap: 12,
+  },
+  loadingText: {
+    color: theme.colors.onSurfaceVariant,
   },
 });
 

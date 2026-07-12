@@ -203,9 +203,14 @@ export const ServicesList: React.FC = () => {
                               </Text>
                             </View>
                           </View>
-                          <Pressable style={styles.deleteButton} onPress={() => handleDelete(service)}>
-                            <MaterialIcons name="delete-outline" size={20} color="#ef4444" />
-                          </Pressable>
+                          <View style={styles.actionButtons}>
+                            <Pressable style={styles.editButton} onPress={() => navigation.navigate('cau-hinh-gia/them', { serviceId: service.id })}>
+                              <MaterialIcons name="edit" size={20} color="#64748b" />
+                            </Pressable>
+                            <Pressable style={styles.deleteButton} onPress={() => handleDelete(service)}>
+                              <MaterialIcons name="delete-outline" size={20} color="#ef4444" />
+                            </Pressable>
+                          </View>
                         </View>
                       );
                     })
@@ -376,6 +381,15 @@ const styles = StyleSheet.create({
   servicePrice: {
     fontSize: 12,
     color: theme.colors.onSurfaceVariant,
+  },
+  actionButtons: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+  },
+  editButton: {
+    padding: 8,
+    marginRight: 4,
   },
   deleteButton: {
     padding: 8,
