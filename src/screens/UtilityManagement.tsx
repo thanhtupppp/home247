@@ -32,13 +32,7 @@ export const UtilityManagement: React.FC = () => {
   const [rooms, setRooms] = React.useState<any[]>([]);
   const [loading, setLoading] = React.useState(false);
 
-  React.useEffect(() => {
-    if (isFocused) {
-      loadRecordedRooms();
-    }
-  }, [isFocused, selectedBuilding, selectedMonth]);
-
-  const loadRecordedRooms = async () => {
+  const loadRecordedRooms = React.useCallback(async () => {
     try {
       setLoading(true);
       
@@ -75,27 +69,35 @@ export const UtilityManagement: React.FC = () => {
       }
       setRooms(rList);
 
-      // 3. Fetch utilityReadings
-      const q = query(
-        collection(db, 'utilityReadings'),
-        where('building', '==', currentBuilding),
-        where('month', '==', selectedMonth)
-      );
-      const querySnapshot = await getDocs(q);
-      const recorded: string[] = [];
-      querySnapshot.forEach((doc) => {
-        const data = doc.data();
-        if (data.room) {
-          recorded.push(data.room);
-        }
-      });
-      setRecordedRooms(recorded);
+      // 3. Fetch utilityReadings (recorded status)
+      if (currentBuilding) {
+        const q = query(
+          collection(db, 'utilityReadings'),
+          where('buildingName', '==', currentBuilding),
+          where('month', '==', selectedMonth)
+        );
+        const querySnapshot = await getDocs(q);
+        const recorded: string[] = [];
+        querySnapshot.forEach((doc) => {
+          const data = doc.data();
+          if (data.roomCode && data.isRecorded) {
+            recorded.push(data.roomCode);
+          }
+        });
+        setRecordedRooms(recorded);
+      }
     } catch (error) {
       console.error('Error loading dynamic utility management data:', error);
     } finally {
       setLoading(false);
     }
-  };
+  }, [selectedBuilding, selectedMonth]);
+
+  React.useEffect(() => {
+    if (isFocused) {
+      loadRecordedRooms();
+    }
+  }, [isFocused, loadRecordedRooms]);
 
   return (
     <View style={styles.container}>

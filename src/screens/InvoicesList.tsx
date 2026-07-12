@@ -69,7 +69,7 @@ export const InvoicesList: React.FC = () => {
   }, [selectedMonth]);
 
   // ── Fetch Buildings ────────────────────────────────────────────────────────
-  const fetchBuildingsAndInvoices = async (isRefresh = false) => {
+  const fetchBuildingsAndInvoices = React.useCallback(async (isRefresh = false) => {
     try {
       isRefresh ? setRefreshing(true) : setLoading(true);
       
@@ -113,13 +113,13 @@ export const InvoicesList: React.FC = () => {
       setLoading(false);
       setRefreshing(false);
     }
-  };
+  }, [selectedBuilding]);
 
   React.useEffect(() => {
     if (isFocused) {
       fetchBuildingsAndInvoices();
     }
-  }, [isFocused]);
+  }, [isFocused, fetchBuildingsAndInvoices]);
 
   // ── Computed Filtered Invoices ─────────────────────────────────────────────
   const filteredInvoices = React.useMemo(() => {

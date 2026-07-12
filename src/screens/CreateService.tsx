@@ -38,26 +38,7 @@ export const CreateService: React.FC = () => {
   
   const [initialBuildingId, setInitialBuildingId] = React.useState<string | null>(null);
 
-  React.useEffect(() => {
-    fetchBuildings();
-  }, []);
-
-  React.useEffect(() => {
-    if (serviceId) {
-      fetchServiceDetail();
-    }
-  }, [serviceId]);
-
-  React.useEffect(() => {
-    if (buildings.length > 0 && initialBuildingId) {
-      const matched = buildings.find(b => b.id === initialBuildingId);
-      if (matched) {
-        setSelectedBuilding(matched);
-      }
-    }
-  }, [buildings, initialBuildingId]);
-
-  const fetchBuildings = async () => {
+  const fetchBuildings = React.useCallback(async () => {
     try {
       setLoadingBuildings(true);
       const qSnap = await getDocs(query(collection(db, 'buildings'), orderBy('name')));
@@ -75,9 +56,9 @@ export const CreateService: React.FC = () => {
     } finally {
       setLoadingBuildings(false);
     }
-  };
+  }, [serviceId]);
 
-  const fetchServiceDetail = async () => {
+  const fetchServiceDetail = React.useCallback(async () => {
     try {
       setLoadingService(true);
       const docSnap = await getDoc(doc(db, 'services', serviceId));
@@ -95,7 +76,26 @@ export const CreateService: React.FC = () => {
     } finally {
       setLoadingService(false);
     }
-  };
+  }, [serviceId]);
+
+  React.useEffect(() => {
+    fetchBuildings();
+  }, [fetchBuildings]);
+
+  React.useEffect(() => {
+    if (serviceId) {
+      fetchServiceDetail();
+    }
+  }, [serviceId, fetchServiceDetail]);
+
+  React.useEffect(() => {
+    if (buildings.length > 0 && initialBuildingId) {
+      const matched = buildings.find(b => b.id === initialBuildingId);
+      if (matched) {
+        setSelectedBuilding(matched);
+      }
+    }
+  }, [buildings, initialBuildingId]);
 
   const handleSave = async () => {
     if (!serviceName.trim()) {

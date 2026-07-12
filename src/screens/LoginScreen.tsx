@@ -23,7 +23,7 @@ export const LoginScreen: React.FC = () => {
       }
     });
     return unsubscribe;
-  }, []);
+  }, [navigation]);
 
   const handleLogin = async () => {
     if (!identifier || !password) {
