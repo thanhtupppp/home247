@@ -4,25 +4,9 @@ import { useNavigation, useIsFocused } from '@react-navigation/native';
 import { MaterialIcons } from '@expo/vector-icons';
 import { theme } from '../theme';
 import { doc, getDoc, setDoc, updateDoc } from 'firebase/firestore';
-import { ref, uploadBytes, getDownloadURL, deleteObject } from 'firebase/storage';
+import { ref, deleteObject } from 'firebase/storage';
 import { db, auth, storage } from '../firebase';
 import * as ImagePicker from 'expo-image-picker';
-
-const getBlobFromUri = async (uri: string): Promise<Blob> => {
-  return new Promise((resolve, reject) => {
-    const xhr = new XMLHttpRequest();
-    xhr.onload = function () {
-      resolve(xhr.response);
-    };
-    xhr.onerror = function (e) {
-      console.error('[Blob XHR] Error reading URI:', e);
-      reject(new TypeError('Network request failed'));
-    };
-    xhr.responseType = 'blob';
-    xhr.open('GET', uri, true);
-    xhr.send(null);
-  });
-};
 
 export const SettingsScreen: React.FC = () => {
   const navigation = useNavigation<any>();
@@ -44,10 +28,11 @@ export const SettingsScreen: React.FC = () => {
         mediaTypes: ['images'],
         allowsEditing: true,
         aspect: [1, 1],
-        quality: 0.5,
+        quality: 0.3,
+        base64: true,
       });
-      if (!result.canceled && result.assets && result.assets.length > 0) {
-        await uploadAvatar(result.assets[0].uri);
+      if (!result.canceled && result.assets && result.assets.length > 0 && result.assets[0].base64) {
+        await uploadAvatar(result.assets[0].base64);
       }
     } catch (error) {
       console.error('[ImagePicker Gallery] Error:', error);
@@ -66,10 +51,11 @@ export const SettingsScreen: React.FC = () => {
       let result = await ImagePicker.launchCameraAsync({
         allowsEditing: true,
         aspect: [1, 1],
-        quality: 0.5,
+        quality: 0.3,
+        base64: true,
       });
-      if (!result.canceled && result.assets && result.assets.length > 0) {
-        await uploadAvatar(result.assets[0].uri);
+      if (!result.canceled && result.assets && result.assets.length > 0 && result.assets[0].base64) {
+        await uploadAvatar(result.assets[0].base64);
       }
     } catch (error) {
       console.error('[ImagePicker Camera] Error:', error);
@@ -77,33 +63,23 @@ export const SettingsScreen: React.FC = () => {
     }
   };
 
-  const uploadAvatar = async (uri: string) => {
+  const uploadAvatar = async (base64Str: string) => {
     try {
       setUploading(true);
       const uid = auth.currentUser?.uid || 'mock-admin-uid';
-      console.log('[Storage Avatar] Uploading image for UID:', uid, 'URI:', uri);
       
-      // Fetch local file and convert to blob
-      const blob = await getBlobFromUri(uri);
-      
-      // Upload to Firebase Storage
-      const fileRef = ref(storage, `avatars/${uid}.jpg`);
-      await uploadBytes(fileRef, blob);
-      
-      // Get download URL
-      const downloadUrl = await getDownloadURL(fileRef);
-      console.log('[Storage Avatar] Upload success. URL:', downloadUrl);
+      const avatarDataUrl = `data:image/jpeg;base64,${base64Str}`;
       
       // Update Firestore
       const docRef = doc(db, 'admins', uid);
-      await updateDoc(docRef, { avatarUrl: downloadUrl });
+      await updateDoc(docRef, { avatarUrl: avatarDataUrl });
       
       // Update local state
-      setProfile((prev: any) => ({ ...prev, avatarUrl: downloadUrl }));
+      setProfile((prev: any) => ({ ...prev, avatarUrl: avatarDataUrl }));
       Alert.alert('Thành công', 'Cập nhật ảnh đại diện thành công!');
     } catch (error) {
-      console.error('[Storage Avatar] Error uploading:', error);
-      Alert.alert('Lỗi', 'Không thể tải ảnh lên máy chủ.');
+      console.error('[Base64 Avatar] Error uploading:', error);
+      Alert.alert('Lỗi', 'Không thể lưu ảnh đại diện.');
     } finally {
       setUploading(false);
     }
@@ -125,13 +101,15 @@ export const SettingsScreen: React.FC = () => {
             try {
               setUploading(true);
               const uid = auth.currentUser?.uid || 'mock-admin-uid';
-              console.log('[Storage Avatar] Deleting avatar for UID:', uid);
               
-              // Delete from Storage
-              const fileRef = ref(storage, `avatars/${uid}.jpg`);
-              await deleteObject(fileRef).catch(err => {
-                console.log('[Storage Avatar] File did not exist or delete failed, proceeding to update DB:', err.message);
-              });
+              // Delete from Storage only if it is an HTTP Storage URL
+              if (profile?.avatarUrl && profile.avatarUrl.startsWith('http')) {
+                console.log('[Storage Avatar] Deleting HTTP avatar from storage for UID:', uid);
+                const fileRef = ref(storage, `avatars/${uid}.jpg`);
+                await deleteObject(fileRef).catch(err => {
+                  console.log('[Storage Avatar] File did not exist or delete failed, proceeding to update DB:', err.message);
+                });
+              }
               
               // Update Firestore
               const docRef = doc(db, 'admins', uid);
