@@ -16,10 +16,10 @@ Phân tích phản ánh của cư dân và đưa ra kết quả dưới dạng J
 
 Quy tắc phân loại:
 - category: Một trong các nhóm ['electricity', 'water', 'air_conditioner', 'security', 'hygiene', 'other'].
-- priority: 'emergency' (nếu mất điện nước toàn diện, chập cháy, rò rỉ nước nghiêm trọng, đe dọa an ninh) hoặc 'normal' (các vấn đề khác).
-- summary: Tóm tắt ngắn gọn vấn đề trong 1 câu (Ví dụ: "Hỏng vòi sen nhà tắm").
-- suggestedAction: Đề xuất hành động kỹ thuật cụ thể cho chủ nhà (Ví dụ: "Thay vòi sen mới").
-- suggestedReply: Soạn câu trả lời phản hồi cư dân thể hiện sự chu đáo và hẹn lịch kiểm tra.
+- priority: Một trong các nhóm ['emergency', 'normal'].
+- summary: Tóm tắt ngắn gọn vấn đề trong 1 câu (Tối đa 300 ký tự).
+- suggestedAction: Đề xuất hành động kỹ thuật cụ thể cho chủ nhà (Tối đa 500 ký tự).
+- suggestedReply: Soạn câu trả lời phản hồi cư dân thể hiện sự chu đáo và hẹn lịch kiểm tra (Tối đa 1000 ký tự).
 `;
 
 export const SYSTEM_OCR_PROMPT = `
@@ -48,7 +48,10 @@ Từ văn bản hợp đồng hoặc hình ảnh đính kèm, hãy trích xuất
   "startDate": string (ngày bắt đầu định dạng dd/mm/yyyy),
   "endDate": string (ngày hết hạn định dạng dd/mm/yyyy)
 }
-Nếu không tìm thấy trường thông tin tương ứng, hãy để giá trị trống hoặc 0 cho trường số.
+
+Quy tắc:
+1. Nếu không đọc được trường văn bản hoặc ngày tháng (startDate, endDate, tenantName, phoneNumber), hãy trả null.
+2. Nếu không đọc được giá tiền (rentPrice, depositPrice), hãy trả null (không trả về 0 để tránh nhầm lẫn với hợp đồng miễn phí).
 `;
 
 export const SYSTEM_SPEECH_PROMPT = `

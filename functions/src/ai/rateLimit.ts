@@ -8,7 +8,7 @@ const QUOTA_LIMITS = {
   ocr: 50,
   contract: 20,
   ticket: 100,
-  migration: 2,
+  migration: 20, // Increased for transition phase paging support
 };
 
 /**

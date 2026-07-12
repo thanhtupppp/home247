@@ -68,15 +68,44 @@ export const summarizeContractSchema = z.object({
 
 export type SummarizeContractOutput = z.infer<typeof summarizeContractSchema>;
 
+export const SUPPORT_CATEGORIES = [
+  'electricity',
+  'water',
+  'air_conditioner',
+  'security',
+  'hygiene',
+  'other',
+] as const;
+
+export const SUPPORT_PRIORITIES = [
+  'emergency',
+  'normal',
+] as const;
+
 /**
  * 3. Schema for Support Request analysis
  */
 export const supportRequestSchema = z.object({
-  category: z.enum(['water', 'electricity', 'internet', 'parking', 'cleanliness', 'other']),
-  priority: z.enum(['low', 'medium', 'high', 'urgent']),
-  summary: z.string().min(1, "Tóm tắt không được để trống."),
-  suggestedAction: z.string().optional(),
-  suggestedReply: z.string().min(1, "Câu trả lời đề xuất không được để trống.")
+  category: z.enum(SUPPORT_CATEGORIES),
+  priority: z.enum(SUPPORT_PRIORITIES),
+  summary: z.string().min(1, "Tóm tắt không được để trống.").max(300, "Tóm tắt tối đa 300 ký tự."),
+  suggestedAction: z.string().min(1, "Hành động đề xuất không được để trống.").max(500, "Đề xuất hành động tối đa 500 ký tự."),
+  suggestedReply: z.string().min(1, "Câu trả lời đề xuất không được để trống.").max(1000, "Câu trả lời tối đa 1000 ký tự.")
 });
 
 export type SupportRequestOutput = z.infer<typeof supportRequestSchema>;
+
+/**
+ * 4. Schema for migration input validation
+ */
+export const migrationInputSchema = z.object({
+  dryRun: z.preprocess((val) => {
+    if (typeof val === 'string') return val.toLowerCase() === 'true';
+    if (typeof val === 'boolean') return val;
+    return true; // default to true
+  }, z.boolean()).default(true),
+  limit: z.coerce.number().int().min(1).max(200).default(200),
+  startAfterId: z.string().min(1).max(200).optional(),
+});
+
+export type MigrationInput = z.infer<typeof migrationInputSchema>;

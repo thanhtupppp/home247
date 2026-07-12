@@ -21,7 +21,8 @@ import {
 import { 
   ocrUtilityMeterSchema, 
   summarizeContractSchema, 
-  supportRequestSchema 
+  supportRequestSchema,
+  migrationInputSchema
 } from './ai/schemas';
 import { checkAndIncrementQuota } from './ai/rateLimit';
 import { runInvoicesMigration } from './migrations/invoices';
@@ -72,12 +73,19 @@ function handleAIError(err: any, defaultMsg: string): never {
  */
 export const migrateOldInvoices = functions.region('asia-east1').https.onCall(async (data, context) => {
   const uid = verifyAuth(context);
-  const dryRun = !!data?.dryRun;
-  const limit = Number(data?.limit) || 200;
-  const startAfterId = data?.startAfterId ? String(data.startAfterId) : undefined;
 
   try {
-    // Apply quota to prevent continuous runs (max 2 per day)
+    // 1. Validate migration input params strictly using Zod
+    const validation = migrationInputSchema.safeParse(data);
+    if (!validation.success) {
+      throw new functions.https.HttpsError(
+        'invalid-argument', 
+        `Tham số di cư dữ liệu không hợp lệ: ${JSON.stringify(validation.error.format())}`
+      );
+    }
+    const { dryRun, limit, startAfterId } = validation.data;
+
+    // 2. Apply quota (increased limit to 20 for batch transitions)
     await checkAndIncrementQuota(uid, 'migration');
 
     const result = await runInvoicesMigration(uid, limit, startAfterId, dryRun);
@@ -175,9 +183,10 @@ export const processSupportRequest = functions.region('asia-east1').https.onCall
     ];
 
     const result = await callOpenRouter(messages, {
-      model: OpenRouterModels.DEFAULT,
+      model: OpenRouterModels.AGENT, // GPT-4o Mini supports ZDR compliant endpoints
       response_format: { type: 'json_object' },
-      timeoutMs: 30000 // 30s timeout limit
+      timeoutMs: 30000, // 30s timeout limit
+      zdr: true // Sensitive resident data: enforce ZDR
     });
     
     const content = result.choices?.[0]?.message?.content || '{}';
@@ -287,9 +296,10 @@ export const summarizeContract = functions.region('asia-east1').https.onCall(asy
     ];
 
     const result = await callOpenRouter(messages, {
-      model: OpenRouterModels.VISION,
+      model: OpenRouterModels.AGENT, // GPT-4o Mini is multimodal and ZDR compliant
       response_format: { type: 'json_object' },
-      timeoutMs: 45000 // 45s timeout limit for Vision processing
+      timeoutMs: 45000, // 45s timeout limit for Vision processing
+      zdr: true // Sensitive resident data: enforce ZDR
     });
     
     const content = result.choices?.[0]?.message?.content || '{}';

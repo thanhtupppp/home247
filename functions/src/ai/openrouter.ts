@@ -33,6 +33,7 @@ export interface CallOpenRouterOptions {
   tool_choice?: any;
   max_tokens?: number;
   timeoutMs?: number;
+  zdr?: boolean;
 }
 
 /**
@@ -54,6 +55,7 @@ export async function callOpenRouter(
     // Enable privacy, zero data retention policies on provider
     provider: {
       data_collection: 'deny',
+      ...(options.zdr ? { zdr: true } : {})
     }
   };
 
