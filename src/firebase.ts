@@ -24,6 +24,7 @@ export const storage = getStorage(app);
 export const functions = getFunctions(app, 'asia-east1');
 
 if (__DEV__) {
-  connectFunctionsEmulator(functions, '192.168.2.6', 5001);
+  const host = process.env.EXPO_PUBLIC_EMULATOR_HOST || '192.168.2.6';
+  connectFunctionsEmulator(functions, host, 5001);
 }
 // Firebase app initialized.

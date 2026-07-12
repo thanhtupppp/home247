@@ -4,15 +4,17 @@ import { logger } from 'firebase-functions';
 const getApiKey = (): string => {
   const key = process.env.OPENROUTER_API_KEY || '';
   if (!key) {
-    logger.warn('Warning: OPENROUTER_API_KEY is not configured in process.env.');
+    logger.error('OPENROUTER_API_KEY is not configured in process.env.');
+    throw new Error('OPENROUTER_API_KEY_NOT_CONFIGURED');
   }
   return key;
 };
 
+// Dynamically load models from env with fallback to latest production-grade equivalents
 export const OpenRouterModels = {
-  DEFAULT: 'google/gemini-2.0-flash-exp',
-  VISION: 'google/gemini-1.5-flash',
-  AGENT: 'openai/gpt-4o-mini',
+  DEFAULT: process.env.OPENROUTER_TEXT_MODEL || 'google/gemini-2.5-flash-lite',
+  VISION: process.env.OPENROUTER_VISION_MODEL || 'google/gemini-2.5-flash-lite',
+  AGENT: process.env.OPENROUTER_AGENT_MODEL || 'openai/gpt-4o-mini',
 };
 
 export interface ChatMessage {
@@ -45,6 +47,11 @@ export async function callOpenRouter(
     model,
     messages,
     temperature: options.temperature !== undefined ? options.temperature : 0.2,
+    // Enable privacy, zero data retention policies on provider
+    provider: {
+      data_collection: 'deny',
+      zdr: true,
+    }
   };
 
   if (options.response_format) {

@@ -10,13 +10,12 @@ import {
   SYSTEM_TICKET_PROMPT, 
   SYSTEM_OCR_PROMPT, 
   SYSTEM_CONTRACT_PROMPT, 
-  SYSTEM_SPEECH_PROMPT, 
   SYSTEM_AGENT_PROMPT 
 } from './ai/prompts';
 import { agentTools, executeTool } from './ai/tools';
 import { 
   getLandlordInvoices, 
-  getLandlordContracts, 
+  getExpiringContracts, 
   getLandlordSupportRequests 
 } from './utils/firestore';
 
@@ -41,18 +40,34 @@ export const getAISummary = functions.region('asia-east1').https.onCall(async (d
   const uid = verifyAuth(context);
 
   try {
-    const [invoices, contracts, supportRequests] = await Promise.all([
+    const [invoices, expiringContracts, supportRequests] = await Promise.all([
       getLandlordInvoices(uid),
-      getLandlordContracts(uid),
+      getExpiringContracts(uid, 30),
       getLandlordSupportRequests(uid),
     ]);
 
+    // Filter to only invoices that are pending AND overdue
+    const today = new Date();
+    const overdueInvoices = invoices.filter(i => {
+      if (!i.dueDate) return false;
+      const parts = i.dueDate.split('/');
+      if (parts.length === 3) {
+        const dueD = new Date(Number(parts[2]), Number(parts[1]) - 1, Number(parts[0]));
+        return dueD.getTime() < today.getTime();
+      }
+      return false;
+    });
+
+    const totalOverdueAmount = overdueInvoices.reduce((sum, i) => sum + (Number(i.amount) || 0), 0);
+
+    // Sanitize stats: remove tenant name to protect privacy
     const statsText = `
     Dữ liệu thô vận hành hiện tại:
-    - Tổng số hóa đơn trễ hạn: ${invoices.length}
-    - Các hóa đơn trễ hạn: ${JSON.stringify(invoices.map(i => ({ room: i.roomCode, month: i.month, amount: i.amount, tenant: i.tenantName })))}
-    - Số hợp đồng sẽ hết hạn trong 30 ngày: ${contracts.length}
-    - Các hợp đồng hết hạn: ${JSON.stringify(contracts.map(c => ({ room: c.roomCode, tenant: c.tenantName, endDate: c.endDate })))}
+    - Tổng số hóa đơn trễ hạn: ${overdueInvoices.length}
+    - Tổng số tiền trễ hạn cần thu hồi: ${totalOverdueAmount} VND
+    - Các hóa đơn trễ hạn (phòng, tháng): ${JSON.stringify(overdueInvoices.map(i => ({ room: i.roomCode, month: i.month, amount: i.amount })))}
+    - Số hợp đồng sẽ hết hạn trong 30 ngày: ${expiringContracts.length}
+    - Các phòng có hợp đồng hết hạn: ${JSON.stringify(expiringContracts.map(c => ({ room: c.roomCode, endDate: c.endDate })))}
     - Số phản ánh đang chờ xử lý: ${supportRequests.length}
     - Các phản ánh: ${JSON.stringify(supportRequests.map(r => ({ room: r.roomCode, title: r.title, level: r.level })))}
     `;
@@ -62,21 +77,19 @@ export const getAISummary = functions.region('asia-east1').https.onCall(async (d
       { role: 'user', content: statsText }
     ];
 
-    try {
-      const result = await callOpenRouter(messages, { 
-        model: OpenRouterModels.DEFAULT,
-        temperature: 0.3 
-      });
-      return { 
-        summary: result.choices?.[0]?.message?.content || 'Không thể tạo tóm tắt.' 
-      };
-    } catch (apiErr) {
-      // Fallback response if API Call fails
-      const fallback = `📊 **Tóm tắt hoạt động hôm nay:**\n\n• Hiện tại bạn đang có **${invoices.length} hóa đơn** chờ thanh toán.\n• Có **${contracts.length} hợp đồng** sắp hết hạn trong 30 ngày tới. Bạn nên liên hệ cư dân để tiến hành gia hạn.\n• Ban quản lý ghi nhận **${supportRequests.length} phản ánh** mới cần xử lý từ cư dân.`;
-      return { summary: fallback };
-    }
+    const result = await callOpenRouter(messages, { 
+      model: OpenRouterModels.DEFAULT,
+      temperature: 0.3 
+    });
+
+    return { 
+      summary: result.choices?.[0]?.message?.content || 'Không thể tạo tóm tắt.' 
+    };
   } catch (err: any) {
-    throw new functions.https.HttpsError('internal', err.message || 'Internal server error');
+    if (err.message === 'OPENROUTER_API_KEY_NOT_CONFIGURED') {
+      throw new functions.https.HttpsError('failed-precondition', 'API Key OpenRouter chưa được cấu hình.');
+    }
+    throw new functions.https.HttpsError('unavailable', err.message || 'Hệ thống AI hiện chưa khả dụng.');
   }
 });
 
@@ -84,7 +97,7 @@ export const getAISummary = functions.region('asia-east1').https.onCall(async (d
  * 2. processSupportRequest - Stage 1/2
  */
 export const processSupportRequest = functions.region('asia-east1').https.onCall(async (data, context) => {
-  verifyAuth(context);
+  const uid = verifyAuth(context);
   const { ticketId } = data;
   if (!ticketId) {
     throw new functions.https.HttpsError('invalid-argument', 'Missing ticketId.');
@@ -96,32 +109,32 @@ export const processSupportRequest = functions.region('asia-east1').https.onCall
     if (!snap.exists) {
       throw new functions.https.HttpsError('not-found', 'Ticket not found.');
     }
+    
     const ticketData = snap.data() || {};
+
+    // P0 SECURITY AUDIT CHECK: Ensure caller owns the support request
+    if (ticketData.ownerId !== uid) {
+      throw new functions.https.HttpsError(
+        'permission-denied',
+        'Bạn không có quyền truy cập yêu cầu này.'
+      );
+    }
 
     const messages: ChatMessage[] = [
       { role: 'system', content: SYSTEM_TICKET_PROMPT },
       { role: 'user', content: `Tiêu đề: ${ticketData.title}\nNội dung: ${ticketData.description}` }
     ];
 
-    try {
-      const result = await callOpenRouter(messages, {
-        model: OpenRouterModels.DEFAULT,
-        response_format: { type: 'json_object' }
-      });
-      const content = result.choices?.[0]?.message?.content || '{}';
-      return JSON.parse(content);
-    } catch (apiErr) {
-      // Fallback
-      return {
-        category: ticketData.title?.toLowerCase().includes('nước') ? 'water' : 'other',
-        priority: ticketData.level || 'normal',
-        summary: ticketData.title || 'Yêu cầu hỗ trợ',
-        suggestedAction: 'Kiểm tra thực tế tại phòng cư dân.',
-        suggestedReply: `Home247 đã nhận được phản ánh "${ticketData.title}". Chúng tôi sẽ cử nhân viên kỹ thuật tới hỗ trợ trong thời gian sớm nhất.`
-      };
-    }
+    const result = await callOpenRouter(messages, {
+      model: OpenRouterModels.DEFAULT,
+      response_format: { type: 'json_object' }
+    });
+    
+    const content = result.choices?.[0]?.message?.content || '{}';
+    return JSON.parse(content);
   } catch (err: any) {
-    throw new functions.https.HttpsError('internal', err.message || 'Internal server error');
+    if (err.status) throw err; // Re-throw HttpsError directly
+    throw new functions.https.HttpsError('unavailable', err.message || 'Không thể phân tích phản ánh lúc này.');
   }
 });
 
@@ -150,22 +163,24 @@ export const ocrUtilityMeter = functions.region('asia-east1').https.onCall(async
       }
     ];
 
-    try {
-      const result = await callOpenRouter(messages, {
-        model: OpenRouterModels.VISION,
-        response_format: { type: 'json_object' }
-      });
-      const content = result.choices?.[0]?.message?.content || '{}';
-      return JSON.parse(content);
-    } catch (apiErr) {
-      // Return a mock reading with high confidence as fallback
-      return {
-        reading: 1245,
-        confidence: 0.85
-      };
+    const result = await callOpenRouter(messages, {
+      model: OpenRouterModels.VISION,
+      response_format: { type: 'json_object' }
+    });
+    
+    const content = result.choices?.[0]?.message?.content || '{}';
+    const parsed = JSON.parse(content);
+    
+    if (parsed.reading === undefined || isNaN(parsed.reading)) {
+      throw new Error('Chỉ số nhận diện không hợp lệ.');
     }
+    
+    return parsed;
   } catch (err: any) {
-    throw new functions.https.HttpsError('internal', err.message || 'Internal server error');
+    throw new functions.https.HttpsError(
+      'unavailable',
+      'Không thể nhận diện công tơ. Vui lòng chụp lại ảnh rõ nét hoặc tự nhập thủ công.'
+    );
   }
 });
 
@@ -194,70 +209,30 @@ export const summarizeContract = functions.region('asia-east1').https.onCall(asy
       }
     ];
 
-    try {
-      const result = await callOpenRouter(messages, {
-        model: OpenRouterModels.VISION,
-        response_format: { type: 'json_object' }
-      });
-      const content = result.choices?.[0]?.message?.content || '{}';
-      return JSON.parse(content);
-    } catch (apiErr) {
-      // Fallback
-      return {
-        tenantName: 'Nguyễn Văn Khách',
-        phoneNumber: '0912345678',
-        rentPrice: 3500000,
-        depositPrice: 3500000,
-        startDate: '01/08/2026',
-        endDate: '31/07/2027'
-      };
-    }
+    const result = await callOpenRouter(messages, {
+      model: OpenRouterModels.VISION,
+      response_format: { type: 'json_object' }
+    });
+    
+    const content = result.choices?.[0]?.message?.content || '{}';
+    return JSON.parse(content);
   } catch (err: any) {
-    throw new functions.https.HttpsError('internal', err.message || 'Internal server error');
+    throw new functions.https.HttpsError(
+      'unavailable',
+      'Không thể trích xuất thông tin hợp đồng tự động. Vui lòng tự nhập thủ công.'
+    );
   }
 });
 
 /**
- * 5. speechToIntent - Stage 2
+ * 5. speechToIntent - Stage 2 (Disabled in Production/Beta)
  */
 export const speechToIntent = functions.region('asia-east1').https.onCall(async (data, context) => {
   verifyAuth(context);
-  const { audioBase64 } = data;
-  if (!audioBase64) {
-    throw new functions.https.HttpsError('invalid-argument', 'Missing audioBase64.');
-  }
-
-  try {
-    // In real app, we would call Whisper speech-to-text first,
-    // then pass transcription to LLM. Here we simulate transcription
-    // or call OpenRouter audio model.
-    const transcription = 'ghi điện phòng 302 là 12845 nước 328';
-
-    const messages: ChatMessage[] = [
-      { role: 'system', content: SYSTEM_SPEECH_PROMPT },
-      { role: 'user', content: transcription }
-    ];
-
-    try {
-      const result = await callOpenRouter(messages, {
-        model: OpenRouterModels.DEFAULT,
-        response_format: { type: 'json_object' }
-      });
-      const content = result.choices?.[0]?.message?.content || '{}';
-      return JSON.parse(content);
-    } catch (apiErr) {
-      return {
-        intent: 'record_utility',
-        data: {
-          roomCode: '302',
-          electricNew: 12845,
-          waterNew: 328
-        }
-      };
-    }
-  } catch (err: any) {
-    throw new functions.https.HttpsError('internal', err.message || 'Internal server error');
-  }
+  throw new functions.https.HttpsError(
+    'unimplemented',
+    'Chức năng giọng nói hiện chưa khả dụng trên môi trường này.'
+  );
 });
 
 /**
@@ -273,11 +248,10 @@ export const runAIAgent = functions.region('asia-east1').https.onCall(async (dat
   try {
     const messages: ChatMessage[] = [
       { role: 'system', content: SYSTEM_AGENT_PROMPT },
-      ...history,
+      ...history.slice(-20), // Quota limit: only process last 20 messages for context window stability
       { role: 'user', content: userMessage }
     ];
 
-    // Single step function-calling execution loop
     const result = await callOpenRouter(messages, {
       model: OpenRouterModels.AGENT,
       tools: agentTools,
@@ -290,10 +264,8 @@ export const runAIAgent = functions.region('asia-east1').https.onCall(async (dat
     }
 
     if (responseMsg.tool_calls && responseMsg.tool_calls.length > 0) {
-      // Append assistant message with tool calls
       messages.push(responseMsg);
 
-      // Execute tool safely
       const toolCall = responseMsg.tool_calls[0];
       let toolArgs = {};
       try {
@@ -304,7 +276,6 @@ export const runAIAgent = functions.region('asia-east1').https.onCall(async (dat
 
       const toolResult = await executeTool(toolCall.function.name, toolArgs, uid);
 
-      // Append tool result message
       messages.push({
         role: 'tool',
         tool_call_id: toolCall.id,
@@ -312,7 +283,6 @@ export const runAIAgent = functions.region('asia-east1').https.onCall(async (dat
         content: JSON.stringify(toolResult)
       });
 
-      // Recall OpenRouter to get final response with tool outputs
       const secondCallResult = await callOpenRouter(messages, {
         model: OpenRouterModels.AGENT,
         temperature: 0.1
@@ -320,22 +290,16 @@ export const runAIAgent = functions.region('asia-east1').https.onCall(async (dat
 
       return {
         content: secondCallResult.choices?.[0]?.message?.content || 'Lỗi xử lý kết quả tra cứu.',
-        history: messages.slice(1) // Return updated messages list for next request
+        history: messages.slice(1)
       };
     }
 
-    // Standard conversational reply
     messages.push(responseMsg);
     return {
       content: responseMsg.content || 'Trợ lý không phản hồi.',
       history: messages.slice(1)
     };
-
   } catch (err: any) {
-    // If anything fails, return standard conversational response fallback
-    return {
-      content: 'Chào bạn! Hệ thống AI hiện đang trong chế độ bảo trì hoặc thiếu khóa API OpenRouter. Tôi có thể giúp bạn liên hệ bộ phận kỹ thuật để cấu hình hệ thống.',
-      history: [...history, { role: 'user', content: userMessage }]
-    };
+    throw new functions.https.HttpsError('unavailable', err.message || 'Trợ lý AI hiện đang bận.');
   }
 });
