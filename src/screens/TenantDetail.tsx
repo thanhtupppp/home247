@@ -1,12 +1,12 @@
 import React from 'react';
 import {
   View, Text, StyleSheet, ScrollView, Pressable,
-  Image, ActivityIndicator, Alert
+  Image, ActivityIndicator, Alert, Modal
 } from 'react-native';
 import { useNavigation, useRoute, useIsFocused } from '@react-navigation/native';
 import { MaterialIcons } from '@expo/vector-icons';
 import { theme } from '../theme';
-import { doc, getDoc, deleteDoc, updateDoc } from 'firebase/firestore';
+import { doc, getDoc, deleteDoc, updateDoc, collection, getDocs, query, where, orderBy } from 'firebase/firestore';
 import { db } from '../firebase';
 
 interface TenantData {
@@ -42,6 +42,17 @@ export const TenantDetail: React.FC = () => {
   const [loading, setLoading] = React.useState(true);
   const [deleting, setDeleting] = React.useState(false);
 
+  // ── Room Transfer States ───────────────────────────────────────────────────
+  const [showTransferModal, setShowTransferModal] = React.useState(false);
+  const [buildings, setBuildings] = React.useState<any[]>([]);
+  const [rooms, setRooms] = React.useState<any[]>([]);
+  const [selectedBuilding, setSelectedBuilding] = React.useState<any>(null);
+  const [selectedRoom, setSelectedRoom] = React.useState<any>(null);
+  const [showBuildingDropdown, setShowBuildingDropdown] = React.useState(false);
+  const [showRoomDropdown, setShowRoomDropdown] = React.useState(false);
+  const [transferring, setTransferring] = React.useState(false);
+  const [loadingTransferData, setLoadingTransferData] = React.useState(false);
+
   React.useEffect(() => {
     if (isFocused && tenantId) {
       fetchTenantDetail();
@@ -67,6 +78,94 @@ export const TenantDetail: React.FC = () => {
     }
   };
 
+  const openTransferModal = async () => {
+    setShowTransferModal(true);
+    try {
+      setLoadingTransferData(true);
+      const bSnap = await getDocs(query(collection(db, 'buildings'), orderBy('name')));
+      const bList = bSnap.docs.map(doc => ({ id: doc.id, name: doc.data().name }));
+      setBuildings(bList);
+      if (bList.length > 0) {
+        setSelectedBuilding(bList[0]);
+        await fetchRoomsForTransfer(bList[0].id);
+      }
+    } catch (err) {
+      console.error('Error loading transfer buildings:', err);
+    } finally {
+      setLoadingTransferData(false);
+    }
+  };
+
+  const fetchRoomsForTransfer = async (buildingId: string) => {
+    try {
+      setSelectedRoom(null);
+      const rSnap = await getDocs(
+        query(collection(db, 'rooms'), where('buildingId', '==', buildingId), orderBy('code'))
+      );
+      const rList = rSnap.docs.map(doc => ({
+        id: doc.id,
+        code: doc.data().code,
+        status: doc.data().status
+      }));
+      setRooms(rList);
+      if (rList.length > 0) {
+        setSelectedRoom(rList[0]);
+      }
+    } catch (err) {
+      console.error('Error loading transfer rooms:', err);
+    }
+  };
+
+  const handleSelectBuilding = (b: any) => {
+    setSelectedBuilding(b);
+    setShowBuildingDropdown(false);
+    fetchRoomsForTransfer(b.id);
+  };
+
+  const handleTransfer = async () => {
+    if (!selectedBuilding || !selectedRoom) {
+      Alert.alert('Thông báo', 'Vui lòng chọn tòa nhà và phòng mới.');
+      return;
+    }
+    
+    if (selectedRoom.id === tenant?.roomId) {
+      Alert.alert('Thông báo', 'Cư dân đã ở phòng này rồi.');
+      return;
+    }
+
+    try {
+      setTransferring(true);
+      
+      // 1. Update tenant document
+      const tenantRef = doc(db, 'tenants', tenantId);
+      await updateDoc(tenantRef, {
+        buildingId: selectedBuilding.id,
+        buildingName: selectedBuilding.name,
+        roomId: selectedRoom.id,
+        roomCode: selectedRoom.code
+      });
+
+      // 2. Mark old room as empty
+      if (tenant?.roomId) {
+        const oldRoomRef = doc(db, 'rooms', tenant.roomId);
+        await updateDoc(oldRoomRef, { status: 'empty' });
+      }
+
+      // 3. Mark new room as occupied
+      const newRoomRef = doc(db, 'rooms', selectedRoom.id);
+      await updateDoc(newRoomRef, { status: 'occupied' });
+
+      Alert.alert('Thành công', `Đã chuyển cư dân sang phòng ${selectedRoom.code} thành công!`);
+      setShowTransferModal(false);
+      fetchTenantDetail(); // Refresh UI
+    } catch (err) {
+      console.error('Error transferring room:', err);
+      Alert.alert('Lỗi', 'Không thể thực hiện chuyển phòng.');
+    } finally {
+      setTransferring(false);
+    }
+  };
+
   const handleDelete = () => {
     Alert.alert(
       'Xác nhận xóa',
@@ -86,7 +185,6 @@ export const TenantDetail: React.FC = () => {
               // 2. Update room status to empty if this was the resident
               if (tenant?.roomId) {
                 const roomRef = doc(db, 'rooms', tenant?.roomId);
-                // Optional check: see if there are any other active tenants in this room
                 await updateDoc(roomRef, { status: 'empty' });
               }
 
@@ -145,11 +243,17 @@ export const TenantDetail: React.FC = () => {
             </Text>
           </View>
           <Text style={styles.profileName}>{tenant.fullName}</Text>
-          <View style={styles.roomBadge}>
-            <MaterialIcons name="meeting-room" size={16} color={theme.colors.primary} />
-            <Text style={styles.roomBadgeText}>
-              Phòng {tenant.roomCode || 'Trống'} • {tenant.buildingName || 'Chưa gán'}
-            </Text>
+          <View style={styles.roomBadgeRow}>
+            <View style={styles.roomBadge}>
+              <MaterialIcons name="meeting-room" size={16} color={theme.colors.primary} />
+              <Text style={styles.roomBadgeText}>
+                Phòng {tenant.roomCode || 'Trống'} • {tenant.buildingName || 'Chưa gán'}
+              </Text>
+            </View>
+            <Pressable onPress={openTransferModal} style={styles.transferButton}>
+              <MaterialIcons name="swap-horiz" size={16} color="#059669" />
+              <Text style={styles.transferButtonText}>Chuyển phòng</Text>
+            </Pressable>
           </View>
         </View>
 
@@ -270,6 +374,78 @@ export const TenantDetail: React.FC = () => {
           </View>
         </View>
       </ScrollView>
+
+      {/* Room Transfer Modal */}
+      <Modal visible={showTransferModal} animationType="slide" transparent>
+        <View style={styles.modalOverlay}>
+          <View style={styles.modalCard}>
+            <View style={styles.modalHeader}>
+              <Text style={styles.modalTitle}>Chuyển phòng cư dân</Text>
+              <Pressable onPress={() => setShowTransferModal(false)}>
+                <MaterialIcons name="close" size={24} color="#64748b" />
+              </Pressable>
+            </View>
+
+            {loadingTransferData ? (
+              <View style={styles.modalLoading}>
+                <ActivityIndicator size="small" color={theme.colors.primary} />
+                <Text style={styles.modalLoadingText}>Đang tải thông tin tòa nhà...</Text>
+              </View>
+            ) : (
+              <View style={styles.modalForm}>
+                <Text style={styles.modalLabel}>Tòa nhà mới</Text>
+                <Pressable onPress={() => setShowBuildingDropdown(!showBuildingDropdown)} style={styles.modalDropdownButton}>
+                  <Text style={styles.modalDropdownText}>{selectedBuilding?.name || 'Chọn tòa nhà'}</Text>
+                  <MaterialIcons name="keyboard-arrow-down" size={24} color="#a1a1aa" />
+                </Pressable>
+                {showBuildingDropdown && (
+                  <View style={styles.modalDropdown}>
+                    {buildings.map((b) => (
+                      <Pressable key={b.id} style={styles.modalDropdownItem} onPress={() => handleSelectBuilding(b)}>
+                        <Text style={styles.modalDropdownItemText}>{b.name}</Text>
+                      </Pressable>
+                    ))}
+                  </View>
+                )}
+
+                <Text style={[styles.modalLabel, { marginTop: 16 }]}>Phòng mới</Text>
+                <Pressable onPress={() => setShowRoomDropdown(!showRoomDropdown)} style={styles.modalDropdownButton}>
+                  <Text style={styles.modalDropdownText}>
+                    {selectedRoom ? `Phòng ${selectedRoom.code} (${selectedRoom.status === 'occupied' ? 'Có người' : 'Phòng trống'})` : 'Chọn phòng'}
+                  </Text>
+                  <MaterialIcons name="keyboard-arrow-down" size={24} color="#a1a1aa" />
+                </Pressable>
+                {showRoomDropdown && (
+                  <View style={styles.modalDropdown}>
+                    {rooms.length === 0 ? (
+                      <Text style={styles.emptyDropdownText}>Chưa có phòng</Text>
+                    ) : (
+                      rooms.map((r) => (
+                        <Pressable key={r.id} style={styles.modalDropdownItem} onPress={() => { setSelectedRoom(r); setShowRoomDropdown(false); }}>
+                          <Text style={styles.modalDropdownItemText}>
+                            Phòng {r.code} {r.status === 'occupied' ? '⚠️ (Có người)' : '✅ (Trống)'}
+                          </Text>
+                        </Pressable>
+                      ))
+                    )}
+                  </View>
+                )}
+
+                <Pressable style={styles.modalConfirmBtn} onPress={handleTransfer} disabled={transferring}>
+                  {transferring ? (
+                    <ActivityIndicator size="small" color="#fff" />
+                  ) : (
+                    <>
+                      <MaterialIcons name="swap-horiz" size={20} color="#fff" />
+                      <Text style={styles.modalConfirmText}>Xác nhận chuyển</Text>
+                    </>
+                  )}
+                </Pressable>
+              </View>
+            )}
+          </View>
+        </View>
+      </Modal>
     </View>
   );
 };
@@ -350,11 +526,35 @@ const styles = StyleSheet.create({
     paddingHorizontal: 12,
     paddingVertical: 6,
     borderRadius: theme.borderRadius.full,
+    borderWidth: 1,
+    borderColor: '#dbeafe',
   },
   roomBadgeText: {
     fontSize: 12,
     fontWeight: 'bold',
     color: theme.colors.primary,
+  },
+  roomBadgeRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    marginTop: 4,
+  },
+  transferButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+    backgroundColor: '#d1fae5',
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: theme.borderRadius.full,
+    borderWidth: 1,
+    borderColor: '#a7f3d0',
+  },
+  transferButtonText: {
+    fontSize: 12,
+    fontWeight: 'bold',
+    color: '#065f46',
   },
   cardSection: {
     backgroundColor: theme.colors.surfaceContainerLowest,
@@ -424,6 +624,101 @@ const styles = StyleSheet.create({
   },
   loadingText: {
     color: theme.colors.onSurfaceVariant,
+  },
+  // Modal styles
+  modalOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0,0,0,0.5)',
+    justifyContent: 'flex-end',
+  },
+  modalCard: {
+    backgroundColor: theme.colors.surfaceContainerLowest,
+    borderTopLeftRadius: theme.borderRadius.xl,
+    borderTopRightRadius: theme.borderRadius.xl,
+    padding: 20,
+    paddingBottom: 40,
+  },
+  modalHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 20,
+  },
+  modalTitle: {
+    ...theme.typography.titleLg,
+    color: theme.colors.onSurface,
+    fontWeight: 'bold',
+  },
+  modalLoading: {
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingVertical: 40,
+    gap: 8,
+  },
+  modalLoadingText: {
+    color: theme.colors.onSurfaceVariant,
+    fontSize: 14,
+  },
+  modalForm: {
+    gap: 8,
+  },
+  modalLabel: {
+    ...theme.typography.labelMd,
+    color: theme.colors.onSurfaceVariant,
+    fontWeight: 'bold',
+  },
+  modalDropdownButton: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    backgroundColor: theme.colors.surfaceContainerLowest,
+    borderWidth: 1,
+    borderColor: theme.colors.outlineVariant,
+    borderRadius: theme.borderRadius.xl,
+    paddingHorizontal: 16,
+    paddingVertical: 12,
+  },
+  modalDropdownText: {
+    ...theme.typography.bodyMd,
+    color: theme.colors.onSurface,
+  },
+  modalDropdown: {
+    backgroundColor: theme.colors.surfaceContainerLowest,
+    borderWidth: 1,
+    borderColor: theme.colors.outlineVariant,
+    borderRadius: theme.borderRadius.xl,
+    marginTop: 4,
+    overflow: 'hidden',
+  },
+  modalDropdownItem: {
+    paddingHorizontal: 16,
+    paddingVertical: 12,
+    borderBottomWidth: 1,
+    borderBottomColor: theme.colors.surfaceContainer,
+  },
+  modalDropdownItemText: {
+    ...theme.typography.bodyMd,
+    color: theme.colors.onSurface,
+  },
+  emptyDropdownText: {
+    padding: 16,
+    color: '#94a3b8',
+    textAlign: 'center',
+  },
+  modalConfirmBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: '#059669',
+    borderRadius: theme.borderRadius.xl,
+    paddingVertical: 14,
+    gap: 8,
+    marginTop: 24,
+  },
+  modalConfirmText: {
+    ...theme.typography.bodyLg,
+    color: '#fff',
+    fontWeight: 'bold',
   },
 });
 
