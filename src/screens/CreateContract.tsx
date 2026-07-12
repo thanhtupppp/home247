@@ -9,7 +9,8 @@ import DateTimePicker from '@react-native-community/datetimepicker';
 import { theme } from '../theme';
 import * as ImagePicker from 'expo-image-picker';
 import { collection, addDoc, getDocs, query, where, orderBy, doc, updateDoc, runTransaction } from 'firebase/firestore';
-import { db, auth } from '../firebase';
+import { db, auth, functions } from '../firebase';
+import { httpsCallable } from 'firebase/functions';
 import { Image } from 'expo-image';
 
 interface Building {
@@ -83,6 +84,59 @@ export const CreateContract: React.FC = () => {
   const [loadingBuildings, setLoadingBuildings] = React.useState(true);
   const [loadingRooms, setLoadingRooms] = React.useState(false);
   const [saving, setSaving] = React.useState(false);
+  const [scanningContract, setScanningContract] = React.useState(false);
+
+  const handleScanContract = async () => {
+    // 1. Request permissions
+    const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
+    if (status !== 'granted') {
+      Alert.alert('Quyền truy cập', 'Ứng dụng cần quyền truy cập thư viện ảnh để quét tài liệu hợp đồng.');
+      return;
+    }
+
+    // 2. Launch Image Picker
+    const result = await ImagePicker.launchImageLibraryAsync({
+      mediaTypes: ['images'],
+      allowsEditing: true,
+      quality: 0.7,
+      base64: true,
+    });
+
+    if (result.canceled || !result.assets?.[0]?.base64) return;
+
+    try {
+      setScanningContract(true);
+      const scanner = httpsCallable(functions, 'summarizeContract');
+      const res = await scanner({ contractDocBase64: result.assets[0].base64 });
+      const resData = res.data as any;
+
+      if (resData) {
+        Alert.alert(
+          'Đọc thành công',
+          'AI đã trích xuất được thông tin từ hợp đồng. Bạn có muốn tự động điền các thông tin này?',
+          [
+            { text: 'Hủy', style: 'cancel' },
+            { 
+              text: 'Đồng ý', 
+              onPress: () => {
+                if (resData.tenantName) setFullName(resData.tenantName);
+                if (resData.phoneNumber) setPhoneNumber(resData.phoneNumber);
+                if (resData.rentPrice) setRentPrice(String(resData.rentPrice));
+                if (resData.depositPrice) setDepositPrice(String(resData.depositPrice));
+                if (resData.startDate) setStartDate(resData.startDate);
+                if (resData.endDate) setEndDate(resData.endDate);
+              } 
+            }
+          ]
+        );
+      }
+    } catch (err) {
+      console.error('Error scanning contract:', err);
+      Alert.alert('Lỗi', 'Không thể kết nối dịch vụ AI trích xuất hợp đồng. Vui lòng nhập tay.');
+    } finally {
+      setScanningContract(false);
+    }
+  };
 
   const [tenants, setTenants] = React.useState<Tenant[]>([]);
   const [selectedTenant, setSelectedTenant] = React.useState<Tenant | null>(null);
@@ -432,6 +486,31 @@ export const CreateContract: React.FC = () => {
 
       <ScrollView contentContainerStyle={styles.scrollContent} keyboardShouldPersistTaps="handled">
         <View style={styles.form}>
+          {/* AI Scanner Header Action */}
+          <View style={styles.aiScanCard}>
+            <View style={styles.aiScanHeader}>
+              <MaterialIcons name="auto-awesome" size={20} color={theme.colors.primary} />
+              <Text style={styles.aiScanTitle}>Trợ lý AI lập hợp đồng nhanh</Text>
+            </View>
+            <Text style={styles.aiScanSubtitle}>
+              Chọn ảnh chụp hợp đồng để AI tự động điền các thông tin như Tên, SĐT, giá phòng, tiền cọc và thời hạn.
+            </Text>
+            <Pressable 
+              style={styles.aiScanBtn}
+              onPress={handleScanContract}
+              disabled={scanningContract}
+            >
+              {scanningContract ? (
+                <ActivityIndicator size="small" color="#ffffff" />
+              ) : (
+                <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
+                  <MaterialIcons name="photo-camera" size={18} color="#ffffff" />
+                  <Text style={styles.aiScanBtnText}>Chọn ảnh quét hợp đồng</Text>
+                </View>
+              )}
+            </Pressable>
+          </View>
+
           <View style={styles.sectionHeader}>
             <MaterialIcons name="person-outline" size={22} color={theme.colors.onSurface} />
             <Text style={styles.sectionTitle}>Thông tin khách thuê</Text>
@@ -874,6 +953,45 @@ const styles = StyleSheet.create({
     ...theme.typography.bodyLg,
     color: '#fff',
     fontWeight: 'bold',
+  },
+  aiScanCard: {
+    backgroundColor: '#eff6ff',
+    borderRadius: theme.borderRadius.xl,
+    padding: 16,
+    borderWidth: 1,
+    borderColor: '#bfdbfe',
+    marginBottom: 16,
+  },
+  aiScanHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    marginBottom: 6,
+  },
+  aiScanTitle: {
+    fontSize: 14,
+    fontWeight: 'bold',
+    color: '#1e3a8a',
+  },
+  aiScanSubtitle: {
+    fontSize: 12,
+    color: '#475569',
+    lineHeight: 16,
+    marginBottom: 12,
+  },
+  aiScanBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: theme.colors.primary,
+    borderRadius: theme.borderRadius.lg,
+    paddingVertical: 10,
+    gap: 8,
+  },
+  aiScanBtnText: {
+    fontSize: 13,
+    fontWeight: 'bold',
+    color: '#ffffff',
   },
 });
 
