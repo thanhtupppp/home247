@@ -1,7 +1,48 @@
 rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
-    match /{document=**} {
+    // Admin profile: only the admin user can read/write their own profile doc
+    match /admins/{adminId} {
+      allow read, write: if request.auth != null && request.auth.uid == adminId;
+    }
+    
+    // Buildings
+    match /buildings/{buildingId} {
+      allow read, write: if request.auth != null;
+    }
+    
+    // Rooms
+    match /rooms/{roomId} {
+      allow read, write: if request.auth != null;
+    }
+    
+    // Services
+    match /services/{serviceId} {
+      allow read, write: if request.auth != null;
+    }
+    
+    // Utility Readings
+    match /utilityReadings/{readingId} {
+      allow read, write: if request.auth != null;
+    }
+    
+    // Invoices
+    match /invoices/{invoiceId} {
+      allow read, write: if request.auth != null;
+    }
+    
+    // Contracts
+    match /contracts/{contractId} {
+      allow read, write: if request.auth != null;
+    }
+    
+    // Tenants
+    match /tenants/{tenantId} {
+      allow read, write: if request.auth != null;
+    }
+    
+    // Support Requests
+    match /supportRequests/{requestId} {
       allow read, write: if request.auth != null;
     }
   }
