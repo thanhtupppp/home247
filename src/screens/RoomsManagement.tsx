@@ -20,7 +20,8 @@ import {
   getDocs, 
   addDoc, 
   writeBatch, 
-  doc 
+  doc,
+  deleteDoc
 } from 'firebase/firestore';
 import { db, auth } from '../firebase';
 import { mockRooms } from '../data/mockData';
@@ -243,6 +244,30 @@ export const RoomsManagement: React.FC = () => {
     }
   };
 
+  const handleDeleteRoom = (room: any) => {
+    Alert.alert(
+      'Xác nhận xóa',
+      `Bạn có chắc chắn muốn xóa phòng ${room.code}? Hành động này không thể hoàn tác.`,
+      [
+        { text: 'Hủy', style: 'cancel' },
+        { 
+          text: 'Xóa', 
+          style: 'destructive', 
+          onPress: async () => {
+            try {
+              await deleteDoc(doc(db, 'rooms', room.id));
+              Alert.alert('Thành công', `Đã xóa phòng ${room.code} thành công!`);
+              await fetchRoomsForBuilding(room.buildingId);
+            } catch (error) {
+              console.error('Error deleting room:', error);
+              Alert.alert('Lỗi', 'Không thể xóa phòng.');
+            }
+          }
+        }
+      ]
+    );
+  };
+
   const filteredBuildings = buildings.filter((b) =>
     b.name.toLowerCase().includes(searchText.toLowerCase())
   );
@@ -329,6 +354,12 @@ export const RoomsManagement: React.FC = () => {
                                     <Text style={[styles.statusBadgeText, { color: statusColor }]}>{statusLabel}</Text>
                                   </View>
                                 </View>
+                                <Pressable 
+                                  style={styles.deleteRoomBtn} 
+                                  onPress={() => handleDeleteRoom(room)}
+                                >
+                                  <MaterialIcons name="delete-outline" size={20} color="#ef4444" />
+                                </Pressable>
                               </View>
                             );
                           })
@@ -624,6 +655,12 @@ const styles = StyleSheet.create({
     fontSize: 13,
     color: theme.colors.primary,
     fontWeight: '600',
+  },
+  deleteRoomBtn: {
+    padding: 8,
+    marginLeft: 12,
+    alignItems: 'center',
+    justifyContent: 'center',
   },
   bottomContainer: {
     position: 'absolute',
