@@ -1,15 +1,106 @@
 import React from 'react';
-import { View, Text, StyleSheet, ScrollView, Pressable } from 'react-native';
-import { useNavigation } from '@react-navigation/native';
+import {
+  View, Text, StyleSheet, ScrollView, Pressable,
+  ActivityIndicator, Alert, RefreshControl
+} from 'react-native';
+import { useNavigation, useIsFocused } from '@react-navigation/native';
 import { MaterialIcons } from '@expo/vector-icons';
 import { theme } from '../theme';
+import { collection, getDocs, query, deleteDoc, doc } from 'firebase/firestore';
+import { db } from '../firebase';
+
+interface ServiceData {
+  id: string;
+  name: string;
+  buildingId: string;
+  buildingName: string;
+  calcMethod: string;
+  unit: string;
+  unitPrice: number;
+}
 
 export const ServicesList: React.FC = () => {
   const navigation = useNavigation<any>();
+  const isFocused = useIsFocused();
+
+  const [loading, setLoading] = React.useState(true);
+  const [refreshing, setRefreshing] = React.useState(false);
+  const [services, setServices] = React.useState<ServiceData[]>([]);
   const [expandedGroups, setExpandedGroups] = React.useState<Record<string, boolean>>({
-    'Khác': true,
-    'nơ trang long': false,
+    'Khác': true
   });
+
+  React.useEffect(() => {
+    if (isFocused) {
+      fetchServices();
+    }
+  }, [isFocused]);
+
+  const fetchServices = async () => {
+    try {
+      setLoading(true);
+      const querySnapshot = await getDocs(query(collection(db, 'services')));
+      const list: ServiceData[] = [];
+      querySnapshot.forEach((doc) => {
+        const data = doc.data();
+        list.push({
+          id: doc.id,
+          name: data.name || '',
+          buildingId: data.buildingId || 'all',
+          buildingName: data.buildingName || 'Khác',
+          calcMethod: data.calcMethod || 'Cố định',
+          unit: data.unit || 'tháng',
+          unitPrice: Number(data.unitPrice) || 0,
+        });
+      });
+      setServices(list);
+
+      // Auto-expand groups that have items
+      const initialExp: Record<string, boolean> = { 'Khác': true };
+      list.forEach((s) => {
+        if (s.buildingName) {
+          initialExp[s.buildingName] = true;
+        }
+      });
+      setExpandedGroups((prev) => ({ ...prev, ...initialExp }));
+
+    } catch (err) {
+      console.error('Error fetching services:', err);
+      Alert.alert('Lỗi', 'Không thể tải danh sách dịch vụ.');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleRefresh = async () => {
+    setRefreshing(true);
+    await fetchServices();
+    setRefreshing(false);
+  };
+
+  const handleDelete = (service: ServiceData) => {
+    Alert.alert(
+      'Xác nhận xóa',
+      `Bạn có chắc chắn muốn xóa dịch vụ "${service.name}" của tòa nhà "${service.buildingName}"?`,
+      [
+        { text: 'Hủy', style: 'cancel' },
+        {
+          text: 'Xóa',
+          style: 'destructive',
+          onPress: async () => {
+            try {
+              await deleteDoc(doc(db, 'services', service.id));
+              Alert.alert('Thành công', 'Đã xóa dịch vụ.');
+              fetchServices();
+            } catch (err) {
+              console.error('Error deleting service:', err);
+              Alert.alert('Lỗi', 'Không thể xóa cấu hình dịch vụ.');
+            }
+          }
+        }
+      ]
+    );
+  };
 
   const toggleGroup = (name: string) => {
     setExpandedGroups(prev => ({
@@ -17,6 +108,33 @@ export const ServicesList: React.FC = () => {
       [name]: !prev[name]
     }));
   };
+
+  // Grouping services by buildingName
+  const groupedServices = React.useMemo(() => {
+    const groups: Record<string, ServiceData[]> = {};
+    
+    // Ensure 'Khác' always exists as a group
+    groups['Khác'] = [];
+
+    services.forEach((s) => {
+      const gName = s.buildingName || 'Khác';
+      if (!groups[gName]) {
+        groups[gName] = [];
+      }
+      groups[gName].push(s);
+    });
+
+    return groups;
+  }, [services]);
+
+  if (loading && !refreshing) {
+    return (
+      <View style={styles.loadingContainer}>
+        <ActivityIndicator size="large" color={theme.colors.primary} />
+        <Text style={styles.loadingText}>Đang tải cấu hình dịch vụ...</Text>
+      </View>
+    );
+  }
 
   return (
     <View style={styles.container}>
@@ -27,124 +145,85 @@ export const ServicesList: React.FC = () => {
         </Pressable>
         <View style={styles.headerTitleContainer}>
           <View style={styles.headerIconContainer}>
-            <MaterialIcons name="dashboard" size={20} color={theme.colors.primary} />
+            <MaterialIcons name="room-service" size={20} color={theme.colors.primary} />
           </View>
           <View>
-            <Text style={styles.headerTitle}>Dịch vụ</Text>
-            <Text style={styles.headerSubtitle}>Quản lý các loại dịch vụ</Text>
+            <Text style={styles.headerTitle}>Cấu hình Dịch vụ</Text>
+            <Text style={styles.headerSubtitle}>Bảng giá dịch vụ cố định và chỉ số</Text>
           </View>
         </View>
       </View>
 
-      <ScrollView contentContainerStyle={styles.scrollContent}>
-        {/* Accordion Group 1: Khác */}
-        <View style={[styles.accordionCard, expandedGroups['Khác'] && styles.accordionCardExpanded]}>
-          <Pressable onPress={() => toggleGroup('Khác')} style={styles.accordionHeader}>
-            <View style={styles.accordionHeaderLeft}>
-              <View style={styles.buildingIconContainer}>
-                <MaterialIcons name="apartment" size={20} color={theme.colors.primary} />
-              </View>
-              <View>
-                <Text style={groupNameStyle(expandedGroups['Khác'])}>Khác</Text>
-                <Text style={styles.groupSubtitle}>2 dịch vụ</Text>
-              </View>
-            </View>
-            <MaterialIcons 
-              name={expandedGroups['Khác'] ? "keyboard-arrow-up" : "keyboard-arrow-down"} 
-              size={24} 
-              color={expandedGroups['Khác'] ? theme.colors.primary : "#a1a1aa"} 
-              style={styles.chevron}
-            />
-          </Pressable>
+      <ScrollView
+        contentContainerStyle={styles.scrollContent}
+        refreshControl={
+          <RefreshControl refreshing={refreshing} onRefresh={handleRefresh} colors={[theme.colors.primary]} />
+        }
+      >
+        {Object.keys(groupedServices).map((groupName) => {
+          const groupList = groupedServices[groupName];
+          if (groupName !== 'Khác' && groupList.length === 0) return null;
 
-          {expandedGroups['Khác'] && (
-            <View style={styles.accordionContent}>
-              {/* Category 1: Cố định */}
-              <View style={styles.categoryHeader}>
-                <View style={styles.categoryHeaderLeft}>
-                  <MaterialIcons name="lock" size={16} color="#10b981" />
-                  <Text style={[styles.categoryTitle, { color: '#10b981' }]}>Cố định</Text>
+          const isExpanded = !!expandedGroups[groupName];
+          return (
+            <View key={groupName} style={[styles.accordionCard, isExpanded && styles.accordionCardExpanded]}>
+              <Pressable onPress={() => toggleGroup(groupName)} style={styles.accordionHeader}>
+                <View style={styles.accordionHeaderLeft}>
+                  <View style={styles.buildingIconContainer}>
+                    <MaterialIcons name={groupName === 'Khác' ? "dns" : "apartment"} size={20} color={theme.colors.primary} />
+                  </View>
+                  <View>
+                    <Text style={groupNameStyle(isExpanded)}>{groupName}</Text>
+                    <Text style={styles.groupSubtitle}>{groupList.length} dịch vụ</Text>
+                  </View>
                 </View>
-                <Text style={styles.categoryCount}>1</Text>
-              </View>
-
-              <Pressable style={styles.serviceItemCard}>
-                <View style={styles.serviceItemLeft}>
-                  <Text style={styles.serviceName}>Internet</Text>
-                  <Text style={styles.servicePrice}>90 đ</Text>
-                </View>
-                <MaterialIcons name="chevron-right" size={20} color="#cbd5e1" />
+                <MaterialIcons 
+                  name={isExpanded ? "keyboard-arrow-up" : "keyboard-arrow-down"} 
+                  size={24} 
+                  color={isExpanded ? theme.colors.primary : "#a1a1aa"} 
+                  style={styles.chevron}
+                />
               </Pressable>
 
-              {/* Category 2: Theo người */}
-              <View style={[styles.categoryHeader, { marginTop: 16 }]}>
-                <View style={styles.categoryHeaderLeft}>
-                  <MaterialIcons name="group" size={16} color="#f59e0b" />
-                  <Text style={[styles.categoryTitle, { color: '#f59e0b' }]}>Theo người</Text>
+              {isExpanded && (
+                <View style={styles.accordionContent}>
+                  {groupList.length === 0 ? (
+                    <Text style={styles.emptyGroupText}>Chưa có dịch vụ nào được cấu hình.</Text>
+                  ) : (
+                    groupList.map((service) => {
+                      const methodColor = service.calcMethod === 'Theo chỉ số đồng hồ' ? '#3b82f6' : service.calcMethod === 'Theo người' ? '#f59e0b' : '#10b981';
+                      return (
+                        <View key={service.id} style={styles.serviceItemCard}>
+                          <View style={styles.serviceItemLeft}>
+                            <Text style={styles.serviceName}>{service.name}</Text>
+                            <View style={styles.serviceMetaRow}>
+                              <Text style={[styles.methodBadge, { color: methodColor }]}>{service.calcMethod}</Text>
+                              <Text style={styles.servicePrice}>
+                                • {Number(service.unitPrice).toLocaleString('vi-VN')} đ / {service.unit}
+                              </Text>
+                            </View>
+                          </View>
+                          <Pressable style={styles.deleteButton} onPress={() => handleDelete(service)}>
+                            <MaterialIcons name="delete-outline" size={20} color="#ef4444" />
+                          </Pressable>
+                        </View>
+                      );
+                    })
+                  )}
                 </View>
-                <Text style={styles.categoryCount}>1</Text>
-              </View>
-
-              <Pressable style={styles.serviceItemCard}>
-                <View style={styles.serviceItemLeft}>
-                  <Text style={styles.serviceName}>Gửi xe</Text>
-                  <Text style={styles.servicePrice}>0 đ/unit</Text>
-                </View>
-                <MaterialIcons name="chevron-right" size={20} color="#cbd5e1" />
-              </Pressable>
+              )}
             </View>
-          )}
-        </View>
-
-        {/* Accordion Group 2: nơ trang long */}
-        <View style={[styles.accordionCard, expandedGroups['nơ trang long'] && styles.accordionCardExpanded]}>
-          <Pressable onPress={() => toggleGroup('nơ trang long')} style={styles.accordionHeader}>
-            <View style={styles.accordionHeaderLeft}>
-              <View style={styles.buildingIconContainer}>
-                <MaterialIcons name="apartment" size={20} color={theme.colors.primary} />
-              </View>
-              <View>
-                <Text style={groupNameStyle(expandedGroups['nơ trang long'])}>nơ trang long</Text>
-                <Text style={styles.groupSubtitle}>1 dịch vụ</Text>
-              </View>
-            </View>
-            <MaterialIcons 
-              name={expandedGroups['nơ trang long'] ? "keyboard-arrow-up" : "keyboard-arrow-down"} 
-              size={24} 
-              color={expandedGroups['nơ trang long'] ? theme.colors.primary : "#a1a1aa"} 
-              style={styles.chevron}
-            />
-          </Pressable>
-
-          {expandedGroups['nơ trang long'] && (
-            <View style={styles.accordionContent}>
-              <View style={styles.categoryHeader}>
-                <View style={styles.categoryHeaderLeft}>
-                  <MaterialIcons name="lock" size={16} color="#10b981" />
-                  <Text style={[styles.categoryTitle, { color: '#10b981' }]}>Cố định</Text>
-                </View>
-                <Text style={styles.categoryCount}>1</Text>
-              </View>
-
-              <Pressable style={styles.serviceItemCard}>
-                <View style={styles.serviceItemLeft}>
-                  <Text style={styles.serviceName}>Rác & Vệ sinh</Text>
-                  <Text style={styles.servicePrice}>50.000 đ</Text>
-                </View>
-                <MaterialIcons name="chevron-right" size={20} color="#cbd5e1" />
-              </Pressable>
-            </View>
-          )}
-        </View>
+          );
+        })}
       </ScrollView>
 
-      {/* Floating Action style button on the bottom right */}
+      {/* Floating Action Button */}
       <View style={styles.bottomContainer}>
         <Pressable 
           style={styles.addServiceButton}
           onPress={() => navigation.navigate('cau-hinh-gia/them')}
         >
-          <MaterialIcons name="add" size={22} color={theme.colors.onPrimary} />
+          <MaterialIcons name="add" size={22} color="#fff" />
           <Text style={styles.addServiceButtonText}>Thêm dịch vụ</Text>
         </Pressable>
       </View>
@@ -258,24 +337,11 @@ const styles = StyleSheet.create({
     borderTopColor: '#f1f5f9',
     backgroundColor: theme.colors.surfaceContainerLowest,
   },
-  categoryHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    marginBottom: 10,
-  },
-  categoryHeaderLeft: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 6,
-  },
-  categoryTitle: {
+  emptyGroupText: {
     fontSize: 13,
-    fontWeight: 'bold',
-  },
-  categoryCount: {
-    fontSize: 12,
-    color: theme.colors.onSurfaceVariant,
+    color: '#94a3b8',
+    textAlign: 'center',
+    paddingVertical: 12,
   },
   serviceItemCard: {
     flexDirection: 'row',
@@ -291,15 +357,28 @@ const styles = StyleSheet.create({
   },
   serviceItemLeft: {
     gap: 4,
+    flex: 1,
   },
   serviceName: {
     ...theme.typography.bodyMd,
     fontWeight: 'bold',
     color: theme.colors.onSurface,
   },
+  serviceMetaRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+  },
+  methodBadge: {
+    fontSize: 11,
+    fontWeight: 'bold',
+  },
   servicePrice: {
     fontSize: 12,
     color: theme.colors.onSurfaceVariant,
+  },
+  deleteButton: {
+    padding: 8,
   },
   bottomContainer: {
     position: 'absolute',
@@ -309,22 +388,30 @@ const styles = StyleSheet.create({
   addServiceButton: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: '#93c5fd', // Light blue background in screenshot
+    backgroundColor: theme.colors.primary,
     paddingHorizontal: 20,
     paddingVertical: 14,
     borderRadius: 30,
     gap: 8,
-    boxShadow: [{
-      offsetX: 0,
-      offsetY: 4,
-      blurRadius: 10,
-      color: 'rgba(0, 0, 0, 0.15)'
-    }],
+    elevation: 3,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.15,
+    shadowRadius: 6,
   },
   addServiceButtonText: {
     ...theme.typography.bodyLg,
-    color: theme.colors.onPrimary,
+    color: '#fff',
     fontWeight: 'bold',
+  },
+  loadingContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    gap: 12,
+  },
+  loadingText: {
+    color: theme.colors.onSurfaceVariant,
   },
 });
 
