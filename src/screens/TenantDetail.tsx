@@ -1,13 +1,14 @@
 import React from 'react';
 import {
   View, Text, StyleSheet, ScrollView, Pressable,
-  Image, ActivityIndicator, Alert, Modal
+  ActivityIndicator, Alert, Modal
 } from 'react-native';
 import { useNavigation, useRoute, useIsFocused } from '@react-navigation/native';
 import { MaterialIcons } from '@expo/vector-icons';
 import { theme } from '../theme';
 import { doc, getDoc, deleteDoc, updateDoc, collection, getDocs, query, where, orderBy } from 'firebase/firestore';
 import { db } from '../firebase';
+import { Image } from 'expo-image';
 
 interface TenantData {
   fullName: string;
@@ -53,13 +54,7 @@ export const TenantDetail: React.FC = () => {
   const [transferring, setTransferring] = React.useState(false);
   const [loadingTransferData, setLoadingTransferData] = React.useState(false);
 
-  React.useEffect(() => {
-    if (isFocused && tenantId) {
-      fetchTenantDetail();
-    }
-  }, [isFocused, tenantId]);
-
-  const fetchTenantDetail = async () => {
+  const fetchTenantDetail = React.useCallback(async () => {
     try {
       setLoading(true);
       const docRef = doc(db, 'tenants', tenantId);
@@ -76,7 +71,13 @@ export const TenantDetail: React.FC = () => {
     } finally {
       setLoading(false);
     }
-  };
+  }, [tenantId, navigation]);
+
+  React.useEffect(() => {
+    if (isFocused && tenantId) {
+      fetchTenantDetail();
+    }
+  }, [isFocused, tenantId, fetchTenantDetail]);
 
   const openTransferModal = async () => {
     setShowTransferModal(true);
@@ -339,14 +340,14 @@ export const TenantDetail: React.FC = () => {
               {tenant.cccdFront ? (
                 <View style={styles.imageWrapper}>
                   <Text style={styles.imageLabel}>Mặt trước</Text>
-                  <Image source={{ uri: tenant.cccdFront }} style={styles.cccdImage} resizeMode="contain" />
+                  <Image source={{ uri: tenant.cccdFront }} style={styles.cccdImage} contentFit="contain" />
                 </View>
               ) : null}
 
               {tenant.cccdBack ? (
                 <View style={styles.imageWrapper}>
                   <Text style={styles.imageLabel}>Mặt sau</Text>
-                  <Image source={{ uri: tenant.cccdBack }} style={styles.cccdImage} resizeMode="contain" />
+                  <Image source={{ uri: tenant.cccdBack }} style={styles.cccdImage} contentFit="contain" />
                 </View>
               ) : null}
             </View>
