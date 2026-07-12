@@ -1,7 +1,7 @@
 import React from 'react';
 import {
   View, Text, StyleSheet, Pressable, ScrollView,
-  TextInput, ActivityIndicator, Alert, Image
+  TextInput, ActivityIndicator, Alert, FlatList
 } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
 import { MaterialIcons } from '@expo/vector-icons';
@@ -10,6 +10,7 @@ import { theme } from '../theme';
 import * as ImagePicker from 'expo-image-picker';
 import { collection, addDoc, getDocs, query, where, orderBy, doc, updateDoc } from 'firebase/firestore';
 import { db, auth } from '../firebase';
+import { Image } from 'expo-image';
 
 interface Building {
   id: string;
@@ -29,10 +30,32 @@ interface Tenant {
   phoneNumber: string;
   buildingId?: string;
   roomId?: string;
-  notes?: string;
   cccdFront?: string;
   cccdBack?: string;
+  dob?: string;
+  gender?: string;
+  detailAddress?: string;
+  ward?: string;
+  district?: string;
+  province?: string;
 }
+
+const calculateEndDate = (startDateStr: string, monthsToAdd: number) => {
+  const parts = startDateStr.split('/');
+  if (parts.length === 3) {
+    const [dd, mm, yyyy] = parts.map(Number);
+    const start = new Date(yyyy, mm - 1, dd);
+    if (!isNaN(start.getTime())) {
+      const end = new Date(start);
+      end.setMonth(end.getMonth() + monthsToAdd);
+      const ddOut = String(end.getDate()).padStart(2, '0');
+      const mmOut = String(end.getMonth() + 1).padStart(2, '0');
+      const yyyyOut = end.getFullYear();
+      return `${ddOut}/${mmOut}/${yyyyOut}`;
+    }
+  }
+  return startDateStr;
+};
 
 const CYCLES = ['1 tháng', '2 tháng', '3 tháng', '6 tháng', '12 tháng'];
 
@@ -57,27 +80,22 @@ const parseDate = (dateStr: string) => {
 export const CreateContract: React.FC = () => {
   const navigation = useNavigation<any>();
 
-  // ── Loading / Saving ───────────────────────────────────────────────────────
   const [loadingBuildings, setLoadingBuildings] = React.useState(true);
   const [loadingRooms, setLoadingRooms] = React.useState(false);
   const [saving, setSaving] = React.useState(false);
 
-  // ── Tenant Selection ───────────────────────────────────────────────────────
   const [tenants, setTenants] = React.useState<Tenant[]>([]);
   const [selectedTenant, setSelectedTenant] = React.useState<Tenant | null>(null);
   const [showTenantDropdown, setShowTenantDropdown] = React.useState(false);
   const [tenantSearch, setTenantSearch] = React.useState('');
 
-  // ── Tenant Information ─────────────────────────────────────────────────────
   const [fullName, setFullName] = React.useState('');
   const [phoneNumber, setPhoneNumber] = React.useState('');
   const [addressNote, setAddressNote] = React.useState('');
 
-  // ── CCCD Photos (Base64 Picker) ────────────────────────────────────────────
   const [cccdFront, setCccdFront] = React.useState<string | null>(null);
   const [cccdBack, setCccdBack] = React.useState<string | null>(null);
 
-  // ── Contract Information ───────────────────────────────────────────────────
   const [buildings, setBuildings] = React.useState<Building[]>([]);
   const [rooms, setRooms] = React.useState<Room[]>([]);
 
@@ -87,8 +105,8 @@ export const CreateContract: React.FC = () => {
   const [selectedRoom, setSelectedRoom] = React.useState<Room | null>(null);
   const [showRoomDropdown, setShowRoomDropdown] = React.useState(false);
 
-  const [startDate, setStartDate] = React.useState(formatDate(new Date()));
-  const [signDate] = React.useState(formatDate(new Date()));
+  const [startDate, setStartDate] = React.useState(() => formatDate(new Date()));
+  const [signDate] = React.useState(() => formatDate(new Date()));
   const [endDate, setEndDate] = React.useState('');
   const [rentPrice, setRentPrice] = React.useState('');
   const [depositPrice, setDepositPrice] = React.useState('');
@@ -96,40 +114,22 @@ export const CreateContract: React.FC = () => {
   const [selectedCycle, setSelectedCycle] = React.useState('1 tháng');
   const [showCycleDropdown, setShowCycleDropdown] = React.useState(false);
   const [collectionDay, setCollectionDay] = React.useState('05');
-  const [paidUntilDate, setPaidUntilDate] = React.useState('12/08/2026');
+  const [paidUntilDate, setPaidUntilDate] = React.useState(() => formatDate(new Date()));
 
-  // Date picker states
   const [showStartDatePicker, setShowStartDatePicker] = React.useState(false);
   const [showEndDatePicker, setShowEndDatePicker] = React.useState(false);
   const [showPaidDatePicker, setShowPaidDatePicker] = React.useState(false);
 
-  // Term Selection
-  const [contractTerm, setContractTerm] = React.useState<number>(12); // Default to 12 months (1 year)
+  const [contractTerm, setContractTerm] = React.useState<number>(12);
   const [showTermDropdown, setShowTermDropdown] = React.useState(false);
 
-  const calculateEndDate = (startDateStr: string, monthsToAdd: number) => {
-    const parts = startDateStr.split('/');
-    if (parts.length === 3) {
-      const [dd, mm, yyyy] = parts.map(Number);
-      const start = new Date(yyyy, mm - 1, dd);
-      if (!isNaN(start.getTime())) {
-        const end = new Date(start);
-        end.setMonth(end.getMonth() + monthsToAdd);
-        const ddOut = String(end.getDate()).padStart(2, '0');
-        const mmOut = String(end.getMonth() + 1).padStart(2, '0');
-        const yyyyOut = end.getFullYear();
-        return `${ddOut}/${mmOut}/${yyyyOut}`;
-      }
+  const updateContractTerm = (term: number) => {
+    setContractTerm(term);
+    if (term !== 0) {
+      setEndDate(calculateEndDate(startDate, term));
     }
-    return startDateStr;
+    setShowTermDropdown(false);
   };
-
-  React.useEffect(() => {
-    if (contractTerm !== 0) {
-      const calculated = calculateEndDate(startDate, contractTerm);
-      setEndDate(calculated);
-    }
-  }, [startDate, contractTerm]);
 
   React.useEffect(() => {
     fetchBuildings();
@@ -145,7 +145,6 @@ export const CreateContract: React.FC = () => {
         phoneNumber: doc.data().phoneNumber || '',
         buildingId: doc.data().buildingId,
         roomId: doc.data().roomId,
-        notes: doc.data().notes,
         cccdFront: doc.data().cccdFront,
         cccdBack: doc.data().cccdBack,
       }));
@@ -161,10 +160,6 @@ export const CreateContract: React.FC = () => {
       const snap = await getDocs(query(collection(db, 'buildings'), orderBy('name')));
       const list = snap.docs.map((d) => ({ id: d.id, name: d.data().name }));
       setBuildings(list);
-      if (list.length > 0) {
-        setSelectedBuilding(list[0]);
-        fetchRooms(list[0].id);
-      }
     } catch (err) {
       console.error('Error fetching buildings:', err);
     } finally {
@@ -175,7 +170,6 @@ export const CreateContract: React.FC = () => {
   const fetchRooms = async (buildingId: string) => {
     try {
       setLoadingRooms(true);
-      setSelectedRoom(null);
       const snap = await getDocs(
         query(collection(db, 'rooms'), where('buildingId', '==', buildingId), orderBy('code'))
       );
@@ -186,13 +180,6 @@ export const CreateContract: React.FC = () => {
         status: d.data().status,
       }));
       setRooms(list);
-      if (list.length > 0) {
-        setSelectedRoom(list[0]);
-        if (list[0].price) {
-          setRentPrice(list[0].price.toString());
-          setDepositPrice(list[0].price.toString());
-        }
-      }
       return list;
     } catch (err) {
       console.error('Error fetching rooms:', err);
@@ -202,33 +189,13 @@ export const CreateContract: React.FC = () => {
     }
   };
 
-  // ── Tenant Dropdown Selection Handlers ─────────────────────────────────────
   const handleSelectTenant = async (t: Tenant) => {
     setSelectedTenant(t);
     setShowTenantDropdown(false);
     setFullName(t.fullName);
     setPhoneNumber(t.phoneNumber);
-    setAddressNote(t.notes || '');
     setCccdFront(t.cccdFront || null);
     setCccdBack(t.cccdBack || null);
-
-    if (t.buildingId) {
-      const bMatch = buildings.find(b => b.id === t.buildingId);
-      if (bMatch) {
-        setSelectedBuilding(bMatch);
-        const fetchedRooms = await fetchRooms(t.buildingId);
-        if (t.roomId) {
-          const rMatch = fetchedRooms.find(r => r.id === t.roomId);
-          if (rMatch) {
-            setSelectedRoom(rMatch);
-            if (rMatch.price) {
-              setRentPrice(rMatch.price.toString());
-              setDepositPrice(rMatch.price.toString());
-            }
-          }
-        }
-      }
-    }
   };
 
   const handleClearTenantSelection = () => {
@@ -236,7 +203,6 @@ export const CreateContract: React.FC = () => {
     setShowTenantDropdown(false);
     setFullName('');
     setPhoneNumber('');
-    setAddressNote('');
     setCccdFront(null);
     setCccdBack(null);
   };
@@ -250,7 +216,6 @@ export const CreateContract: React.FC = () => {
     );
   }, [tenants, tenantSearch]);
 
-  // ── Photo Upload Logic ─────────────────────────────────────────────────────
   const pickCccdImage = async (side: 'front' | 'back') => {
     Alert.alert(
       'Chọn ảnh CCCD',
@@ -320,7 +285,6 @@ export const CreateContract: React.FC = () => {
     }
   };
 
-  // ── Save contract and link to tenant ──────────────────────────────────────
   const handleSave = async () => {
     if (!fullName.trim()) {
       Alert.alert('Thông báo', 'Vui lòng nhập hoặc chọn họ và tên khách thuê.');
@@ -344,7 +308,6 @@ export const CreateContract: React.FC = () => {
       const parsedRent = Number(rentPrice.replace(/[^0-9]/g, '')) || 0;
       const parsedDeposit = Number(depositPrice.replace(/[^0-9]/g, '')) || 0;
 
-      // 1. Save Contract doc
       const contractData = {
         tenantName: fullName.trim(),
         phoneNumber: phoneNumber.trim(),
@@ -368,9 +331,7 @@ export const CreateContract: React.FC = () => {
       
       const contractRef = await addDoc(collection(db, 'contracts'), contractData);
 
-      // 2. Register or update the tenant record
       if (selectedTenant) {
-        // Update existing tenant
         const tenantRef = doc(db, 'tenants', selectedTenant.id);
         await updateDoc(tenantRef, {
           buildingId: selectedBuilding.id,
@@ -380,21 +341,15 @@ export const CreateContract: React.FC = () => {
           moveInDate: startDate,
           contractEndDate: endDate,
           contractId: contractRef.id,
-          notes: addressNote.trim(),
           cccdFront: cccdFront ?? selectedTenant.cccdFront ?? '',
           cccdBack: cccdBack ?? selectedTenant.cccdBack ?? '',
         });
       } else {
-        // Register new tenant
         const tenantData = {
           fullName: fullName.trim(),
           phoneNumber: phoneNumber.trim(),
-          email: '',
-          dob: '',
-          cccd: '',
           cccdFront: cccdFront ?? '',
           cccdBack: cccdBack ?? '',
-          gender: 'Nam',
           buildingId: selectedBuilding.id,
           buildingName: selectedBuilding.name,
           roomId: selectedRoom.id,
@@ -402,10 +357,6 @@ export const CreateContract: React.FC = () => {
           moveInDate: startDate,
           contractEndDate: endDate,
           contractId: contractRef.id,
-          notes: addressNote.trim(),
-          sendInvite: false,
-          receiveNotif: true,
-          primaryContact: true,
           status: 'active',
           createdAt: new Date(),
           createdBy: auth.currentUser?.uid || 'system',
@@ -413,11 +364,10 @@ export const CreateContract: React.FC = () => {
         await addDoc(collection(db, 'tenants'), tenantData);
       }
 
-      // 3. Mark room status as occupied
       const roomRef = doc(db, 'rooms', selectedRoom.id);
       await updateDoc(roomRef, {
         status: 'occupied',
-        price: parsedRent, // update price with negotiated rent
+        price: parsedRent,
       });
 
       Alert.alert('Thành công', 'Đã tạo hợp đồng và lưu thông tin cư dân thành công!');
@@ -432,7 +382,6 @@ export const CreateContract: React.FC = () => {
 
   return (
     <View style={styles.container}>
-      {/* Header */}
       <View style={styles.header}>
         <Pressable onPress={() => navigation.goBack()} style={styles.backButton}>
           <MaterialIcons name="arrow-back" size={24} color={theme.colors.onSurface} />
@@ -443,14 +392,11 @@ export const CreateContract: React.FC = () => {
 
       <ScrollView contentContainerStyle={styles.scrollContent} keyboardShouldPersistTaps="handled">
         <View style={styles.form}>
-          
-          {/* Section 1: Thông tin khách thuê */}
           <View style={styles.sectionHeader}>
             <MaterialIcons name="person-outline" size={22} color={theme.colors.onSurface} />
             <Text style={styles.sectionTitle}>Thông tin khách thuê</Text>
           </View>
 
-          {/* Searchable Tenant Dropdown */}
           <Text style={styles.label}>Chọn từ cư dân hiện tại (Tùy chọn)</Text>
           <View style={{ zIndex: 50, marginBottom: 12 }}>
             <Pressable onPress={() => setShowTenantDropdown(!showTenantDropdown)} style={styles.dropdownButton}>
@@ -471,17 +417,18 @@ export const CreateContract: React.FC = () => {
                     onChangeText={setTenantSearch}
                   />
                 </View>
-                {filteredTenants.length === 0 ? (
-                  <Text style={styles.emptyDropdownText}>Không tìm thấy cư dân</Text>
-                ) : (
-                  <ScrollView style={{ maxHeight: 180 }}>
-                    {filteredTenants.map((t) => (
-                      <Pressable key={t.id} style={styles.dropdownItem} onPress={() => handleSelectTenant(t)}>
+                <FlatList
+                    style={{ maxHeight: 180 }}
+                    nestedScrollEnabled
+                    data={filteredTenants}
+                    keyExtractor={(t) => t.id}
+                    keyboardShouldPersistTaps="handled"
+                    renderItem={({ item: t }) => (
+                      <Pressable style={styles.dropdownItem} onPress={() => handleSelectTenant(t)}>
                         <Text style={styles.dropdownItemText}>{t.fullName} ({t.phoneNumber})</Text>
                       </Pressable>
-                    ))}
-                  </ScrollView>
-                )}
+                    )}
+                />
                 {selectedTenant && (
                   <Pressable
                     style={[styles.dropdownItem, { borderTopWidth: 1, borderTopColor: '#e2e8f0', backgroundColor: '#fef2f2' }]}
@@ -497,166 +444,70 @@ export const CreateContract: React.FC = () => {
           </View>
 
           <Text style={styles.label}>Họ và tên *</Text>
-          <TextInput
-            style={styles.textInput}
-            placeholder="Nhập họ và tên"
-            value={fullName}
-            onChangeText={setFullName}
-            editable={!selectedTenant}
-          />
+          <TextInput style={styles.textInput} placeholder="Nhập họ và tên" value={fullName} onChangeText={setFullName} editable={!selectedTenant} />
 
           <Text style={[styles.label, { marginTop: 14 }]}>Số điện thoại *</Text>
-          <TextInput
-            style={styles.textInput}
-            placeholder="09xx xxx xxx"
-            keyboardType="phone-pad"
-            value={phoneNumber}
-            onChangeText={setPhoneNumber}
-            editable={!selectedTenant}
-          />
+          <TextInput style={styles.textInput} placeholder="09xx xxx xxx" keyboardType="phone-pad" value={phoneNumber} onChangeText={setPhoneNumber} editable={!selectedTenant} />
 
           <Text style={[styles.label, { marginTop: 14 }]}>Địa chỉ / Ghi chú</Text>
-          <TextInput
-            style={[styles.textInput, styles.textArea]}
-            placeholder="Nhập địa chỉ hoặc ghi chú (tùy chọn)"
-            value={addressNote}
-            onChangeText={setAddressNote}
-            multiline
-            numberOfLines={3}
-          />
+          <TextInput style={[styles.textInput, styles.textArea]} placeholder="Nhập địa chỉ hoặc ghi chú" value={addressNote} onChangeText={setAddressNote} multiline numberOfLines={3} />
 
-          {/* Section 2: Căn cước công dân */}
           <View style={[styles.sectionHeader, { marginTop: 24 }]}>
             <MaterialIcons name="credit-card" size={22} color={theme.colors.onSurface} />
             <Text style={styles.sectionTitle}>Căn cước công dân</Text>
           </View>
 
           <View style={styles.row}>
-            {/* Front */}
             <Pressable style={styles.photoUploadCard} onPress={() => pickCccdImage('front')}>
-              {cccdFront ? (
-                <>
-                  <Image source={{ uri: cccdFront }} style={styles.cccdPreview} resizeMode="cover" />
-                  <View style={styles.cccdOverlay}>
-                    <MaterialIcons name="edit" size={18} color="#fff" />
-                    <Text style={styles.cccdOverlayText}>Đổi ảnh</Text>
-                  </View>
-                </>
-              ) : (
-                <>
-                  <View style={styles.photoPlaceholderCircle}>
-                    <MaterialIcons name="add-a-photo" size={22} color={theme.colors.primary} />
-                  </View>
-                  <Text style={styles.photoUploadTitle}>Mặt trước CCCD</Text>
-                  <Text style={styles.photoUploadSub}>Nhấn để chụp hoặc tải lên</Text>
-                </>
-              )}
+              {cccdFront ? <Image source={{ uri: cccdFront }} style={styles.cccdPreview} /> : <View style={styles.photoPlaceholderCircle}><MaterialIcons name="add-a-photo" size={22} color={theme.colors.primary} /></View>}
             </Pressable>
-
-            {/* Back */}
             <Pressable style={styles.photoUploadCard} onPress={() => pickCccdImage('back')}>
-              {cccdBack ? (
-                <>
-                  <Image source={{ uri: cccdBack }} style={styles.cccdPreview} resizeMode="cover" />
-                  <View style={styles.cccdOverlay}>
-                    <MaterialIcons name="edit" size={18} color="#fff" />
-                    <Text style={styles.cccdOverlayText}>Đổi ảnh</Text>
-                  </View>
-                </>
-              ) : (
-                <>
-                  <View style={styles.photoPlaceholderCircle}>
-                    <MaterialIcons name="add-a-photo" size={22} color={theme.colors.primary} />
-                  </View>
-                  <Text style={styles.photoUploadTitle}>Mặt sau CCCD</Text>
-                  <Text style={styles.photoUploadSub}>Nhấn để chụp hoặc tải lên</Text>
-                </>
-              )}
+              {cccdBack ? <Image source={{ uri: cccdBack }} style={styles.cccdPreview} /> : <View style={styles.photoPlaceholderCircle}><MaterialIcons name="add-a-photo" size={22} color={theme.colors.primary} /></View>}
             </Pressable>
           </View>
 
-          {/* Section 3: Thông tin phòng & hợp đồng */}
           <View style={[styles.sectionHeader, { marginTop: 24 }]}>
             <MaterialIcons name="domain" size={22} color={theme.colors.onSurface} />
             <Text style={styles.sectionTitle}>Thông tin phòng & Hợp đồng</Text>
           </View>
 
-          {/* Building Dropdown */}
           <Text style={styles.label}>Tòa nhà</Text>
-          {loadingBuildings ? (
-            <ActivityIndicator size="small" color={theme.colors.primary} style={{ alignSelf: 'flex-start', marginVertical: 8 }} />
-          ) : (
-            <View style={{ zIndex: 30, marginBottom: 12 }}>
-              <Pressable onPress={() => setShowBuildingDropdown(!showBuildingDropdown)} style={styles.dropdownButton}>
-                <Text style={styles.dropdownButtonText}>{selectedBuilding?.name || 'Chọn tòa nhà'}</Text>
-                <MaterialIcons name="keyboard-arrow-down" size={24} color="#a1a1aa" />
-              </Pressable>
-              {showBuildingDropdown && (
-                <View style={styles.dropdown}>
-                  {buildings.map((b) => (
-                    <Pressable key={b.id} style={styles.dropdownItem} onPress={() => handleSelectBuilding(b)}>
-                      <Text style={styles.dropdownItemText}>{b.name}</Text>
-                    </Pressable>
-                  ))}
-                </View>
-              )}
-            </View>
-          )}
+          <View style={{ zIndex: 30, marginBottom: 12 }}>
+            <Pressable onPress={() => setShowBuildingDropdown(!showBuildingDropdown)} style={styles.dropdownButton}>
+              <Text style={styles.dropdownButtonText}>{selectedBuilding?.name || 'Chọn tòa nhà'}</Text>
+              <MaterialIcons name="keyboard-arrow-down" size={24} color="#a1a1aa" />
+            </Pressable>
+            {showBuildingDropdown && (
+              <View style={styles.dropdown}>
+                <FlatList data={buildings} keyExtractor={(b) => b.id} renderItem={({item}) => <Pressable style={styles.dropdownItem} onPress={() => handleSelectBuilding(item)}><Text style={styles.dropdownItemText}>{item.name}</Text></Pressable>} />
+              </View>
+            )}
+          </View>
 
-          {/* Room Dropdown */}
           <Text style={styles.label}>Phòng / Căn hộ</Text>
-          {loadingRooms ? (
-            <ActivityIndicator size="small" color={theme.colors.primary} style={{ alignSelf: 'flex-start', marginVertical: 8 }} />
-          ) : (
-            <View style={{ zIndex: 20, marginBottom: 12 }}>
-              <Pressable onPress={() => setShowRoomDropdown(!showRoomDropdown)} style={styles.dropdownButton}>
-                <Text style={styles.dropdownButtonText}>{selectedRoom?.code || 'Chọn phòng'}</Text>
-                <MaterialIcons name="keyboard-arrow-down" size={24} color="#a1a1aa" />
-              </Pressable>
-              {showRoomDropdown && (
-                <View style={styles.dropdown}>
-                  {rooms.length === 0 ? (
-                    <Text style={styles.emptyDropdown}>Chưa có phòng nào</Text>
-                  ) : (
-                    rooms.map((r) => (
-                      <Pressable key={r.id} style={styles.dropdownItem} onPress={() => handleSelectRoom(r)}>
-                        <Text style={styles.dropdownItemText}>
-                          Phòng {r.code} {r.status === 'occupied' ? '👥 (Đang ở)' : '🟢 (Trống)'}
-                        </Text>
-                      </Pressable>
-                    ))
-                  )}
-                </View>
-              )}
-            </View>
-          )}
+          <View style={{ zIndex: 20, marginBottom: 12 }}>
+            <Pressable onPress={() => setShowRoomDropdown(!showRoomDropdown)} style={styles.dropdownButton}>
+              <Text style={styles.dropdownButtonText}>{selectedRoom?.code || 'Chọn phòng'}</Text>
+              <MaterialIcons name="keyboard-arrow-down" size={24} color="#a1a1aa" />
+            </Pressable>
+            {showRoomDropdown && (
+              <View style={styles.dropdown}>
+                <FlatList data={rooms} keyExtractor={(r) => r.id} renderItem={({item}) => <Pressable style={styles.dropdownItem} onPress={() => handleSelectRoom(item)}><Text style={styles.dropdownItemText}>Phòng {item.code}</Text></Pressable>} />
+              </View>
+            )}
+          </View>
 
-          {/* Dates & Rates */}
           <Text style={[styles.label, { marginTop: 14 }]}>Ngày bắt đầu hợp đồng</Text>
           <Pressable onPress={() => setShowStartDatePicker(true)} style={styles.dropdownButton}>
-            <Text style={styles.dropdownButtonText}>{startDate || 'Chọn ngày bắt đầu'}</Text>
+            <Text style={styles.dropdownButtonText}>{startDate}</Text>
             <MaterialIcons name="calendar-today" size={20} color="#a1a1aa" />
           </Pressable>
-          {showStartDatePicker && (
-            <DateTimePicker
-              value={parseDate(startDate)}
-              mode="date"
-              display="default"
-              onChange={(event, selectedDate) => {
-                setShowStartDatePicker(false);
-                if (selectedDate) {
-                  setStartDate(formatDate(selectedDate));
-                }
-              }}
-            />
-          )}
+          {showStartDatePicker && <DateTimePicker value={parseDate(startDate)} mode="date" onChange={(e, d) => { setShowStartDatePicker(false); if(d) { const s = formatDate(d); setStartDate(s); if(contractTerm !== 0) setEndDate(calculateEndDate(s, contractTerm)); }}} />}
 
           <Text style={[styles.label, { marginTop: 14 }]}>Thời hạn hợp đồng</Text>
           <View style={{ zIndex: 10 }}>
             <Pressable onPress={() => setShowTermDropdown(!showTermDropdown)} style={styles.dropdownButton}>
-              <Text style={styles.dropdownButtonText}>
-                {contractTerm === 6 ? '6 tháng' : contractTerm === 12 ? '12 tháng (1 năm)' : contractTerm === 24 ? '24 tháng (2 năm)' : 'Tùy chọn (Tự chọn ngày)'}
-              </Text>
+              <Text style={styles.dropdownButtonText}>{contractTerm === 6 ? '6 tháng' : contractTerm === 12 ? '12 tháng (1 năm)' : contractTerm === 24 ? '24 tháng (2 năm)' : 'Tự chọn ngày kết thúc'}</Text>
               <MaterialIcons name="keyboard-arrow-down" size={24} color="#a1a1aa" />
             </Pressable>
             {showTermDropdown && (
