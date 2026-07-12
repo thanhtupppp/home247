@@ -1,18 +1,20 @@
 import React from 'react';
-import { View, Text, StyleSheet, Pressable, ScrollView, TextInput, Alert, ActivityIndicator, Image } from 'react-native';
+import { View, Text, StyleSheet, Pressable, ScrollView, TextInput, Alert, ActivityIndicator, FlatList } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
 import { MaterialIcons } from '@expo/vector-icons';
 import { theme } from '../theme';
 import { doc, getDoc, setDoc } from 'firebase/firestore';
 import { db, auth } from '../firebase';
+import { Image } from 'expo-image';
 
 export const AddBankAccount: React.FC = () => {
   const navigation = useNavigation<any>();
 
   const [selectedBank, setSelectedBank] = React.useState('');
   const [selectedBankLogo, setSelectedBankLogo] = React.useState('');
-  const [selectedBankCode, setSelectedBankCode] = React.useState('');
-  const [selectedBankBin, setSelectedBankBin] = React.useState('');
+  
+  const selectedBankCodeRef = React.useRef('');
+  const selectedBankBinRef = React.useRef('');
   
   const [showBankDropdown, setShowBankDropdown] = React.useState(false);
   const [accountNumber, setAccountNumber] = React.useState('');
@@ -21,7 +23,7 @@ export const AddBankAccount: React.FC = () => {
   const [loading, setLoading] = React.useState(true);
   const [saving, setSaving] = React.useState(false);
 
-  const [banksList, setBanksList] = React.useState<any[]>([]);
+  const banksListRef = React.useRef<any[]>([]);
   const [filteredBanks, setFilteredBanks] = React.useState<any[]>([]);
   const [searchQuery, setSearchQuery] = React.useState('');
 
@@ -35,7 +37,7 @@ export const AddBankAccount: React.FC = () => {
       const response = await fetch('https://api.vietqr.io/v2/banks');
       const json = await response.json();
       if (json.code === '00' && json.data) {
-        setBanksList(json.data);
+        banksListRef.current = json.data;
         setFilteredBanks(json.data);
       }
     } catch (error) {
@@ -45,18 +47,15 @@ export const AddBankAccount: React.FC = () => {
 
   const handleSearch = (text: string) => {
     setSearchQuery(text);
-    if (!text) {
-      setFilteredBanks(banksList);
-      return;
+    if (text.trim() === '') {
+      setFilteredBanks(banksListRef.current);
+    } else {
+      const filtered = banksListRef.current.filter((b) =>
+        b.name.toLowerCase().includes(text.toLowerCase()) ||
+        b.short_name.toLowerCase().includes(text.toLowerCase())
+      );
+      setFilteredBanks(filtered);
     }
-    const query = text.toLowerCase();
-    const filtered = banksList.filter(
-      (b) =>
-        (b.short_name && b.short_name.toLowerCase().includes(query)) ||
-        (b.name && b.name.toLowerCase().includes(query)) ||
-        (b.code && b.code.toLowerCase().includes(query))
-    );
-    setFilteredBanks(filtered);
   };
 
   const loadBankData = async () => {
@@ -74,8 +73,8 @@ export const AddBankAccount: React.FC = () => {
         if (data.bankAccount) {
           setSelectedBank(data.bankAccount.bankName || '');
           setSelectedBankLogo(data.bankAccount.logo || '');
-          setSelectedBankCode(data.bankAccount.bankCode || '');
-          setSelectedBankBin(data.bankAccount.bin || '');
+          selectedBankCodeRef.current = data.bankAccount.bankCode || '';
+          selectedBankBinRef.current = data.bankAccount.bin || '';
           setAccountNumber(data.bankAccount.accountNumber || '');
           setBranch(data.bankAccount.branch || '');
           setOwnerName(data.bankAccount.ownerName || '');
@@ -109,8 +108,8 @@ export const AddBankAccount: React.FC = () => {
         {
           bankAccount: {
             bankName: selectedBank,
-            bankCode: selectedBankCode,
-            bin: selectedBankBin,
+            bankCode: selectedBankCodeRef.current,
+            bin: selectedBankBinRef.current,
             logo: selectedBankLogo,
             accountNumber,
             branch,
@@ -186,16 +185,20 @@ export const AddBankAccount: React.FC = () => {
                   onChangeText={handleSearch}
                 />
               </View>
-              <ScrollView style={{ maxHeight: 250 }} nestedScrollEnabled>
-                {filteredBanks.map((b) => (
+              <FlatList
+                style={{ maxHeight: 250 }}
+                nestedScrollEnabled
+                data={filteredBanks}
+                keyExtractor={(item) => item.bin}
+                keyboardShouldPersistTaps="handled"
+                renderItem={({ item: b }) => (
                   <Pressable
-                    key={b.bin}
                     style={styles.dropdownItem}
                     onPress={() => {
                       setSelectedBank(b.short_name);
                       setSelectedBankLogo(b.logo);
-                      setSelectedBankCode(b.code);
-                      setSelectedBankBin(b.bin);
+                      selectedBankCodeRef.current = b.code;
+                      selectedBankBinRef.current = b.bin;
                       setShowBankDropdown(false);
                     }}
                   >
@@ -205,11 +208,11 @@ export const AddBankAccount: React.FC = () => {
                       <Text style={styles.bankItemFullName} numberOfLines={1}>{b.name}</Text>
                     </View>
                   </Pressable>
-                ))}
-                {filteredBanks.length === 0 && (
-                  <Text style={styles.emptySearchText}>Không tìm thấy ngân hàng nào</Text>
                 )}
-              </ScrollView>
+                ListEmptyComponent={
+                  <Text style={styles.emptySearchText}>Không tìm thấy ngân hàng nào</Text>
+                }
+              />
             </View>
           )}
 
