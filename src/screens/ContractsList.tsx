@@ -176,7 +176,11 @@ export const ContractsList: React.FC = () => {
         ) : (
           <View style={styles.listContainer}>
             {filteredContracts.map((c) => (
-              <View key={c.id} style={styles.itemCard}>
+              <Pressable 
+                key={c.id} 
+                style={styles.itemCard}
+                onPress={() => navigation.navigate('hop-dong/chi-tiet', { contractId: c.id })}
+              >
                 <View style={styles.cardHeaderRow}>
                   <Text style={styles.itemTitle}>Phòng {c.roomCode}</Text>
                   <View
@@ -209,7 +213,7 @@ export const ContractsList: React.FC = () => {
                     Thời hạn: <Text style={styles.gridValue}>{c.startDate} - {c.endDate}</Text>
                   </Text>
                 </View>
-              </View>
+              </Pressable>
             ))}
           </View>
         )}

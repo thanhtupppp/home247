@@ -33,6 +33,7 @@ import LoginScreen from './src/screens/LoginScreen';
 
 
 import RoomDetail from './src/screens/RoomDetail';
+import ContractDetail from './src/screens/ContractDetail';
 
 
 const Stack = createNativeStackNavigator();
@@ -130,6 +131,7 @@ export function App() {
           <Stack.Screen name="phong/id" component={RoomDetail} />
 
           <Stack.Screen name="hop-dong" component={ContractsList} />
+          <Stack.Screen name="hop-dong/chi-tiet" component={ContractDetail} />
 
           <Stack.Screen name="hop-dong/loc">
             {() => (
