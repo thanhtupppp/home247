@@ -1,5 +1,5 @@
 import React from 'react';
-import { View, Text, StyleSheet, ScrollView, Pressable, TextInput } from 'react-native';
+import { View, Text, StyleSheet, ScrollView, Pressable, TextInput, FlatList } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
 import { MaterialIcons } from '@expo/vector-icons';
 import { theme } from '../theme';
@@ -49,22 +49,26 @@ export const ContractsList: React.FC = () => {
 
       {/* Filter Pills */}
       <View style={styles.pillsContainer}>
-        <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.pillsScroll}>
-          {FILTERS.map((filter) => {
-            const isActive = activeFilter === filter.key;
+        <FlatList
+          horizontal
+          showsHorizontalScrollIndicator={false}
+          contentContainerStyle={styles.pillsScroll}
+          data={FILTERS}
+          keyExtractor={(item) => item.key}
+          renderItem={({ item }) => {
+            const isActive = activeFilter === item.key;
             return (
               <Pressable
-                key={filter.key}
                 style={[styles.pill, isActive && styles.pillActive]}
-                onPress={() => setActiveFilter(filter.key)}
+                onPress={() => setActiveFilter(item.key)}
               >
                 <Text style={[styles.pillText, isActive && styles.pillTextActive]}>
-                  {filter.label}
+                  {item.label}
                 </Text>
               </Pressable>
             );
-          })}
-        </ScrollView>
+          }}
+        />
       </View>
 
       {/* Empty State */}

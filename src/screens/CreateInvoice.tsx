@@ -4,6 +4,10 @@ import { useNavigation, useRoute } from '@react-navigation/native';
 import { MaterialIcons } from '@expo/vector-icons';
 import { theme } from '../theme';
 
+const BUILDINGS = ['nơ trang long', 'Home247 Landmark', 'Home247 Riverside'];
+const ROOMS = ['p1', 'p2', 'p3', 'p4', 'p5'];
+const MONTHS = ['Tháng 6 2026', 'Tháng 7 2026', 'Tháng 8 2026'];
+
 export const CreateInvoice: React.FC = () => {
   const navigation = useNavigation();
   const route = useRoute<any>();
@@ -21,10 +25,6 @@ export const CreateInvoice: React.FC = () => {
   const [includeMeter, setIncludeMeter] = React.useState(true);
   const [showMonthDropdown, setShowMonthDropdown] = React.useState(false);
   const [selectedMonth, setSelectedMonth] = React.useState('Tháng 7 2026');
-
-  const buildings = ['nơ trang long', 'Home247 Landmark', 'Home247 Riverside'];
-  const rooms = ['p1', 'p2', 'p3', 'p4', 'p5'];
-  const months = ['Tháng 6 2026', 'Tháng 7 2026', 'Tháng 8 2026'];
 
   return (
     <View style={styles.container}>
@@ -47,7 +47,7 @@ export const CreateInvoice: React.FC = () => {
           </Pressable>
           {showBuildingDropdown && (
             <View style={styles.dropdown}>
-              {buildings.map((b) => (
+              {BUILDINGS.map((b) => (
                 <Pressable key={b} style={styles.dropdownItem} onPress={() => { setSelectedBuilding(b); setShowBuildingDropdown(false); }}>
                   <Text style={styles.dropdownItemText}>{b}</Text>
                 </Pressable>
@@ -63,7 +63,7 @@ export const CreateInvoice: React.FC = () => {
           </Pressable>
           {showRoomDropdown && (
             <View style={styles.dropdown}>
-              {rooms.map((r) => (
+              {ROOMS.map((r) => (
                 <Pressable key={r} style={styles.dropdownItem} onPress={() => { setSelectedRoom(r); setShowRoomDropdown(false); }}>
                   <Text style={styles.dropdownItemText}>{r}</Text>
                 </Pressable>
@@ -160,7 +160,7 @@ export const CreateInvoice: React.FC = () => {
               </Pressable>
               {showMonthDropdown && (
                 <View style={styles.dropdown}>
-                  {months.map((m) => (
+                  {MONTHS.map((m) => (
                     <Pressable key={m} style={styles.dropdownItem} onPress={() => { setSelectedMonth(m); setShowMonthDropdown(false); }}>
                       <Text style={styles.dropdownItemText}>{m}</Text>
                     </Pressable>

@@ -5,21 +5,20 @@ import { MaterialIcons } from '@expo/vector-icons';
 import { theme } from '../theme';
 import { recentTransactions } from '../data/mockData';
 
+const MONTHS = ['2026', '09/2026', '10/2026', '11/2026', '12/2026'];
+const FILTERS = [
+  { key: 'all', label: 'Tất cả' },
+  { key: 'paid', label: 'Đã thu tiền' },
+  { key: 'unpaid', label: 'Chưa thu đủ' },
+] as const;
+const BUILDINGS = ['nơ trang long', 'Home247 Landmark', 'Home247 Riverside'];
+
 export const InvoicesList: React.FC = () => {
   const navigation = useNavigation<any>();
   const [selectedMonth, setSelectedMonth] = React.useState('10/2026');
   const [activeFilter, setActiveFilter] = React.useState<'all' | 'paid' | 'unpaid'>('all');
   const [selectedBuilding, setSelectedBuilding] = React.useState('nơ trang long');
   const [showBuildingDropdown, setShowBuildingDropdown] = React.useState(false);
-
-  const months = ['2026', '09/2026', '10/2026', '11/2026', '12/2026'];
-  const filters = [
-    { key: 'all', label: 'Tất cả' },
-    { key: 'paid', label: 'Đã thu tiền' },
-    { key: 'unpaid', label: 'Chưa thu đủ' },
-  ] as const;
-
-  const buildings = ['nơ trang long', 'Home247 Landmark', 'Home247 Riverside'];
 
   // Filter invoices based on selected building
   // "nơ trang long" defaults to 0 invoices as in screenshot
@@ -39,7 +38,7 @@ export const InvoicesList: React.FC = () => {
       {/* Months Selector */}
       <View style={styles.monthsContainer}>
         <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.monthsScroll}>
-          {months.map((month) => {
+          {MONTHS.map((month) => {
             const isActive = selectedMonth === month;
             return (
               <Pressable key={month} onPress={() => setSelectedMonth(month)} style={styles.monthItem}>
@@ -54,7 +53,7 @@ export const InvoicesList: React.FC = () => {
 
       {/* Filter Pills */}
       <View style={styles.pillsContainer}>
-        {filters.map((filter) => {
+        {FILTERS.map((filter) => {
           const isActive = activeFilter === filter.key;
           return (
             <Pressable
@@ -88,7 +87,7 @@ export const InvoicesList: React.FC = () => {
 
           {showBuildingDropdown && (
             <View style={styles.dropdown}>
-              {buildings.map((building) => (
+              {BUILDINGS.map((building) => (
                 <Pressable
                   key={building}
                   style={styles.dropdownItem}

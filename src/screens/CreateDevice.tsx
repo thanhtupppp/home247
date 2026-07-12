@@ -4,6 +4,9 @@ import { useNavigation } from '@react-navigation/native';
 import { MaterialIcons } from '@expo/vector-icons';
 import { theme } from '../theme';
 
+const BUILDINGS = ['nơ trang long', 'Home247 Landmark', 'Home247 Riverside'];
+const CATEGORIES = ['Gia dụng', 'Phòng tắm', 'Nội thất'];
+
 export const CreateDevice: React.FC = () => {
   const navigation = useNavigation();
 
@@ -16,9 +19,6 @@ export const CreateDevice: React.FC = () => {
   const [showCategoryDropdown, setShowCategoryDropdown] = React.useState(false);
 
   const [description, setDescription] = React.useState('');
-
-  const buildings = ['nơ trang long', 'Home247 Landmark', 'Home247 Riverside'];
-  const categories = ['Gia dụng', 'Phòng tắm', 'Nội thất'];
 
   return (
     <View style={styles.container}>
@@ -41,7 +41,7 @@ export const CreateDevice: React.FC = () => {
           </Pressable>
           {showBuildingDropdown && (
             <View style={styles.dropdown}>
-              {buildings.map((b) => (
+              {BUILDINGS.map((b) => (
                 <Pressable key={b} style={styles.dropdownItem} onPress={() => { setSelectedBuilding(b); setShowBuildingDropdown(false); }}>
                   <Text style={styles.dropdownItemText}>{b}</Text>
                 </Pressable>
@@ -69,7 +69,7 @@ export const CreateDevice: React.FC = () => {
           </Pressable>
           {showCategoryDropdown && (
             <View style={styles.dropdown}>
-              {categories.map((c) => (
+              {CATEGORIES.map((c) => (
                 <Pressable key={c} style={styles.dropdownItem} onPress={() => { setSelectedCategory(c); setShowCategoryDropdown(false); }}>
                   <Text style={styles.dropdownItemText}>{c}</Text>
                 </Pressable>

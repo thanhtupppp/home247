@@ -4,6 +4,9 @@ import { useNavigation } from '@react-navigation/native';
 import { MaterialIcons } from '@expo/vector-icons';
 import { theme } from '../theme';
 
+const BUILDINGS = ['nơ trang long', 'Home247 Landmark', 'Home247 Riverside'];
+const CALC_METHODS = ['Cố định', 'Theo người', 'Theo chỉ số đồng hồ'];
+
 export const CreateService: React.FC = () => {
   const navigation = useNavigation();
 
@@ -16,9 +19,6 @@ export const CreateService: React.FC = () => {
 
   const [unit, setUnit] = React.useState('');
   const [unitPrice, setUnitPrice] = React.useState('');
-
-  const buildings = ['nơ trang long', 'Home247 Landmark', 'Home247 Riverside'];
-  const calcMethods = ['Cố định', 'Theo người', 'Theo chỉ số đồng hồ'];
 
   return (
     <View style={styles.container}>
@@ -50,7 +50,7 @@ export const CreateService: React.FC = () => {
           </Pressable>
           {showBuildingDropdown && (
             <View style={styles.dropdown}>
-              {buildings.map((b) => (
+              {BUILDINGS.map((b) => (
                 <Pressable key={b} style={styles.dropdownItem} onPress={() => { setSelectedBuilding(b); setShowBuildingDropdown(false); }}>
                   <Text style={styles.dropdownItemText}>{b}</Text>
                 </Pressable>
@@ -66,7 +66,7 @@ export const CreateService: React.FC = () => {
           </Pressable>
           {showCalcDropdown && (
             <View style={styles.dropdown}>
-              {calcMethods.map((m) => (
+              {CALC_METHODS.map((m) => (
                 <Pressable key={m} style={styles.dropdownItem} onPress={() => { setCalcMethod(m); setShowCalcDropdown(false); }}>
                   <Text style={styles.dropdownItemText}>{m}</Text>
                 </Pressable>
