@@ -14,7 +14,7 @@ import { getProvinceNames, getWardNamesByProvinceName } from '../data/vietnamese
 const ALL_PROVINCES = getProvinceNames();
 
 interface Building { id: string; name: string; }
-interface Room { id: string; code: string; buildingId: string; }
+interface Room { id: string; code: string; buildingId: string; status?: string; }
 
 export const CreateTenant: React.FC = () => {
   const navigation = useNavigation<any>();
@@ -163,6 +163,7 @@ export const CreateTenant: React.FC = () => {
         id: d.id,
         code: d.data().code,
         buildingId: d.data().buildingId,
+        status: d.data().status,
       }));
       setRooms(list);
     } catch (err) {
@@ -489,7 +490,9 @@ export const CreateTenant: React.FC = () => {
                       ) : (
                         rooms.map((r) => (
                           <Pressable key={r.id} style={styles.dropdownItem} onPress={() => { setSelectedRoom(r); setShowRoomDropdown(false); }}>
-                            <Text style={styles.dropdownItemText}>{r.code}</Text>
+                            <Text style={styles.dropdownItemText}>
+                              Phòng {r.code} {r.status === 'occupied' ? '👥 (Đang ở)' : '🟢 (Trống)'}
+                            </Text>
                           </Pressable>
                         ))
                       )}

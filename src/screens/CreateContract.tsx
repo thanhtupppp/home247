@@ -19,6 +19,7 @@ interface Room {
   id: string;
   code: string;
   price?: number;
+  status?: string;
 }
 
 const CYCLES = ['1 tháng', '2 tháng', '3 tháng', '6 tháng', '12 tháng'];
@@ -94,6 +95,7 @@ export const CreateContract: React.FC = () => {
         id: d.id,
         code: d.data().code,
         price: d.data().price ? Number(d.data().price) : undefined,
+        status: d.data().status,
       }));
       setRooms(list);
       if (list.length > 0) {
@@ -412,7 +414,9 @@ export const CreateContract: React.FC = () => {
                   ) : (
                     rooms.map((r) => (
                       <Pressable key={r.id} style={styles.dropdownItem} onPress={() => handleSelectRoom(r)}>
-                        <Text style={styles.dropdownItemText}>{r.code}</Text>
+                        <Text style={styles.dropdownItemText}>
+                          Phòng {r.code} {r.status === 'occupied' ? '👥 (Đang ở)' : '🟢 (Trống)'}
+                        </Text>
                       </Pressable>
                     ))
                   )}
