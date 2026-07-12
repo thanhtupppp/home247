@@ -8,6 +8,22 @@ import { ref, uploadBytes, getDownloadURL, deleteObject } from 'firebase/storage
 import { db, auth, storage } from '../firebase';
 import * as ImagePicker from 'expo-image-picker';
 
+const getBlobFromUri = async (uri: string): Promise<Blob> => {
+  return new Promise((resolve, reject) => {
+    const xhr = new XMLHttpRequest();
+    xhr.onload = function () {
+      resolve(xhr.response);
+    };
+    xhr.onerror = function (e) {
+      console.error('[Blob XHR] Error reading URI:', e);
+      reject(new TypeError('Network request failed'));
+    };
+    xhr.responseType = 'blob';
+    xhr.open('GET', uri, true);
+    xhr.send(null);
+  });
+};
+
 export const SettingsScreen: React.FC = () => {
   const navigation = useNavigation<any>();
   const isFocused = useIsFocused();
@@ -25,7 +41,7 @@ export const SettingsScreen: React.FC = () => {
         return;
       }
       let result = await ImagePicker.launchImageLibraryAsync({
-        mediaTypes: ImagePicker.MediaTypeOptions.Images,
+        mediaTypes: ['images'],
         allowsEditing: true,
         aspect: [1, 1],
         quality: 0.5,
@@ -68,8 +84,7 @@ export const SettingsScreen: React.FC = () => {
       console.log('[Storage Avatar] Uploading image for UID:', uid, 'URI:', uri);
       
       // Fetch local file and convert to blob
-      const response = await fetch(uri);
-      const blob = await response.blob();
+      const blob = await getBlobFromUri(uri);
       
       // Upload to Firebase Storage
       const fileRef = ref(storage, `avatars/${uid}.jpg`);
