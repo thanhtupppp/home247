@@ -25,6 +25,17 @@ import {
 } from './ai/schemas';
 import { checkAndIncrementQuota } from './ai/rateLimit';
 import { runInvoicesMigration } from './migrations/invoices';
+import { z } from 'zod';
+
+/**
+ * Zod Schema for chat history validation
+ */
+const historyMessageSchema = z.object({
+  role: z.enum(['user', 'assistant']),
+  content: z.string().min(1, "Nội dung tin nhắn không được trống").max(4000, "Nội dung tin nhắn tối đa 4000 ký tự"),
+});
+
+const historySchema = z.array(historyMessageSchema).max(20, "Lịch sử tối đa 20 tin nhắn");
 
 /**
  * Helper to check authenticated caller
@@ -62,12 +73,14 @@ function handleAIError(err: any, defaultMsg: string): never {
 export const migrateOldInvoices = functions.region('asia-east1').https.onCall(async (data, context) => {
   const uid = verifyAuth(context);
   const dryRun = !!data?.dryRun;
+  const limit = Number(data?.limit) || 200;
+  const startAfterId = data?.startAfterId ? String(data.startAfterId) : undefined;
 
   try {
     // Apply quota to prevent continuous runs (max 2 per day)
     await checkAndIncrementQuota(uid, 'migration');
 
-    const result = await runInvoicesMigration(uid, dryRun);
+    const result = await runInvoicesMigration(uid, limit, startAfterId, dryRun);
     return result;
   } catch (err: any) {
     handleAIError(err, 'Lỗi trong quá trình di cư dữ liệu hóa đơn.');
@@ -325,10 +338,13 @@ export const runAIAgent = functions.region('asia-east1').https.onCall(async (dat
     // 1. Quota check
     await checkAndIncrementQuota(uid, 'chat');
 
-    // Sanitize conversation history: only allow user & assistant messages, cap at 20 for rate limits / token budget
-    const cleanHistory = history
-      .filter((msg: any) => msg && (msg.role === 'user' || msg.role === 'assistant'))
-      .slice(-20);
+    // Sanitize and strictly validate history using Zod Schema to block structural injections
+    const validation = historySchema.safeParse(history);
+    if (!validation.success) {
+      functions.logger.error('History validation failed:', validation.error.format());
+      throw new functions.https.HttpsError('invalid-argument', 'Lịch sử cuộc hội thoại không đúng định dạng hợp lệ.');
+    }
+    const cleanHistory = validation.data;
 
     const messages: ChatMessage[] = [
       { role: 'system', content: SYSTEM_AGENT_PROMPT },

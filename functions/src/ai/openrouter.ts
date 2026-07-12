@@ -54,7 +54,6 @@ export async function callOpenRouter(
     // Enable privacy, zero data retention policies on provider
     provider: {
       data_collection: 'deny',
-      zdr: true,
     }
   };
 

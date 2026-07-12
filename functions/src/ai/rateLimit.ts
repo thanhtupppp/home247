@@ -19,8 +19,12 @@ export async function checkAndIncrementQuota(
   uid: string,
   feature: keyof typeof QUOTA_LIMITS
 ): Promise<void> {
-  // Get date in GTM+7 / Local format or safe ISO UTC string
-  const todayStr = new Date().toISOString().split('T')[0]; // yyyy-MM-dd
+  const todayStr = new Intl.DateTimeFormat('en-CA', {
+    timeZone: 'Asia/Ho_Chi_Minh',
+    year: 'numeric',
+    month: '2-digit',
+    day: '2-digit',
+  }).format(new Date());
   
   const docRef = db
     .collection('aiUsage')

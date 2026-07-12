@@ -20,8 +20,17 @@ export interface DashboardProps {
   readonly className?: string;
 }
 
-let cachedAiSummary = '';
-let cachedAiSummaryTime = 0;
+type AiSummaryCache = {
+  uid: string;
+  summary: string;
+  cachedAt: number;
+};
+
+let aiSummaryCache: AiSummaryCache | null = null;
+
+const clearAiSummaryCache = () => {
+  aiSummaryCache = null;
+};
 
 export const Dashboard: React.FC<DashboardProps> = () => {
   const navigation = useNavigation<any>();
@@ -58,9 +67,12 @@ export const Dashboard: React.FC<DashboardProps> = () => {
   const [sendingChat, setSendingChat] = React.useState(false);
 
   const fetchAISummary = React.useCallback(async (forceRefresh = false) => {
+    const uid = auth.currentUser?.uid;
+    if (!uid) return;
+
     const now = Date.now();
-    if (!forceRefresh && cachedAiSummary && (now - cachedAiSummaryTime < 10 * 60 * 1000)) {
-      setAiSummary(cachedAiSummary);
+    if (!forceRefresh && aiSummaryCache && aiSummaryCache.uid === uid && (now - aiSummaryCache.cachedAt < 10 * 60 * 1000)) {
+      setAiSummary(aiSummaryCache.summary);
       return;
     }
     try {
@@ -70,8 +82,11 @@ export const Dashboard: React.FC<DashboardProps> = () => {
       const resData = res.data as any;
       const newSummary = resData.summary || 'Không thể tạo tóm tắt vận hành.';
       setAiSummary(newSummary);
-      cachedAiSummary = newSummary;
-      cachedAiSummaryTime = now;
+      aiSummaryCache = {
+        uid,
+        summary: newSummary,
+        cachedAt: now
+      };
     } catch (err: any) {
       console.error('Error fetching AI summary:', err);
       if (err.message && err.message.includes('resource-exhausted')) {
@@ -121,6 +136,16 @@ export const Dashboard: React.FC<DashboardProps> = () => {
       fetchAISummary(false);
     }
   }, [isFocused, fetchAISummary]);
+
+  React.useEffect(() => {
+    const unsubscribe = auth.onAuthStateChanged((user) => {
+      if (!user) {
+        setAiSummary('');
+        clearAiSummaryCache();
+      }
+    });
+    return unsubscribe;
+  }, []);
 
   const loadAdminName = async () => {
     try {
