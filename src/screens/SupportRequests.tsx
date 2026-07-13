@@ -7,8 +7,8 @@ import { useNavigation, useIsFocused } from '@react-navigation/native';
 import { MaterialIcons } from '@expo/vector-icons';
 import { theme } from '../theme';
 import { collection, getDocs, doc, updateDoc, addDoc, query, orderBy, deleteDoc, where } from 'firebase/firestore';
-import { db, auth, functions } from '../firebase';
-import { httpsCallable } from 'firebase/functions';
+import { db, auth } from '../firebase';
+import { api } from '../api/client';
 
 interface SupportRequest {
   id: string;
@@ -45,9 +45,7 @@ export const SupportRequests: React.FC = () => {
   const handleAnalyzeTicket = async (id: string) => {
     try {
       setAnalyzingIds(prev => ({ ...prev, [id]: true }));
-      const processTicket = httpsCallable(functions, 'processSupportRequest');
-      const res = await processTicket({ ticketId: id });
-      const resData = res.data as any;
+      const resData = await api.processSupportRequest(id);
       setAiAnalysis(prev => ({ ...prev, [id]: resData }));
     } catch (err) {
       console.error('Error analyzing ticket:', err);

@@ -12,6 +12,8 @@ import Dashboard from './src/screens/Dashboard';
 import RoomsManagement from './src/screens/RoomsManagement';
 import InvoicesList from './src/screens/InvoicesList';
 import GenericScreen from './src/screens/GenericScreen';
+import ContractFilter from './src/screens/ContractFilter';
+import TransactionHistory from './src/screens/TransactionHistory';
 import UtilityManagement from './src/screens/UtilityManagement';
 import UtilityRecording from './src/screens/UtilityRecording';
 import CreateInvoice from './src/screens/CreateInvoice';
@@ -137,15 +139,7 @@ export function App() {
           <Stack.Screen name="hop-dong" component={ContractsList} />
           <Stack.Screen name="hop-dong/chi-tiet" component={ContractDetail} />
 
-          <Stack.Screen name="hop-dong/loc">
-            {() => (
-              <GenericScreen 
-                title="Bộ lọc Hợp đồng" 
-                type="contract" 
-                description="Tìm kiếm và chọn lọc hợp đồng thuê phòng theo trạng thái, ngày bắt đầu/kết thúc." 
-              />
-            )}
-          </Stack.Screen>
+          <Stack.Screen name="hop-dong/loc" component={ContractFilter} />
 
           <Stack.Screen name="hop-dong/moi" component={CreateContract} />
 
@@ -153,15 +147,7 @@ export function App() {
 
           <Stack.Screen name="thong-ke" component={StatisticsScreen} />
 
-          <Stack.Screen name="giao-dich">
-            {() => (
-              <GenericScreen 
-                title="Lịch sử Giao dịch" 
-                type="stats" 
-                description="Lịch sử chi tiết các giao dịch đóng tiền phòng, chuyển khoản của khách thuê." 
-              />
-            )}
-          </Stack.Screen>
+          <Stack.Screen name="giao-dich" component={TransactionHistory} />
 
           <Stack.Screen name="khach-thue">
             {() => (

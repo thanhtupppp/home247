@@ -5,14 +5,41 @@
     "version": "1.0.0",
     "orientation": "portrait",
     "userInterfaceStyle": "light",
+    "icon": "./assets/icon.png",
+    "splash": {
+      "image": "./assets/splash.png",
+      "resizeMode": "contain",
+      "backgroundColor": "#1A1A2E"
+    },
     "android": {
-      "package": "com.home247.propertymanagement"
+      "package": "com.home247.propertymanagement",
+      "versionCode": 1,
+      "adaptiveIcon": {
+        "foregroundImage": "./assets/adaptive-icon.png",
+        "backgroundColor": "#1A1A2E"
+      },
+      "permissions": [
+        "android.permission.CAMERA",
+        "android.permission.READ_EXTERNAL_STORAGE",
+        "android.permission.WRITE_EXTERNAL_STORAGE",
+        "android.permission.INTERNET"
+      ]
     },
     "plugins": [
       "expo-asset",
       "expo-status-bar",
       "@react-native-community/datetimepicker",
-      "expo-sharing"
-    ]
+      "expo-sharing",
+      [
+        "expo-image-picker",
+        {
+          "photosPermission": "Ứng dụng cần quyền truy cập ảnh để chụp công tơ điện nước.",
+          "cameraPermission": "Ứng dụng cần quyền camera để chụp công tơ điện nước và hợp đồng."
+        }
+      ]
+    ],
+    "extra": {
+      "eas": {}
+    }
   }
 }

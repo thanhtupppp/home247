@@ -5,8 +5,8 @@ import { MaterialIcons } from '@expo/vector-icons';
 import { theme } from '../theme';
 import { mockRooms } from '../data/mockData';
 import { doc, getDoc, setDoc, writeBatch, collection, query, where, getDocs } from 'firebase/firestore';
-import { db, auth, functions } from '../firebase';
-import { httpsCallable } from 'firebase/functions';
+import { db, auth } from '../firebase';
+import { api } from '../api/client';
 import * as ImagePicker from 'expo-image-picker';
 
 const getPreviousMonth = (monthStr: string): string => {
@@ -81,12 +81,10 @@ export const UtilityRecording: React.FC = () => {
       if (type === 'electricity') setScanningElectric(true);
       else setScanningWater(true);
 
-      const ocrMeter = httpsCallable(functions, 'ocrUtilityMeter');
-      const res = await ocrMeter({
-        imageBase64: result.assets[0].base64,
-        type: type === 'electricity' ? 'điện' : 'nước'
-      });
-      const resData = res.data as any;
+      const resData = await api.ocrUtilityMeter(
+        result.assets[0].base64,
+        type === 'electricity' ? 'diện' : 'nước'
+      );
 
       if (resData.reading !== undefined) {
         Alert.alert(

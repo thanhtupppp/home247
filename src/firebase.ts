@@ -3,7 +3,6 @@ import { initializeApp, getApps, getApp } from 'firebase/app';
 import { initializeAuth, getReactNativePersistence, getAuth } from 'firebase/auth';
 import { getFirestore } from 'firebase/firestore';
 import { getStorage } from 'firebase/storage';
-import { getFunctions, connectFunctionsEmulator } from 'firebase/functions';
 import ReactNativeAsyncStorage from '@react-native-async-storage/async-storage';
 
 if (!process.env.EXPO_PUBLIC_FIREBASE_API_KEY) {
@@ -30,10 +29,4 @@ export const auth = alreadyInitialized
 
 export const db = getFirestore(app);
 export const storage = getStorage(app);
-export const functions = getFunctions(app, 'asia-east1');
-
-if (__DEV__) {
-  const host = process.env.EXPO_PUBLIC_EMULATOR_HOST || '192.168.2.6';
-  connectFunctionsEmulator(functions, host, 5001);
-}
 // Firebase app initialized.

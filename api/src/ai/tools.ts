@@ -1,0 +1,162 @@
+import {
+  getOverdueInvoices,
+  getExpiringContracts,
+  getLandlordSupportRequests,
+  getLandlordBuildings,
+  getLandlordRooms,
+  getLandlordContracts,
+  getLandlordTenants,
+  getAllLandlordInvoices,
+  getAllLandlordUtilityReadings,
+  getLandlordServices,
+  getLandlordDevices,
+} from '../firestore/queries';
+
+export const agentTools = [
+  {
+    type: 'function',
+    function: {
+      name: 'get_overdue_invoices',
+      description: 'Lấy danh sách các hóa đơn quá hạn (chờ thanh toán và quá ngày hạn thanh toán) của chủ nhà.',
+      parameters: {
+        type: 'object',
+        properties: {
+          buildingId: { type: 'string', description: 'Lọc hóa đơn theo ID tòa nhà (tùy chọn)' },
+        },
+      },
+    },
+  },
+  {
+    type: 'function',
+    function: {
+      name: 'get_expiring_contracts',
+      description: 'Lấy danh sách các hợp đồng thuê phòng sắp hết hạn trong vòng 30 ngày tới.',
+      parameters: { type: 'object', properties: {} },
+    },
+  },
+  {
+    type: 'function',
+    function: {
+      name: 'get_open_support_requests',
+      description: 'Lấy danh sách các phản ánh/yêu cầu sửa chữa đang ở trạng thái chờ xử lý (pending).',
+      parameters: { type: 'object', properties: {} },
+    },
+  },
+  {
+    type: 'function',
+    function: {
+      name: 'get_buildings_and_rooms',
+      description: 'Lấy danh sách tất cả tòa nhà và phòng trọ kèm trạng thái trống/đang ở.',
+      parameters: { type: 'object', properties: {} },
+    },
+  },
+  {
+    type: 'function',
+    function: {
+      name: 'get_tenants_and_contracts',
+      description: 'Lấy danh sách tất cả cư dân và hợp đồng thuê phòng.',
+      parameters: { type: 'object', properties: {} },
+    },
+  },
+  {
+    type: 'function',
+    function: {
+      name: 'get_all_invoices',
+      description: 'Lấy tất cả các hóa đơn (đã thanh toán và chưa thanh toán) để đối soát doanh thu.',
+      parameters: { type: 'object', properties: {} },
+    },
+  },
+  {
+    type: 'function',
+    function: {
+      name: 'get_utility_readings',
+      description: 'Lấy lịch sử chốt chỉ số điện/nước của tất cả các phòng trọ.',
+      parameters: { type: 'object', properties: {} },
+    },
+  },
+  {
+    type: 'function',
+    function: {
+      name: 'get_services',
+      description: 'Lấy cấu hình bảng giá các dịch vụ (điện, nước, rác, internet...) của từng tòa nhà.',
+      parameters: { type: 'object', properties: {} },
+    },
+  },
+  {
+    type: 'function',
+    function: {
+      name: 'get_devices',
+      description: 'Lấy danh sách các thiết bị (công tơ thông minh, khóa cửa...) được lắp đặt tại các phòng.',
+      parameters: { type: 'object', properties: {} },
+    },
+  },
+];
+
+export async function executeTool(name: string, args: any, ownerId: string): Promise<any> {
+  try {
+    switch (name) {
+      case 'get_overdue_invoices': {
+        const invoices = await getOverdueInvoices(ownerId);
+        const filtered = args.buildingId ? invoices.filter((i: any) => i.buildingId === args.buildingId) : invoices;
+        return filtered.map((i: any) => ({
+          id: i.id, roomCode: i.roomCode, buildingName: i.buildingName,
+          month: i.month, amount: i.amount,
+          dueDate: i.dueDate ? (i.dueDate.toDate ? i.dueDate.toDate().toISOString() : i.dueDate) : null,
+        }));
+      }
+      case 'get_expiring_contracts': {
+        const contracts = await getExpiringContracts(ownerId, 30);
+        return contracts.map((c: any) => ({ id: c.id, roomCode: c.roomCode, buildingName: c.buildingName, endDate: c.endDate, diffDays: c.diffDays }));
+      }
+      case 'get_open_support_requests': {
+        const requests = await getLandlordSupportRequests(ownerId);
+        return requests.map((r: any) => ({ id: r.id, title: r.title, description: r.description, level: r.level, roomCode: r.roomCode, buildingName: r.buildingName, status: r.status }));
+      }
+      case 'get_buildings_and_rooms': {
+        const buildings = await getLandlordBuildings(ownerId);
+        const rooms = await getLandlordRooms(ownerId);
+        return {
+          buildings: buildings.map((b: any) => ({ id: b.id, name: b.name })),
+          rooms: rooms.map((r: any) => ({ id: r.id, code: r.code, buildingId: r.buildingId, status: r.status })),
+        };
+      }
+      case 'get_tenants_and_contracts': {
+        const tenants = await getLandlordTenants(ownerId);
+        const contracts = await getLandlordContracts(ownerId);
+        return {
+          tenants: tenants.map((t: any) => ({ id: t.id, fullName: t.fullName, phoneNumber: t.phoneNumber, email: t.email, roomCode: t.roomCode, buildingName: t.buildingName, status: t.status })),
+          contracts: contracts.map((c: any) => ({ id: c.id, tenantName: c.tenantName, phoneNumber: c.phoneNumber, roomCode: c.roomCode, buildingName: c.buildingName, rentPrice: c.rentPrice, startDate: c.startDate, endDate: c.endDate, status: c.status })),
+        };
+      }
+      case 'get_all_invoices': {
+        const invoices = await getAllLandlordInvoices(ownerId);
+        return invoices.map((i: any) => ({
+          id: i.id, roomCode: i.roomCode, buildingName: i.buildingName,
+          month: i.month, amount: i.amount, status: i.status,
+          dueDate: i.dueDate ? (i.dueDate.toDate ? i.dueDate.toDate().toISOString() : i.dueDate) : null,
+        }));
+      }
+      case 'get_utility_readings': {
+        const readings = await getAllLandlordUtilityReadings(ownerId);
+        return readings.map((r: any) => ({
+          id: r.id, roomCode: r.roomCode, buildingName: r.buildingName, month: r.month,
+          electricOld: r.electricOld, electricNew: r.electricNew,
+          waterOld: r.waterOld, waterNew: r.waterNew,
+          createdAt: r.createdAt ? (r.createdAt.toDate ? r.createdAt.toDate().toISOString() : r.createdAt) : null,
+        }));
+      }
+      case 'get_services': {
+        const services = await getLandlordServices(ownerId);
+        return services.map((s: any) => ({ id: s.id, name: s.name, type: s.type, price: s.price, unit: s.unit, buildingId: s.buildingId, buildingName: s.buildingName }));
+      }
+      case 'get_devices': {
+        const devices = await getLandlordDevices(ownerId);
+        return devices.map((d: any) => ({ id: d.id, name: d.name, type: d.type, roomCode: d.roomCode, buildingName: d.buildingName, status: d.status }));
+      }
+      default:
+        throw new Error(`Tool not found: ${name}`);
+    }
+  } catch (err: any) {
+    return { error: err.message || 'Error executing tool' };
+  }
+}

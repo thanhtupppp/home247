@@ -12,8 +12,8 @@ import AlertItem from '../components/AlertItem';
 import TransactionTable from '../components/TransactionTable';
 import { theme } from '../theme';
 import { doc, getDoc, getDocs, collection, query, where, limit } from 'firebase/firestore';
-import { db, auth, functions } from '../firebase';
-import { httpsCallable } from 'firebase/functions';
+import { db, auth } from '../firebase';
+import { api } from '../api/client';
 import { Image } from 'expo-image';
 
 export interface DashboardProps {
@@ -86,10 +86,8 @@ export const Dashboard: React.FC<DashboardProps> = () => {
     }
     try {
       setLoadingSummary(true);
-      const getSummary = httpsCallable(functions, 'getAISummary');
-      const res = await getSummary();
-      const resData = res.data as any;
-      const newSummary = resData.summary || 'Không thể tạo tóm tắt vận hành.';
+      const res = await api.getAISummary();
+      const newSummary = res.summary || 'Không thể tạo tóm tắt vận hành.';
       setAiSummary(newSummary);
       aiSummaryCache = {
         uid,
@@ -119,16 +117,11 @@ export const Dashboard: React.FC<DashboardProps> = () => {
     
     try {
       setSendingChat(true);
-      const runAgent = httpsCallable(functions, 'runAIAgent');
-      const res = await runAgent({ 
-        userMessage: userMsg, 
-        history: chatMessages 
-      });
-      const resData = res.data as any;
+      const res = await api.runAIAgent(userMsg, chatMessages);
       
       // Update with agent's response and conversation history
-      if (resData.content) {
-        setChatMessages([...newMsgList, { role: 'assistant', content: resData.content }]);
+      if (res.content) {
+        setChatMessages([...newMsgList, { role: 'assistant', content: res.content }]);
       }
     } catch (err) {
       console.error('Error in AI Chat Agent:', err);

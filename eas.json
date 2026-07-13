@@ -1,0 +1,47 @@
+{
+  "cli": {
+    "version": ">= 16.0.0",
+    "appVersionSource": "local"
+  },
+  "build": {
+    "development": {
+      "distribution": "internal",
+      "android": {
+        "buildType": "apk",
+        "gradleCommand": ":app:assembleDebug"
+      }
+    },
+    "preview": {
+      "distribution": "internal",
+      "android": {
+        "buildType": "apk"
+      },
+      "env": {
+        "EXPO_PUBLIC_API_URL": "https://home247-api.vercel.app",
+        "EXPO_PUBLIC_FIREBASE_API_KEY": "AIzaSyBHufPVJ661aGcp-AEaxX1KvkuyNz5nbbE",
+        "EXPO_PUBLIC_FIREBASE_AUTH_DOMAIN": "home247.firebaseapp.com",
+        "EXPO_PUBLIC_FIREBASE_PROJECT_ID": "home247",
+        "EXPO_PUBLIC_FIREBASE_STORAGE_BUCKET": "home247.firebasestorage.app",
+        "EXPO_PUBLIC_FIREBASE_MESSAGING_SENDER_ID": "530902362759",
+        "EXPO_PUBLIC_FIREBASE_APP_ID": "1:530902362759:android:83df6bfe7334722d8ee622"
+      }
+    },
+    "production": {
+      "android": {
+        "buildType": "apk"
+      },
+      "env": {
+        "EXPO_PUBLIC_API_URL": "https://home247-api.vercel.app",
+        "EXPO_PUBLIC_FIREBASE_API_KEY": "AIzaSyBHufPVJ661aGcp-AEaxX1KvkuyNz5nbbE",
+        "EXPO_PUBLIC_FIREBASE_AUTH_DOMAIN": "home247.firebaseapp.com",
+        "EXPO_PUBLIC_FIREBASE_PROJECT_ID": "home247",
+        "EXPO_PUBLIC_FIREBASE_STORAGE_BUCKET": "home247.firebasestorage.app",
+        "EXPO_PUBLIC_FIREBASE_MESSAGING_SENDER_ID": "530902362759",
+        "EXPO_PUBLIC_FIREBASE_APP_ID": "1:530902362759:android:83df6bfe7334722d8ee622"
+      }
+    }
+  },
+  "submit": {
+    "production": {}
+  }
+}

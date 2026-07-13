@@ -9,8 +9,8 @@ import DateTimePicker from '@react-native-community/datetimepicker';
 import { theme } from '../theme';
 import * as ImagePicker from 'expo-image-picker';
 import { collection, addDoc, getDocs, query, where, orderBy, doc, updateDoc, runTransaction } from 'firebase/firestore';
-import { db, auth, functions } from '../firebase';
-import { httpsCallable } from 'firebase/functions';
+import { db, auth } from '../firebase';
+import { api } from '../api/client';
 import { Image } from 'expo-image';
 
 interface Building {
@@ -106,9 +106,7 @@ export const CreateContract: React.FC = () => {
 
     try {
       setScanningContract(true);
-      const scanner = httpsCallable(functions, 'summarizeContract');
-      const res = await scanner({ contractDocBase64: result.assets[0].base64 });
-      const resData = res.data as any;
+      const resData = await api.summarizeContract(result.assets[0].base64);
 
       if (resData) {
         Alert.alert(
