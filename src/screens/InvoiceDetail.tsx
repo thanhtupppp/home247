@@ -136,18 +136,14 @@ export const InvoiceDetail: React.FC = () => {
       if (invoice.lineItems && invoice.lineItems.length > 0) {
         invoice.lineItems.forEach(item => {
           const itemAmount = (item.amount || 0).toLocaleString('vi-VN');
-          if (item.type === 'electricity' || item.type === 'water') {
-            message += `- ${item.name}: ${itemAmount} đ\n`;
-          } else {
-            message += `- ${item.name}: ${itemAmount} đ\n`;
-          }
+          message += `- ${item.name}: ${itemAmount} đ\n`;
         });
       } else {
         message += `- Tổng tiền thanh toán: ${invoice.amount.toLocaleString('vi-VN')} đ\n`;
       }
 
       message += `--------------------------------------\n`;
-      message += `Tổng cộng số tiền: ${invoice.amount.toLocaleString('vi-VN')} đ\n`;
+      message += `Tổng cộng: ${invoice.amount.toLocaleString('vi-VN')} đ\n`;
 
       if (bankAccount) {
         const rawMemo = `Thanh toan phong ${invoice.roomCode} thang ${invoice.month.replace('/', '-')}`;
@@ -170,6 +166,97 @@ export const InvoiceDetail: React.FC = () => {
       });
     } catch (err: any) {
       console.error('Error sharing invoice:', err);
+    }
+  };
+
+  // Remind payment before due date (polite reminder)
+  const handleRemindPayment = async () => {
+    if (!invoice) return;
+    try {
+      let dueDateText = 'trong thời gian sớm nhất';
+      if (invoice.dueDate) {
+        const dateObj = invoice.dueDate.toDate ? invoice.dueDate.toDate() : new Date(invoice.dueDate);
+        const dd = String(dateObj.getDate()).padStart(2, '0');
+        const mm = String(dateObj.getMonth() + 1).padStart(2, '0');
+        const yyyy = dateObj.getFullYear();
+        dueDateText = `trước ngày ${dd}/${mm}/${yyyy}`;
+      }
+
+      let message = `Xin chào bạn,\n\n`;
+      message += `Đây là thông báo nhắc nhở từ chủ nhà về hóa đơn tiền phòng tháng ${invoice.month} của phòng ${invoice.roomCode}.\n\n`;
+      message += `Số tiền cần thanh toán: ${invoice.amount.toLocaleString('vi-VN')} đ\n`;
+      message += `Hạn thanh toán: ${dueDateText}\n\n`;
+
+      if (bankAccount) {
+        const rawMemo = `Thanh toan phong ${invoice.roomCode} thang ${invoice.month.replace('/', '-')}`;
+        const cleanMemo = removeVietnameseTones(rawMemo);
+        const qrUrl = `https://img.vietqr.io/image/${bankAccount.bin}-${bankAccount.accountNumber}-compact2.png?amount=${invoice.amount}&addInfo=${encodeURIComponent(cleanMemo)}&accountName=${encodeURIComponent(bankAccount.ownerName)}`;
+        message += `Thông tin chuyển khoản:\n`;
+        message += `- Ngân hàng: ${bankAccount.bankName}\n`;
+        message += `- Số TK: ${bankAccount.accountNumber}\n`;
+        message += `- Chủ TK: ${bankAccount.ownerName}\n`;
+        message += `- Nội dung CK: ${cleanMemo}\n\n`;
+        message += `Quét mã QR để thanh toán nhanh:\n${qrUrl}\n\n`;
+      }
+
+      message += `Bạn vui lòng thanh toán ${dueDateText} để tránh phát sinh phí trễ hạn.\n`;
+      message += `Cảm ơn bạn đã hợp tác!`;
+
+      await Share.share({
+        message,
+        title: `Nhắc thanh toán - Phòng ${invoice.roomCode}`,
+      });
+    } catch (err: any) {
+      console.error('Error sending payment reminder:', err);
+    }
+  };
+
+  // Overdue reminder (firm notice)
+  const handleRemindOverdue = async () => {
+    if (!invoice) return;
+    try {
+      let overdueDays = 0;
+      let dueDateText = '';
+      if (invoice.dueDate) {
+        const dateObj = invoice.dueDate.toDate ? invoice.dueDate.toDate() : new Date(invoice.dueDate);
+        const now = new Date();
+        overdueDays = Math.max(0, Math.floor((now.getTime() - dateObj.getTime()) / (1000 * 60 * 60 * 24)));
+        const dd = String(dateObj.getDate()).padStart(2, '0');
+        const mm = String(dateObj.getMonth() + 1).padStart(2, '0');
+        const yyyy = dateObj.getFullYear();
+        dueDateText = `${dd}/${mm}/${yyyy}`;
+      }
+
+      let message = `THÔNG BÁO NHẮC NỢ QUÁ HẠN\n`;
+      message += `==============================\n\n`;
+      message += `Kính gửi khách thuê phòng ${invoice.roomCode},\n\n`;
+      message += `Hóa đơn tiền phòng tháng ${invoice.month} của bạn đã QUÁ HẠN THANH TOÁN`;
+      if (dueDateText) message += ` (hạn: ${dueDateText})`;
+      if (overdueDays > 0) message += ` - hiện đã trễ ${overdueDays} ngày`;
+      message += `.\n\n`;
+      message += `Số tiền còn nợ: ${invoice.amount.toLocaleString('vi-VN')} đ\n\n`;
+
+      if (bankAccount) {
+        const rawMemo = `Thanh toan phong ${invoice.roomCode} thang ${invoice.month.replace('/', '-')}`;
+        const cleanMemo = removeVietnameseTones(rawMemo);
+        const qrUrl = `https://img.vietqr.io/image/${bankAccount.bin}-${bankAccount.accountNumber}-compact2.png?amount=${invoice.amount}&addInfo=${encodeURIComponent(cleanMemo)}&accountName=${encodeURIComponent(bankAccount.ownerName)}`;
+        message += `Vui lòng chuyển khoản ngay:\n`;
+        message += `- Ngân hàng: ${bankAccount.bankName}\n`;
+        message += `- Số TK: ${bankAccount.accountNumber}\n`;
+        message += `- Chủ TK: ${bankAccount.ownerName}\n`;
+        message += `- Nội dung CK: ${cleanMemo}\n\n`;
+        message += `Quét mã QR để thanh toán ngay:\n${qrUrl}\n\n`;
+      }
+
+      message += `Nếu bạn đã thanh toán, vui lòng bỏ qua thông báo này và gửi xác nhận cho chủ nhà.\n`;
+      message += `Trân trọng!`;
+
+      await Share.share({
+        message,
+        title: `Nhắc nợ quá hạn - Phòng ${invoice.roomCode}`,
+      });
+    } catch (err: any) {
+      console.error('Error sending overdue reminder:', err);
     }
   };
 
@@ -336,27 +423,48 @@ export const InvoiceDetail: React.FC = () => {
 
       {/* Bottom Action Bar */}
       <View style={styles.bottomBar}>
-        <Pressable onPress={handleShare} style={styles.shareBtn}>
-          <MaterialIcons name="share" size={20} color={theme.colors.primary} />
-          <Text style={styles.shareBtnText}>Gửi hóa đơn</Text>
-        </Pressable>
-
+        {/* Row 1: Reminder buttons (only for pending/overdue) */}
         {invoice.status !== 'success' && (
-          <Pressable 
-            onPress={handleMarkAsPaid} 
-            disabled={updating}
-            style={[styles.payBtn, updating && { opacity: 0.7 }]}
-          >
-            {updating ? (
-              <ActivityIndicator size="small" color={theme.colors.onPrimary} />
-            ) : (
-              <>
-                <MaterialIcons name="check-circle" size={20} color={theme.colors.onPrimary} />
-                <Text style={styles.payBtnText}>Đánh dấu đã thu</Text>
-              </>
-            )}
-          </Pressable>
+          <View style={styles.reminderRow}>
+            <Pressable onPress={handleRemindPayment} style={styles.remindBtn}>
+              <MaterialIcons name="notifications" size={17} color="#d97706" />
+              <Text style={styles.remindBtnText}>Nhắc thanh toán</Text>
+            </Pressable>
+
+            <Pressable
+              onPress={handleRemindOverdue}
+              style={[styles.remindBtn, styles.remindOverdueBtn]}
+            >
+              <MaterialIcons name="warning" size={17} color="#dc2626" />
+              <Text style={[styles.remindBtnText, { color: '#dc2626' }]}>Nhắc nợ quá hạn</Text>
+            </Pressable>
+          </View>
         )}
+
+        {/* Row 2: Share + Mark as Paid */}
+        <View style={styles.actionRow}>
+          <Pressable onPress={handleShare} style={styles.shareBtn}>
+            <MaterialIcons name="share" size={20} color={theme.colors.primary} />
+            <Text style={styles.shareBtnText}>Gửi hóa đơn</Text>
+          </Pressable>
+
+          {invoice.status !== 'success' && (
+            <Pressable
+              onPress={handleMarkAsPaid}
+              disabled={updating}
+              style={[styles.payBtn, updating && { opacity: 0.7 }]}
+            >
+              {updating ? (
+                <ActivityIndicator size="small" color={theme.colors.onPrimary} />
+              ) : (
+                <>
+                  <MaterialIcons name="check-circle" size={20} color={theme.colors.onPrimary} />
+                  <Text style={styles.payBtnText}>Đánh dấu đã thu</Text>
+                </>
+              )}
+            </Pressable>
+          )}
+        </View>
       </View>
     </View>
   );
@@ -686,19 +794,49 @@ const styles = StyleSheet.create({
     bottom: 0,
     left: 0,
     right: 0,
-    flexDirection: 'row',
+    flexDirection: 'column',
     backgroundColor: theme.colors.surfaceContainerLowest,
     borderTopWidth: 1,
     borderTopColor: theme.colors.outlineVariant,
     paddingHorizontal: theme.spacing.marginMobile,
-    paddingVertical: 14,
-    gap: 12,
+    paddingTop: 10,
+    paddingBottom: 16,
+    gap: 8,
+  },
+  reminderRow: {
+    flexDirection: 'row',
+    gap: 8,
+  },
+  remindBtn: {
+    flex: 1,
+    flexDirection: 'row',
+    height: 40,
+    borderWidth: 1,
+    borderColor: '#fbbf24',
+    borderRadius: theme.borderRadius.lg,
+    justifyContent: 'center',
+    alignItems: 'center',
+    gap: 5,
+    backgroundColor: '#fffbeb',
+  },
+  remindOverdueBtn: {
+    borderColor: '#fca5a5',
+    backgroundColor: '#fff1f2',
+  },
+  remindBtnText: {
+    color: '#d97706',
+    fontWeight: '600',
+    fontSize: 13,
+  },
+  actionRow: {
+    flexDirection: 'row',
+    gap: 10,
     alignItems: 'center',
   },
   shareBtn: {
     flex: 1,
     flexDirection: 'row',
-    height: 48,
+    height: 46,
     borderWidth: 1,
     borderColor: theme.colors.primary,
     borderRadius: theme.borderRadius.full,
@@ -715,7 +853,7 @@ const styles = StyleSheet.create({
   payBtn: {
     flex: 1.2,
     flexDirection: 'row',
-    height: 48,
+    height: 46,
     backgroundColor: theme.colors.primary,
     borderRadius: theme.borderRadius.full,
     justifyContent: 'center',

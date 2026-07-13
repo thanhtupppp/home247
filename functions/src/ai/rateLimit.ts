@@ -3,12 +3,12 @@ import { FieldValue } from 'firebase-admin/firestore';
 
 // Unified limits per user ID (uid) per day
 const QUOTA_LIMITS = {
-  summary: 20,
+  summary: 100,
   chat: 100,
   ocr: 50,
-  contract: 20,
+  contract: 100,
   ticket: 100,
-  migration: 20, // Increased for transition phase paging support
+  migration: 100,
 };
 
 /**
